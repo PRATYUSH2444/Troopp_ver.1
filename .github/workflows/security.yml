@@ -1,0 +1,31 @@
+name: Security Dependency Audit Workflow
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  audit:
+    name: Run npm audit check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository files
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Run audit for server packages
+        run: |
+          cd troopp-server
+          npm audit --audit-level=high
+
+      - name: Run audit for client packages
+        run: |
+          cd troopp-client
+          npm audit --audit-level=high

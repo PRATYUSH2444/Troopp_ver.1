@@ -1,0 +1,1016 @@
+/* Outer Container with negative space composition */
+.showcase-outer-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 40px;
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+/* Dynamic ambient color light blob */
+.showcase-ambient-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 106, 44, 0.1) 0%, rgba(79, 190, 142, 0.08) 50%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Smartphone wrapping structure */
+.phone-showcase-wrapper {
+  position: relative;
+  z-index: 5;
+  perspective: 1000px;
+}
+
+/* -----------------------------------------
+   PHONE FRAME STYLING
+----------------------------------------- */
+.phone-device-container {
+  position: relative;
+  width: 270px;
+  height: 550px;
+  border-radius: 40px;
+  background: #090c0f;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.6), 
+    0 0 40px rgba(0, 0, 0, 0.4),
+    0 0 1px rgba(255, 255, 255, 0.2) inset;
+  padding: 10px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Outer metal casing border */
+.phone-metallic-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: 40px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Bezel around screen */
+.phone-bezel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 32px;
+  background: #0d1216;
+  border: 4px solid #000;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dynamic Island */
+.phone-dynamic-island {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 85px;
+  height: 22px;
+  border-radius: 20px;
+  background: #000;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  box-sizing: border-box;
+  justify-content: flex-end;
+}
+
+.island-camera {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0d1216;
+  opacity: 0.8;
+}
+
+/* Display overlay shine */
+.phone-glass-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: 40px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* Display container */
+.phone-display {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #0b0f12;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 42px 16px 16px; /* Top padding clears dynamic island */
+}
+
+/* -----------------------------------------
+   SCREEN LAYOUT & COMMONS
+----------------------------------------- */
+.phone-screen-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen-layout-vertical {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.justify-space-between {
+  justify-content: space-between;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.app-screen-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding-bottom: 8px;
+}
+
+.app-title-sm {
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'Space Grotesk', sans-serif;
+  color: #f3f1ea;
+  letter-spacing: -0.01em;
+}
+
+/* -----------------------------------------
+   SCREEN 1: SECURITY GATEWAY
+----------------------------------------- */
+.face-scan-box {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 10px auto;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.face-scan-laser {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ff6a2c, transparent);
+  box-shadow: 0 0 8px #ff6a2c;
+  z-index: 2;
+}
+
+.face-shape-outline {
+  position: relative;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+.progress-section-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+.ring-container {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-ring-svg {
+  transform: rotate(-90deg);
+}
+
+.ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.04);
+  stroke-width: 3.5px;
+}
+
+.ring-bar-emerald {
+  fill: none;
+  stroke: #4fbe8e;
+  stroke-width: 3.5px;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.1s linear;
+}
+
+.ring-text-overlay {
+  position: absolute;
+  font-size: 10px;
+  font-weight: 800;
+  color: #4fbe8e;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.progress-text-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-title-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f3f1ea;
+}
+
+.progress-desc-text {
+  font-size: 10px;
+  color: #9ba6ad;
+  margin-top: 1px;
+}
+
+.screen-success-pill {
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(79, 190, 142, 0.1);
+  border: 1px solid rgba(79, 190, 142, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+.success-badge-icon {
+  color: #4fbe8e;
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.success-badge-text {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #4fbe8e;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+/* -----------------------------------------
+   SCREEN 2: DISCOVERY
+----------------------------------------- */
+.mock-search-bar {
+  width: 100%;
+  height: 34px;
+  border-radius: 100px;
+  background: #161e23;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  color: #6b757c;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  box-sizing: border-box;
+  gap: 6px;
+}
+
+.mock-chips-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: hidden;
+  padding-bottom: 2px;
+}
+
+.mock-chip-active {
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: rgba(255, 106, 44, 0.15);
+  border: 1px solid rgba(255, 106, 44, 0.3);
+  color: #ff6a2c;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mock-chip {
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: #161e23;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  color: #9ba6ad;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.mock-scroll-feed {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.mock-scroll-track {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mock-feed-card {
+  background: #141a1f;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 200ms;
+}
+
+.border-green-glow { border-color: rgba(79, 190, 142, 0.2); }
+.border-orange-glow { border-color: rgba(255, 106, 44, 0.2); }
+.border-cyan-glow { border-color: rgba(14, 165, 233, 0.2); }
+
+.feed-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feed-card-tag {
+  font-size: 8px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.emerald-tag { background: rgba(79, 190, 142, 0.15); color: #4fbe8e; }
+.orange-tag { background: rgba(255, 106, 44, 0.15); color: #ff6a2c; }
+.cyan-tag { background: rgba(14, 165, 233, 0.15); color: #0ea5e9; }
+
+.feed-card-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #ffc94d;
+}
+
+.feed-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f3f1ea;
+  font-family: 'Space Grotesk', sans-serif;
+  line-height: 1.3;
+}
+
+.feed-card-info {
+  font-size: 10px;
+  color: #6b757c;
+}
+
+.feed-card-action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.03);
+  padding-top: 6px;
+}
+
+.avail-slots {
+  font-size: 9px;
+  color: #4fbe8e;
+  font-weight: 600;
+}
+
+.join-btn-mock {
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: #ff6a2c;
+  color: #1a0e08;
+  font-size: 9px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+}
+
+/* -----------------------------------------
+   SCREEN 3: TRIP ROOM Chat
+----------------------------------------- */
+.avatar-group-count {
+  font-size: 10px;
+  color: #6b757c;
+  margin-top: 1px;
+}
+
+.mini-avatar-stack {
+  display: flex;
+  align-items: center;
+}
+
+.mini-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #0b0f12;
+  font-size: 8px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-left: -5px;
+}
+
+.av-1 { background: #ff6a2c; margin-left: 0; }
+.av-2 { background: #4fbe8e; }
+.av-3 { background: #3b82f6; }
+
+.gps-preview-map {
+  position: relative;
+  width: 100%;
+  height: 60px;
+  border-radius: 10px;
+  background: #131a1e;
+  border: 1px solid rgba(255,255,255,0.04);
+  overflow: hidden;
+}
+
+.gps-route-line {
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: rgba(255,255,255,0.1);
+}
+
+.gps-pulse-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dot-origin {
+  left: 15%;
+  top: 75%;
+  background: #4fbe8e;
+}
+
+.dot-car {
+  background: #ff6a2c;
+  box-shadow: 0 0 6px #ff6a2c;
+  margin-left: -3px;
+  margin-top: -3px;
+}
+
+.gps-panel-info {
+  position: absolute;
+  bottom: 4px;
+  left: 8px;
+  font-size: 8px;
+  color: #9ba6ad;
+  font-weight: 600;
+}
+
+.mock-chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.chat-msg {
+  max-width: 80%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  line-height: 1.35;
+  box-sizing: border-box;
+}
+
+.bubble-left {
+  background: #161e23;
+  color: #f3f1ea;
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
+}
+
+.bubble-right {
+  background: rgba(255, 106, 44, 0.15);
+  color: #ff6a2c;
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-sender {
+  font-size: 8px;
+  font-weight: 800;
+  color: #9ba6ad;
+  margin-bottom: 2px;
+}
+
+.chat-text {
+  font-size: 11px;
+}
+
+.split-expense-alert {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+}
+
+.expense-head {
+  font-size: 8px;
+  font-weight: 900;
+  color: #3b82f6;
+  letter-spacing: 0.05em;
+}
+
+.expense-body {
+  font-size: 10px;
+  color: #f3f1ea;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.typing-indicator span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #6b757c;
+  animation: typing-dot 1.2s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+.typing-text {
+  font-size: 8.5px;
+  color: #6b757c;
+  margin-left: 4px;
+}
+
+@keyframes typing-dot {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* -----------------------------------------
+   SCREEN 4: COMPLETION
+----------------------------------------- */
+.success-lottie-ring {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-checkmark-overlay {
+  position: absolute;
+  font-size: 26px;
+}
+
+.completion-headers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.completion-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #4fbe8e;
+  font-family: 'Space Grotesk', sans-serif;
+  margin: 0;
+}
+
+.completion-subtitle {
+  font-size: 10px;
+  color: #9ba6ad;
+  margin: 0;
+}
+
+.reputation-score-box {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.score-label {
+  font-size: 8px;
+  font-weight: 900;
+  color: #9ba6ad;
+  letter-spacing: 0.06em;
+}
+
+.score-flex-val {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1px;
+}
+
+.score-count {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ff6a2c;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.score-addon {
+  font-size: 12px;
+  color: #6b757c;
+  font-weight: 700;
+}
+
+.score-added-pill {
+  font-size: 9px;
+  font-weight: 700;
+  color: #4fbe8e;
+  background: rgba(79, 190, 142, 0.12);
+  padding: 2px 8px;
+  border-radius: 100px;
+  margin-top: 2px;
+}
+
+.completion-review-stars {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.star-active {
+  color: #ffc94d;
+  font-size: 16px;
+  margin: 0 1px;
+}
+
+.review-label {
+  font-size: 9px;
+  color: #9ba6ad;
+  font-weight: 600;
+}
+
+/* -----------------------------------------
+   FLOATING GLASS CARDS STYLING
+----------------------------------------- */
+.floating-glass-card {
+  position: absolute;
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: rgba(26, 33, 41, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.float-card-header {
+  font-size: 8px;
+  font-weight: 900;
+  color: #9ba6ad;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dot-green { width: 5px; height: 5px; border-radius: 50%; background: #4fbe8e; box-shadow: 0 0 4px #4fbe8e; }
+.dot-orange { width: 5px; height: 5px; border-radius: 50%; background: #ff6a2c; box-shadow: 0 0 4px #ff6a2c; }
+.dot-red { width: 5px; height: 5px; border-radius: 50%; background: #ff5470; box-shadow: 0 0 4px #ff5470; }
+
+.float-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.float-card-body.flex-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.float-score-label {
+  font-size: 10px;
+  color: #6b757c;
+}
+
+.float-score-val {
+  display: flex;
+  align-items: baseline;
+}
+
+.gradient-orange {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ff6a2c;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.float-score-max {
+  font-size: 10px;
+  color: #6b757c;
+  font-weight: 700;
+}
+
+.float-badge-outline {
+  font-size: 8px;
+  font-weight: 800;
+  color: #4fbe8e;
+  border: 1px solid rgba(79,190,142,0.3);
+  background: rgba(79,190,142,0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.shield-icon-container {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(79, 190, 142, 0.1);
+  border: 1px solid rgba(79, 190, 142, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sos-badge {
+  font-size: 8px;
+  font-weight: 900;
+  color: white;
+  background: #ff5470;
+  padding: 3px 6px;
+  border-radius: 4px;
+  box-shadow: 0 0 6px rgba(255, 84, 112, 0.4);
+}
+
+.float-title-sm {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f3f1ea;
+}
+
+.float-desc-sm {
+  font-size: 9px;
+  color: #9ba6ad;
+  margin-top: 1px;
+}
+
+/* Specific floating positions */
+.float-card-trust {
+  width: 140px;
+}
+
+.float-card-verify {
+  width: 160px;
+}
+
+.float-card-safety {
+  width: 165px;
+}
+
+/* -----------------------------------------
+   RESPONSIVE LAYOUT DEFINITIONS
+----------------------------------------- */
+
+/* Default Desktop sizing (min-width: 1024px) */
+@media (min-width: 1024px) {
+  .showcase-outer-container {
+    height: 600px;
+    padding: 60px 40px;
+  }
+  .phone-showcase-wrapper {
+    --phone-scale: 1.0;
+  }
+}
+
+/* Tablet viewports (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .showcase-outer-container {
+    height: auto;
+    min-height: 700px;
+    padding: 40px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+  }
+  .phone-showcase-wrapper {
+    --phone-scale: 0.9;
+    margin: 40px 0;
+  }
+  /* Adjust floating cards so they don't collide with the phone on tablet */
+  .float-card-trust {
+    position: absolute !important;
+    left: 50% !important;
+    margin-left: -240px !important;
+    top: 15% !important;
+  }
+  .float-card-verify {
+    position: absolute !important;
+    left: 50% !important;
+    margin-left: 110px !important;
+    top: 35% !important;
+  }
+  .float-card-safety {
+    position: absolute !important;
+    left: 50% !important;
+    margin-left: -250px !important;
+    top: 65% !important;
+  }
+}
+
+/* Mobile viewports (max-width: 767px) */
+@media (max-width: 767px) {
+  .showcase-outer-container {
+    position: relative !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: 520px !important; /* Lock viewport container height to anchor float positions */
+    padding: 24px 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  /* Center the phone showcase in the middle of the relative container */
+  .phone-showcase-wrapper {
+    --phone-scale: 0.74;
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    width: calc(270px * var(--phone-scale)) !important;
+    height: calc(550px * var(--phone-scale)) !important;
+    z-index: 5 !important;
+  }
+
+  .phone-device-container {
+    transform: scale(var(--phone-scale)) !important;
+    transform-origin: center center !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Keep cards absolute positioned, but offset relative to container center */
+  .floating-glass-card {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    --card-scale: 0.76;
+    transform-origin: center center !important;
+    pointer-events: auto !important;
+    padding: 10px 12px !important;
+    z-index: 10 !important; /* Float above phone border */
+  }
+
+  /* Trust widget: above the phone centered */
+  .float-card-trust {
+    margin-left: -70px !important; /* Centered horizontally (140px width) */
+    margin-top: -245px !important; /* Placed overlapping the top island */
+    width: 140px !important;
+    animation: mobile-float-trust 4.5s ease-in-out infinite !important;
+  }
+
+  /* SOS Safety widget: bottom left */
+  .float-card-safety {
+    margin-left: -145px !important; /* Partially overlaps left edge */
+    margin-top: 85px !important; /* Placed lower left */
+    width: 165px !important;
+    animation: mobile-float-safety 4.5s ease-in-out infinite !important;
+    animation-delay: 1.5s !important;
+  }
+
+  /* ID verification widget: bottom right */
+  .float-card-verify {
+    margin-left: 15px !important; /* Partially overlaps right edge */
+    margin-top: 65px !important; /* Placed lower right */
+    width: 160px !important;
+    animation: mobile-float-verify 4.5s ease-in-out infinite !important;
+    animation-delay: 3s !important;
+  }
+
+  /* Float animation definitions incorporating the absolute centering translate */
+  @keyframes mobile-float-trust {
+    0%, 100% { transform: scale(var(--card-scale, 0.76)) translateY(0) rotate(0.1deg); }
+    50% { transform: scale(var(--card-scale, 0.76)) translateY(-5px) rotate(-0.1deg); }
+  }
+
+  @keyframes mobile-float-safety {
+    0%, 100% { transform: scale(var(--card-scale, 0.76)) translateY(0) rotate(-0.1deg); }
+    50% { transform: scale(var(--card-scale, 0.76)) translateY(-5px) rotate(0.1deg); }
+  }
+
+  @keyframes mobile-float-verify {
+    0%, 100% { transform: scale(var(--card-scale, 0.76)) translateY(0) rotate(0.1deg); }
+    50% { transform: scale(var(--card-scale, 0.76)) translateY(-5px) rotate(-0.1deg); }
+  }
+
+  /* Ambient light adjustments */
+  .showcase-ambient-glow {
+    width: 220px;
+    height: 220px;
+  }
+}
+
+/* Extra small mobile screen optimizations (320px - 360px widths) */
+@media (max-width: 360px) {
+  .showcase-outer-container {
+    height: 440px !important;
+    padding: 20px 12px !important;
+  }
+
+  .phone-showcase-wrapper {
+    --phone-scale: 0.62;
+  }
+
+  .floating-glass-card {
+    --card-scale: 0.65;
+  }
+
+  .float-card-trust {
+    margin-top: -205px !important;
+  }
+
+  .float-card-safety {
+    margin-left: -125px !important; /* Pull closer to center to fit 320px width */
+    margin-top: 60px !important;
+  }
+
+  .float-card-verify {
+    margin-left: 0px !important; /* Pull closer to center to fit 320px width */
+    margin-top: 45px !important;
+  }
+}

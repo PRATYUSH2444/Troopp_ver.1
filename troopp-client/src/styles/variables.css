@@ -1,0 +1,63 @@
+:root {
+  --bg:              #10151a;
+  --bg-alt:          #0c1013;
+  --surface:         #1a2129;
+  --surface-raised:  #212b33;
+  --border:          rgba(255,255,255,0.08);
+  --border-strong:   rgba(255,255,255,0.14);
+  --text-primary:    #f3f1ea;
+  --text-secondary:  #9ba6ad;
+  --text-tertiary:   #6b757c;
+  --accent:          #ff6a2c;
+  --accent-soft:     rgba(255,106,44,0.14);
+  --accent-dark:     #d9481a;
+  --moss:            #4fbe8e;
+  --moss-soft:       rgba(79,190,142,0.14);
+  --amber:           #ffc94d;
+  --amber-soft:      rgba(255,201,77,0.16);
+  --danger:          #ff5470;
+  --danger-soft:     rgba(255,84,112,0.14);
+  --radius-lg:       20px;
+  --radius-md:       14px;
+  --radius-sm:       9px;
+  --shadow-card:     0 8px 24px rgba(0,0,0,0.35), 
+                     0 1px 0 rgba(255,255,255,0.03) inset;
+  --sidebar-w:       248px;
+  --font-display:    'Space Grotesk', system-ui, sans-serif;
+  --font-body:       'Inter', system-ui, sans-serif;
+  --font-mono:       'IBM Plex Mono', monospace;
+  --transition-fast:   150ms cubic-bezier(0.4,0,0.2,1);
+  --transition-normal: 250ms cubic-bezier(0.4,0,0.2,1);
+  --transition-spring: 400ms cubic-bezier(0.34,1.56,0.64,1);
+
+  /* Codebase Backward Compatibility Mappings */
+  --color-bg:               var(--bg);
+  --color-surface:          var(--surface);
+  --color-surface-elevated: var(--surface-raised);
+  --color-surface-overlay:  rgba(26, 33, 41, 0.90);
+  --color-border:           var(--border);
+  --color-border-focus:     var(--accent);
+  --color-text-primary:     var(--text-primary);
+  --color-text-secondary:   var(--text-secondary);
+  --color-text-disabled:    var(--text-tertiary);
+  --color-text-inverse:     var(--bg);
+  --color-primary:          var(--accent);
+  --color-primary-dark:     var(--accent-dark);
+  --color-primary-light:    var(--accent-soft);
+  --color-primary-glow:     rgba(255, 106, 44, 0.28);
+  --color-trusted:          var(--moss);
+  --color-verified:         var(--moss);
+  --color-new-member:       var(--text-tertiary);
+  --color-flagged:          var(--danger);
+  --color-success:          var(--moss);
+  --color-success-bg:       var(--moss-soft);
+  --color-warning:          var(--amber);
+  --color-warning-bg:       var(--amber-soft);
+  --color-danger:           var(--danger);
+  --color-danger-bg:        var(--danger-soft);
+  --color-info:             #3b82f6;
+  --color-info-bg:          rgba(59, 130, 246, 0.14);
+  --sidebar-bg:             var(--bg-alt);
+  --sidebar-border:         var(--border);
+  --sidebar-width:          var(--sidebar-w);
+}

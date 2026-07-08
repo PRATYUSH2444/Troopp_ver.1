@@ -1,0 +1,19 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 10
+      arrivalRate: 5
+      rampTo: 10
+      name: Warm up phase
+    - duration: 60
+      arrivalRate: 10
+      name: Sustained load phase
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+
+scenarios:
+  - name: 'Load activities feed'
+    flow:
+      - get:
+          url: '/api/v1/activities?cityId=861a5b81-d144-4b53-8e4a-932d56a2bbcb'

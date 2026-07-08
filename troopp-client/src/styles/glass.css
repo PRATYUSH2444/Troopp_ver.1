@@ -1,0 +1,30 @@
+/* ============================================================================
+   GLASSMORPHISM UTILITIES - LAYER 1 VISUAL STYLE
+   ============================================================================ */
+
+/* Standard Light Glassmorphism Card (ActivityCards, Snapshot, Chat headers) */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+}
+
+.glass-card-hover {
+  transition: all var(--transition-normal);
+}
+.glass-card-hover:hover {
+  background: var(--glass-bg);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Dark Glassmorphic Overlay (Modal backdrops, drawer shadows) */
+.glass-dark {
+  background: rgba(28, 25, 23, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}

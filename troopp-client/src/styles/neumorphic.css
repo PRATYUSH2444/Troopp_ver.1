@@ -1,0 +1,43 @@
+/* ============================================================================
+   NEUMORPHISM UTILITIES - LAYER 2 VISUAL STYLE
+   ============================================================================ */
+
+/* Outset Shadow Pair (Resting active buttons, toggle switches) */
+.neumorphic {
+  background: var(--neu-bg);
+  box-shadow: 4px 4px 8px var(--neu-shadow-dark), -4px -4px 8px var(--neu-shadow-light);
+  transition: all var(--transition-fast);
+}
+.neumorphic:hover {
+  box-shadow: 6px 6px 12px var(--neu-shadow-dark), -6px -6px 12px var(--neu-shadow-light);
+  transform: translateY(-1px);
+}
+
+/* Inset Shadow Pair (Input fields, focus indicator rings) */
+.neumorphic-inset {
+  background: var(--neu-bg);
+  box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -4px -4px 8px var(--neu-shadow-light);
+  transition: border-color var(--transition-fast);
+}
+
+/* Neumorphic Pressed/Active state */
+.neumorphic-pressed {
+  box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -4px -4px 8px var(--neu-shadow-light) !important;
+  transform: translateY(1px);
+}
+
+/* Custom Saffron Primary Neumorphic outlines */
+.neumorphic-primary {
+  background: var(--color-primary);
+  box-shadow: 4px 4px 10px rgba(249, 115, 22, 0.3), -4px -4px 10px var(--neu-shadow-light);
+  color: var(--color-text-inverse);
+  transition: all var(--transition-fast);
+}
+.neumorphic-primary:hover {
+  background: var(--color-primary-dark);
+  box-shadow: 5px 5px 12px rgba(249, 115, 22, 0.4), -5px -5px 12px var(--neu-shadow-light);
+}
+.neumorphic-primary:active {
+  box-shadow: inset 4px 4px 8px rgba(234, 108, 10, 0.5), inset -4px -4px 8px var(--neu-shadow-light);
+  transform: translateY(1px);
+}
