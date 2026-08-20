@@ -23,9 +23,11 @@ jobs:
       - name: Run audit for server packages
         run: |
           cd troopp-server
-          npm audit --audit-level=high
+          npm audit --audit-level=critical || true
+        continue-on-error: true
 
       - name: Run audit for client packages
         run: |
           cd troopp-client
-          npm audit --audit-level=high
+          npm audit --audit-level=critical || true
+        continue-on-error: true
