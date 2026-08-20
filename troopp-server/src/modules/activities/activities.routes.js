@@ -6,6 +6,8 @@ import * as schemas from './activities.validator.js'
 import Activity from '../../models/Activity.js'
 import { AppError } from '../../middleware/errorHandler.middleware.js'
 
+import { discoverySearchLimiter } from '../../middleware/rateLimit.middleware.js'
+
 const router = Router()
 
 // All activity routes are protected and require active session tokens
@@ -33,9 +35,9 @@ const checkActivityCreator = async (req, res, next) => {
 }
 
 // 1. BASE CRUD & FEED ENDPOINTS
-router.get('/', activityController.getAllActivities)
+router.get('/', discoverySearchLimiter, activityController.getAllActivities)
 router.get('/following', activityController.getFollowedActivities)
-router.get('/search', activityController.searchActivities)
+router.get('/search', discoverySearchLimiter, activityController.searchActivities)
 router.get('/users/:userId/trust-card', activityController.getMemberTrustCard)
 router.get('/:id', activityController.getActivityById)
 
@@ -45,6 +47,7 @@ router.delete('/:id', checkActivityCreator, activityController.cancelActivity)
 
 // 2. ENROLLMENT & REQUEST HOOKS
 router.post('/:id/join', validate(schemas.joinActivitySchema), activityController.joinActivity)
+router.post('/:id/requests', validate(schemas.joinActivitySchema), activityController.joinActivity)
 router.post('/:id/withdraw', activityController.withdrawActivity)
 
 router.get('/:id/requests', checkActivityCreator, activityController.getJoinRequests)
@@ -52,6 +55,10 @@ router.post('/:id/requests/:requestId/approve', checkActivityCreator, activityCo
 router.post('/:id/requests/:requestId/decline', checkActivityCreator, activityController.declineJoinRequest)
 
 // 3. POST-PUBLISH SETUP FLOWS
+router.patch('/:id/publish', checkActivityCreator, validate(schemas.publishActivitySchema), activityController.publishActivity)
+router.post('/:id/host/accept', activityController.acceptHostingInvite)
+router.post('/:id/host/decline', activityController.declineHostingInvite)
+
 router.post('/:id/setup/rules', checkActivityCreator, validate(schemas.setupRulesSchema), activityController.setupRules)
 router.post('/:id/setup/welcome-message', checkActivityCreator, validate(schemas.welcomeMessageSchema), activityController.setupWelcomeMessage)
 router.post('/:id/setup/waypoints', checkActivityCreator, validate(schemas.waypointsSchema), activityController.setupWaypoints)

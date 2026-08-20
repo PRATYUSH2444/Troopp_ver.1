@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'react-hot-toast'
+import { apiRequest } from '../../utils/api.js'
+import { haptics } from '../../utils/haptics.js'
 import Avatar from '../../components/common/Avatar.jsx'
 import MemberTrustCard from '../../components/trust/MemberTrustCard.jsx'
 import Spinner from '../../components/common/Spinner.jsx'
@@ -14,190 +17,240 @@ const JoinRequestsPage = () => {
   // Trust Card selection
   const [selectedUser, setSelectedUser] = useState(null)
   const [trustCardOpen, setTrustCardOpen] = useState(false)
+  const [isBackHovered, setIsBackHovered] = useState(false)
 
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        await new Promise((r) => setTimeout(r, 600)) // Latency simulation
-
-        setActivity({
-          id,
-          title: 'Harishchandragad Monsoon Trek & Night Camping',
-          max_group_size: 12,
-          current_members: 8
-        })
-
-        const mockRequests = [
-          {
-            id: 'req-1',
-            user_id: 'user-2',
-            name: 'Priya Sharma',
-            avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-            trust_score: 72,
-            reliability_score: 98,
-            is_id_verified: true,
-            is_face_verified: true,
-            trips_completed: 4,
-            positive_rating_pct: 100,
-            tenure_months: 2,
-            has_valid_reports: false,
-            last_traveled_date: '10 May 2026',
-            mutual_connections: ['Amit Patel']
-          },
-          {
-            id: 'req-2',
-            user_id: 'user-3',
-            name: 'Vikram Malhotra',
-            avatar_url: null,
-            trust_score: 55,
-            reliability_score: 85,
-            is_id_verified: true,
-            is_face_verified: false,
-            trips_completed: 2,
-            positive_rating_pct: 90,
-            tenure_months: 1,
-            has_valid_reports: false,
-            last_traveled_date: '28 Apr 2026',
-            mutual_connections: []
-          }
-        ]
-        setRequests(mockRequests)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchRequests()
-  }, [id])
-
-  const handleAction = async (requestId, action) => {
-    // action: 'approve' | 'decline'
+  const loadData = async () => {
     try {
-      // Mock API trigger: axios.post(`/api/v1/activities/${id}/requests/${requestId}/${action}`)
-      await new Promise((r) => setTimeout(r, 500))
-
-      if (action === 'approve') {
-        import('../../utils/sounds.js').then((m) => m.playJoinApproved())
-        setActivity((prev) => ({
-          ...prev,
-          current_members: Math.min(prev.max_group_size, prev.current_members + 1)
-        }))
-      } else if (action === 'decline') {
-        import('../../utils/sounds.js').then((m) => m.playError())
+      setLoading(true)
+      const actRes = await apiRequest(`/activities/${id}`)
+      if (actRes.ok) {
+        const actJson = await actRes.json()
+        setActivity(actJson.data)
+      } else {
+        toast.error('Failed to load trip details.')
       }
 
-      // Slide out card from feed
-      setRequests((prev) => prev.filter((r) => r.id !== requestId))
-      setTrustCardOpen(false)
-      setSelectedUser(null)
-    } catch (e) {
-      console.error(e)
+      const reqRes = await apiRequest(`/activities/${id}/requests`)
+      if (reqRes.ok) {
+        const reqJson = await reqRes.json()
+        setRequests(reqJson.data || [])
+      } else {
+        toast.error('Failed to load pending requests.')
+      }
+    } catch (err) {
+      console.error('Failed loading requests data:', err)
+      toast.error('Error connecting to server.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const openTrustCard = (user) => {
-    setSelectedUser(user)
-    setTrustCardOpen(true)
+  useEffect(() => {
+    loadData()
+  }, [id])
+
+  const handleAction = async (requestId, action) => {
+    if (!requestId) return
+    haptics.lightTap()
+    try {
+      const res = await apiRequest(`/activities/${id}/requests/${requestId}/${action}`, {
+        method: 'POST'
+      })
+      const data = await res.json()
+      
+      if (res.ok) {
+        if (action === 'approve') {
+          import('../../utils/sounds.js').then((m) => m.playJoinApproved())
+          toast.success('Traveler approved successfully!')
+          setActivity((prev) => ({
+            ...prev,
+            current_members: Math.min(prev.max_group_size, prev.current_members + 1)
+          }))
+        } else {
+          import('../../utils/sounds.js').then((m) => m.playError())
+          toast.success('Join request declined.')
+        }
+        
+        // Slide out card from list
+        setRequests((prev) => prev.filter((r) => r.id !== requestId))
+        setTrustCardOpen(false)
+        setSelectedUser(null)
+      } else {
+        toast.error(data.error?.message || `Failed to ${action} request.`)
+      }
+    } catch (err) {
+      console.error(`Error performing action ${action}:`, err)
+      toast.error('Server error encountered.')
+    }
+  }
+
+  const openTrustCard = async (reqUser) => {
+    haptics.lightTap()
+    try {
+      const res = await apiRequest(`/activities/users/${reqUser.User?.id || reqUser.user_id}/trust-card`)
+      if (res.ok) {
+        const json = await res.json()
+        setSelectedUser({
+          ...json.data,
+          id: reqUser.id, // the member request ID for approvals!
+          last_traveled_date: 'N/A'
+        })
+        setTrustCardOpen(true)
+      } else {
+        toast.error('Failed to load trust card details.')
+      }
+    } catch (err) {
+      console.error('Error fetching trust card details:', err)
+      toast.error('Failed to connect to server.')
+    }
   }
 
   if (loading && !activity) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
+      <div style={{ minHeight: '100vh', background: '#10151a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Spinner size="lg" />
       </div>
     )
   }
 
+  const fillPct = activity ? Math.min(100, (activity.current_members / activity.max_group_size) * 100) : 0
+
   return (
-    <div className="w-full max-w-xl mx-auto flex flex-col gap-6 pb-20">
-      {/* Back button and title */}
-      <div className="flex items-center gap-3">
-        <Link
-          to={`/activities/${id}`}
-          className="w-10 h-10 border border-border rounded-xl hover:bg-stone-50 flex items-center justify-center text-xs font-bold"
-        >
-          ←
-        </Link>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-text-secondary uppercase">Host Dashboard</span>
-          <h2 className="text-base font-extrabold text-text-primary">
-            Pending Join Requests
-          </h2>
-        </div>
-      </div>
-
-      {/* Spots indicator */}
-      <div className="glass-card p-4 flex flex-col gap-2 shadow-sm">
-        <div className="flex justify-between items-center text-xs font-bold text-text-secondary">
-          <span>Confirmed Participants</span>
-          <span>
-            {activity.current_members} of {activity.max_group_size} slots filled
-          </span>
-        </div>
-        <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${(activity.current_members / activity.max_group_size) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Requests List */}
-      <div className="flex flex-col gap-3">
-        {requests.length === 0 ? (
-          <div className="text-center py-20 bg-surface border border-border/80 rounded-2xl flex flex-col items-center gap-2">
-            <span className="text-3xl">👥</span>
-            <h4 className="text-sm font-bold text-text-primary">No pending requests</h4>
-            <p className="text-xs text-text-secondary">All applications have been processed for this trip.</p>
+    <div style={{ minHeight: '100vh', background: '#10151a', padding: '28px 24px 80px', color: 'var(--text-primary)' }}>
+      <div style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        {/* Back button and title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', userSelect: 'none' }}>
+          <Link
+            to={`/activities/${id}`}
+            onMouseEnter={() => setIsBackHovered(true)}
+            onMouseLeave={() => setIsBackHovered(false)}
+            style={{
+              padding: '8px 16px',
+              background: isBackHovered ? 'rgba(255,255,255,0.08)' : 'transparent',
+              border: '1px solid rgba(255,255,255,0.14)',
+              color: isBackHovered ? '#f3f1ea' : '#9ba6ad',
+              borderRadius: '12px',
+              fontSize: '13px',
+              fontWeight: '600',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'all 150ms ease'
+            }}
+          >
+            ← Back
+          </Link>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Host Dashboard</span>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+              Pending Join Requests
+            </h2>
           </div>
-        ) : (
-          <AnimatePresence>
-            {requests.map((req) => (
-              <motion.div
-                key={req.id}
-                initial={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0, scale: 0.9, transition: { duration: 0.25 } }}
-              >
-                <RequestCard
-                  req={req}
-                  handleAction={handleAction}
-                  openTrustCard={openTrustCard}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        )}
-      </div>
+        </div>
 
-      {/* Detailed Member Trust Card Modal overlay */}
-      <MemberTrustCard
-        isOpen={trustCardOpen}
-        onClose={() => setTrustCardOpen(false)}
-        userData={selectedUser}
-        viewMode="host"
-        onAccept={() => handleAction(selectedUser?.id, 'approve')}
-        onDecline={() => handleAction(selectedUser?.id, 'decline')}
-      />
+        {/* Spots indicator */}
+        {activity && (
+          <div style={{ padding: '20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', boxShadow: 'var(--shadow-card)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', fontWeight: '700' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Confirmed Participants</span>
+              <span style={{ color: 'var(--moss)' }}>
+                {activity.current_members} of {activity.max_group_size} slots filled
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: '#10151a', borderRadius: '100px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <div
+                style={{
+                  height: '100%',
+                  background: 'var(--moss)',
+                  width: `${fillPct}%`,
+                  borderRadius: '100px',
+                  transition: 'width 300ms ease'
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Requests List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {requests.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '32px' }}>👥</span>
+              <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>No pending requests</h4>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>All applications have been processed for this trip.</p>
+            </div>
+          ) : (
+            <AnimatePresence>
+              {requests.map((req) => (
+                <motion.div
+                  key={req.id}
+                  initial={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                >
+                  <RequestCard
+                    req={req}
+                    handleAction={handleAction}
+                    openTrustCard={openTrustCard}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
+        </div>
+
+        {/* Detailed Member Trust Card Modal overlay */}
+        <MemberTrustCard
+          isOpen={trustCardOpen}
+          onClose={() => setTrustCardOpen(false)}
+          userData={selectedUser}
+          viewMode="host"
+          onAccept={() => handleAction(selectedUser?.id, 'approve')}
+          onDecline={() => handleAction(selectedUser?.id, 'decline')}
+        />
+      </div>
     </div>
   )
 }
 
 const RequestCard = ({ req, handleAction, openTrustCard }) => {
   const [dragX, setDragX] = useState(0)
+  const [isAuditHovered, setIsAuditHovered] = useState(false)
+  const [isDeclineHovered, setIsDeclineHovered] = useState(false)
+  const [isApproveHovered, setIsApproveHovered] = useState(false)
+
+  const profile = req.User?.Profile || {}
+  const user = req.User || {}
 
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-sm">
+    <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)', boxShadow: 'var(--shadow-card)' }}>
       {/* Slide backgrounds */}
-      <div className="absolute inset-0 flex items-center justify-between text-white font-black text-xs uppercase tracking-wider z-0 pointer-events-none">
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'white', fontWeight: '800', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', pointerEvents: 'none', zIndex: 0 }}>
         <div
-          className="absolute inset-0 bg-emerald-500 flex items-center pl-6 transition-opacity"
-          style={{ opacity: dragX > 0 ? Math.min(dragX / 100, 1) : 0 }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'var(--moss)',
+            display: 'flex',
+            alignItems: 'center',
+            paddingLeft: '24px',
+            opacity: dragX > 0 ? Math.min(dragX / 100, 1) : 0,
+            transition: 'opacity 150ms ease'
+          }}
         >
           ✓ Accept
         </div>
         <div
-          className="absolute inset-0 bg-rose-500 flex items-center justify-end pr-6 transition-opacity"
-          style={{ opacity: dragX < 0 ? Math.min(-dragX / 100, 1) : 0 }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'var(--danger)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            paddingRight: '24px',
+            opacity: dragX < 0 ? Math.min(-dragX / 100, 1) : 0,
+            transition: 'opacity 150ms ease'
+          }}
         >
           Decline ✕
         </div>
@@ -218,38 +271,101 @@ const RequestCard = ({ req, handleAction, openTrustCard }) => {
         }}
         animate={{ x: 0 }}
         transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-        className="glass-card p-4 flex items-center justify-between cursor-grab active:cursor-grabbing border border-border/60 hover:border-border transition-colors select-none relative z-10 bg-white"
+        style={{
+          padding: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'grab',
+          background: 'var(--surface-raised)',
+          position: 'relative',
+          zIndex: 10,
+          userSelect: 'none'
+        }}
       >
-        <div className="flex items-center gap-3">
-          <Avatar src={req.avatar_url} name={req.name} size="md" score={req.trust_score} />
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-text-primary leading-tight">
-              {req.name}
-            </span>
-            <span className="text-[9px] text-text-secondary leading-normal mt-0.5">
-              Trust: {req.trust_score} · Reliability: {req.reliability_score}% · Trips: {req.trips_completed}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <Avatar src={profile.avatar_url} name={profile.name || 'Traveler'} size="md" score={user.trust_score || 50} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                {profile.name || 'Anonymous Traveler'}
+              </span>
+              {req.role && req.role !== 'member' && (
+                <span style={{ fontSize: '9px', fontWeight: '700', color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: '4px', textTransform: 'capitalize' }}>
+                  {req.role}
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+              Trust: <span style={{ color: 'var(--moss)', fontWeight: '700' }}>{user.trust_score || 50}</span> · Reliability: <span style={{ color: 'var(--moss)', fontWeight: '700' }}>{user.reliability_score || 100}%</span>
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             onClick={() => openTrustCard(req)}
-            className="h-8 px-3 border border-border rounded-xl text-[10px] font-bold text-text-secondary hover:bg-stone-50"
+            onMouseEnter={() => setIsAuditHovered(true)}
+            onMouseLeave={() => setIsAuditHovered(false)}
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              background: isAuditHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              fontSize: '11px',
+              fontWeight: '700',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'all 150ms ease'
+            }}
           >
             Audit
           </button>
-          <div className="hidden sm:flex items-center gap-1.5">
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
               onClick={() => handleAction(req.id, 'decline')}
-              className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 flex items-center justify-center text-xs"
+              onMouseEnter={() => setIsDeclineHovered(true)}
+              onMouseLeave={() => setIsDeclineHovered(false)}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                background: isDeclineHovered ? 'rgba(239,83,80,0.15)' : 'rgba(239,83,80,0.08)',
+                border: 'none',
+                color: '#ef5350',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                transition: 'all 150ms ease'
+              }}
               title="Decline request"
             >
               ✕
             </button>
             <button
               onClick={() => handleAction(req.id, 'approve')}
-              className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-100 flex items-center justify-center text-xs"
+              onMouseEnter={() => setIsApproveHovered(true)}
+              onMouseLeave={() => setIsApproveHovered(false)}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                background: isApproveHovered ? 'rgba(79,190,142,0.15)' : 'rgba(79,190,142,0.08)',
+                border: 'none',
+                color: 'var(--moss)',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                transition: 'all 150ms ease'
+              }}
               title="Approve request"
             >
               ✓
@@ -262,4 +378,3 @@ const RequestCard = ({ req, handleAction, openTrustCard }) => {
 }
 
 export default JoinRequestsPage
-export { JoinRequestsPage }

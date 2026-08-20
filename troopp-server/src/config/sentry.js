@@ -14,10 +14,6 @@ const initSentry = () => {
       dsn,
       environment: process.env.NODE_ENV || 'development',
       tracesSampleRate: 1.0,
-      integrations: [
-        // Automatically captures unhandled exceptions and promise rejections
-        new Sentry.Integrations.Http({ tracing: true }),
-      ],
     })
 
     logger.info('Sentry successfully initialized.')
@@ -29,14 +25,13 @@ const initSentry = () => {
 // Request context enrichment middleware
 export const sentryRequestContextMiddleware = (req, res, next) => {
   if (process.env.SENTRY_DSN) {
-    Sentry.configureScope((scope) => {
-      scope.setExtra('reqId', req.id)
-      scope.setTag('url', req.originalUrl)
-      scope.setTag('method', req.method)
-      if (req.user) {
-        scope.setUser({ id: req.user.id, email: req.user.email })
-      }
-    })
+    const scope = Sentry.getCurrentScope()
+    scope.setExtra('reqId', req.id)
+    scope.setTag('url', req.originalUrl)
+    scope.setTag('method', req.method)
+    if (req.user) {
+      scope.setUser({ id: req.user.id, email: req.user.email })
+    }
   }
   next()
 }

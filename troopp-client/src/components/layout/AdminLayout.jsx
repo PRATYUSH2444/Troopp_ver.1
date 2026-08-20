@@ -5,6 +5,7 @@ import Avatar from '../common/Avatar.jsx'
 
 /**
  * Sidebar layout specifically for admin routes.
+ * Overhauled to match the premium dark moody theme.
  */
 const AdminLayout = () => {
   const { user, logout } = useAuth()
@@ -21,44 +22,107 @@ const AdminLayout = () => {
     { path: '/admin/users', label: 'User Operations', icon: '👤' },
     { path: '/admin/reports', label: 'User Reports', icon: '⚠️' },
     { path: '/admin/activity-reports', label: 'Activity Audits', icon: '🚨' },
-    { path: '/admin/verification-queue', label: 'ID Queue', icon: '🪪' },
     { path: '/admin/ip-blocks', label: 'Network Blocks', icon: '🔒' },
     { path: '/admin/logs', label: 'Audit Logs', icon: '📝' }
   ]
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row">
+    <div 
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'row',
+        background: 'var(--bg)',
+        color: 'var(--text-primary)'
+      }}
+      className="flex-col md:flex-row"
+    >
       {/* 1. LEFT ADMIN SIDEBAR */}
-      <aside className="w-full md:w-64 bg-stone-900 text-stone-100 flex flex-col h-auto md:h-screen md:sticky top-0 p-5 z-20 shadow-xl">
+      <aside 
+        style={{
+          background: 'var(--bg-alt)',
+          borderRight: '1px solid var(--border)',
+          padding: '28px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '32px',
+          height: '100vh',
+          width: 'var(--sidebar-w)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 300,
+          boxSizing: 'border-box'
+        }}
+        className="w-full md:w-64 h-auto md:h-screen"
+      >
         {/* Brand */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-800">
-          <Link to="/feed" className="flex items-center gap-2">
-            <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white text-base font-bold">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingBottom: '16px',
+          borderBottom: '1px solid var(--border)'
+        }}>
+          <Link to="/feed" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              background: 'linear-gradient(155deg, #ff6a2c, #d9481a)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'var(--font-display)',
+              fontWeight: '700',
+              fontSize: '16px',
+              color: 'white',
+              boxShadow: '0 4px 14px rgba(255,106,44,0.35)'
+            }}>
               T
             </div>
-            <span className="text-lg font-heading font-bold text-white tracking-tight">
+            <span style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              letterSpacing: '-0.01em',
+              fontFamily: 'var(--font-display)',
+              color: '#f3f1ea'
+            }}>
               Troopp Admin
             </span>
           </Link>
-          <Link to="/feed" className="text-xs text-stone-400 hover:text-white md:hidden">
+          <Link to="/feed" className="md:hidden" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
             Back to App
           </Link>
         </div>
 
         {/* Links */}
-        <nav className="flex-1 flex flex-col gap-1">
+        <nav style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          flex: '1'
+        }}>
           {adminLinks.map((link) => (
             <NavLink
               key={link.path}
               to={link.path}
               end={link.path === '/admin'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                  isActive
-                    ? 'bg-primary text-white shadow-md'
-                    : 'text-stone-400 hover:bg-stone-800 hover:text-stone-100'
-                }`
-              }
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '11px 14px',
+                borderRadius: '9px',
+                color: isActive ? '#ff6a2c' : '#9ba6ad',
+                background: isActive ? 'rgba(255,106,44,0.14)' : 'transparent',
+                fontSize: '13px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontFamily: 'var(--font-display)',
+                textDecoration: 'none',
+                transition: 'background 150ms ease, color 150ms ease'
+              })}
             >
               <span>{link.icon}</span>
               <span>{link.label}</span>
@@ -67,42 +131,109 @@ const AdminLayout = () => {
         </nav>
 
         {/* User profile section */}
-        <div className="border-t border-stone-800 pt-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2.5 px-1">
+        <div style={{
+          borderTop: '1px solid var(--border)',
+          paddingTop: '18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 4px' }}>
             <Avatar src={user?.avatar_url} name={user?.name || 'Admin'} size="sm" />
-            <div className="flex flex-col truncate">
-              <span className="text-xs font-semibold text-white truncate leading-tight">
-                {user?.name}
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+              <span style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#f3f1ea',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                {user?.name || 'Grievance Officer'}
               </span>
-              <span className="text-[10px] text-stone-400">
-                Grievance Officer
+              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                System Admin
               </span>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full h-9 flex items-center justify-center gap-2 text-xs font-bold text-stone-400 border border-stone-800 hover:bg-stone-800 hover:text-white rounded-lg transition-colors"
+            style={{
+              width: '100%',
+              height: '38px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: '9px',
+              background: 'transparent',
+              cursor: 'pointer',
+              transition: 'border-color 150ms, background 150ms, color 150ms'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'
+              e.currentTarget.style.background = 'var(--surface)'
+              e.currentTarget.style.color = '#f3f1ea'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = 'var(--text-secondary)'
+            }}
           >
-            🚪 Exit
+            🚪 Exit Admin
           </button>
         </div>
       </aside>
 
       {/* 2. ADMIN PORTAL CONTENT */}
-      <main className="flex-1 flex flex-col">
-        <header className="h-16 bg-white border-b border-border hidden md:flex items-center justify-between px-6 shadow-sm">
-          <div className="text-sm font-semibold text-text-primary">
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <header 
+          style={{
+            height: '64px',
+            background: 'var(--bg-alt)',
+            borderBottom: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 24px',
+            boxSizing: 'border-box'
+          }}
+          className="hidden md:flex"
+        >
+          <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>
             Troopp grievance, verification, and network moderation panel.
           </div>
           <Link
             to="/feed"
-            className="text-xs font-bold text-primary hover:text-primary-dark border border-primary/20 hover:border-primary/50 px-3.5 py-1.5 rounded-lg transition-colors"
+            style={{
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#ff6a2c',
+              border: '1px solid rgba(255,106,44,0.2)',
+              padding: '6px 14px',
+              borderRadius: '100px',
+              textDecoration: 'none',
+              transition: 'background 150ms, border-color 150ms'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,106,44,0.1)'
+              e.currentTarget.style.borderColor = 'rgba(255,106,44,0.4)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.borderColor = 'rgba(255,106,44,0.2)'
+            }}
           >
-            ← Open Main App Feed
+            ← Open App Feed
           </Link>
         </header>
 
-        <div className="flex-grow p-6">
+        <div style={{ flexGrow: 1, background: 'var(--bg)', padding: '28px 40px 80px' }}>
           <Outlet />
         </div>
       </main>

@@ -1,5 +1,7 @@
 import { Model, DataTypes } from 'sequelize'
 import sequelize from '../config/db.js'
+import logger from '../config/logger.js'
+import { getRedisClient, isRedisHealthy } from '../config/redis.js'
 
 class User extends Model {
   // Static Helper Methods
@@ -27,19 +29,6 @@ class User extends Model {
       }
     }
     return false
-  }
-
-  getTrustBadge(hasActiveReport = false) {
-    if (hasActiveReport) {
-      return { label: 'Flagged', color: '#DC2626', emoji: '⚠' }
-    }
-    if (this.is_id_verified && this.trust_score >= 75) {
-      return { label: 'Trusted Legend', color: '#4fbe8e', emoji: '👑' }
-    }
-    if (this.is_id_verified && this.trust_score >= 50) {
-      return { label: 'Verified Explorer', color: '#3b82f6', emoji: '🛡️' }
-    }
-    return { label: 'New Seed', color: '#6b757c', emoji: '🌱' }
   }
 }
 
@@ -84,33 +73,6 @@ User.init(
       defaultValue: false,
       allowNull: false,
     },
-    is_id_verified: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false,
-    },
-    is_face_verified: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false,
-    },
-    id_document_url: {
-      type: DataTypes.STRING(255),
-      allowNull: true, // Secure URL stored in private Cloudinary bucket
-    },
-    id_metadata: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    selfie_url: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
-    },
-    verification_status: {
-      type: DataTypes.ENUM('pending', 'verified', 'failed', 'manual_review'),
-      defaultValue: 'pending',
-      allowNull: false,
-    },
     role: {
       type: DataTypes.ENUM('member', 'admin'),
       defaultValue: 'member',
@@ -118,7 +80,7 @@ User.init(
     },
     trust_score: {
       type: DataTypes.INTEGER,
-      defaultValue: 10,
+      defaultValue: 50,
       allowNull: false,
       validate: {
         min: 0,
@@ -157,6 +119,16 @@ User.init(
       defaultValue: false,
       allowNull: false,
     },
+    online_status_visible: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+      allowNull: false,
+    },
+    last_active_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      allowNull: false,
+    },
     interest_tags: {
       type: DataTypes.JSON,
       allowNull: true, // Array of strings representing travel style tags
@@ -169,6 +141,15 @@ User.init(
       type: DataTypes.UUID,
       allowNull: true, // Settable during profile onboarding
     },
+    failed_login_attempts: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false,
+    },
+    lockout_until: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -176,6 +157,94 @@ User.init(
     tableName: 'users',
     timestamps: true,
     paranoid: true, // Soft delete enabled
+    hooks: {
+      // NOTE: Raw SQL updates bypassing Sequelize entirely will NOT trigger these hooks.
+      // Any such operations MUST call redis.del(`user:session:${userId}`) explicitly.
+      afterUpdate: async (user, options) => {
+        try {
+          if (isRedisHealthy()) {
+            const redis = getRedisClient()
+            await redis.del(`user:session:${user.id}`)
+          }
+        } catch (err) {
+          logger.error('Failed to invalidate user cache on update:', err)
+        }
+      },
+      afterDestroy: async (user, options) => {
+        try {
+          if (isRedisHealthy()) {
+            const redis = getRedisClient()
+            await redis.del(`user:session:${user.id}`)
+          }
+        } catch (err) {
+          logger.error('Failed to invalidate user cache on destroy:', err)
+        }
+      },
+      afterBulkUpdate: async (options) => {
+        try {
+          if (!isRedisHealthy() || !options.where) return
+          const redis = getRedisClient()
+
+          // Helper to recursively parse Symbol keys (e.g. Op.and) in Sequelize queries
+          const extractIds = (where) => {
+            if (!where || typeof where !== 'object') return []
+            let ids = []
+
+            if (where.id) {
+              if (typeof where.id === 'string') {
+                ids.push(where.id)
+              } else if (Array.isArray(where.id)) {
+                ids.push(...where.id)
+              } else if (typeof where.id === 'object') {
+                const innerSymbols = Object.getOwnPropertySymbols(where.id).concat(Object.keys(where.id))
+                for (const sym of innerSymbols) {
+                  if (Array.isArray(where.id[sym])) {
+                    ids.push(...where.id[sym])
+                  } else if (typeof where.id[sym] === 'string') {
+                    ids.push(where.id[sym])
+                  }
+                }
+              }
+            }
+
+            const symbols = Object.getOwnPropertySymbols(where)
+            for (const sym of symbols) {
+              const val = where[sym]
+              if (Array.isArray(val)) {
+                for (const item of val) {
+                  ids.push(...extractIds(item))
+                }
+              } else if (val && typeof val === 'object') {
+                ids.push(...extractIds(val))
+              }
+            }
+
+            const keys = Object.keys(where)
+            for (const key of keys) {
+              const val = where[key]
+              if (Array.isArray(val)) {
+                for (const item of val) {
+                  ids.push(...extractIds(item))
+                }
+              } else if (val && typeof val === 'object') {
+                ids.push(...extractIds(val))
+              }
+            }
+
+            return [...new Set(ids)]
+          }
+
+          const ids = extractIds(options.where)
+          if (ids.length > 0) {
+            const keys = ids.map(id => `user:session:${id}`)
+            await redis.del(...keys)
+            logger.info(`Bulk update hook cleared session cache for users: ${ids.join(', ')}`)
+          }
+        } catch (err) {
+          logger.error('Failed to invalidate user cache on bulk update:', err)
+        }
+      }
+    }
   }
 )
 

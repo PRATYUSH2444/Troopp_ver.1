@@ -4,6 +4,7 @@ import Spinner from '../../components/common/Spinner.jsx'
 
 /**
  * Detailed Platform Analytics and Visualizations.
+ * Overhauled to match the premium dark moody theme.
  */
 const AdminAnalytics = () => {
   const [loading, setLoading] = useState(true)
@@ -47,7 +48,16 @@ const AdminAnalytics = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-white">
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+          color: 'var(--text-primary)'
+        }}
+      >
         <Spinner size="lg" />
       </div>
     )
@@ -56,24 +66,56 @@ const AdminAnalytics = () => {
   const { dauHistory, tripsHistory, cityComparison } = analyticsData
 
   return (
-    <div className="p-6 text-white bg-stone-950 min-h-screen flex flex-col gap-6 font-sans">
+    <div 
+      style={{
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        fontFamily: 'var(--font-body)'
+      }}
+    >
       
       {/* Header title */}
-      <div className="flex justify-between items-center border-b border-white/10 pb-4">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Administrative Panel</span>
-          <h2 className="text-xl font-black mt-0.5">Platform Analytics Center</h2>
+      <div 
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '16px'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Administrative Panel
+          </span>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '4px 0 0 0', color: '#f3f1ea' }}>
+            Platform Analytics Center
+          </h2>
         </div>
         
         {/* Date Filter selector */}
         <select
           value={dateRange}
           onChange={(e) => setDateRange(e.target.value)}
-          className="h-10 bg-stone-900 border border-white/10 rounded-xl px-2 outline-none text-xs text-white"
+          style={{
+            height: '42px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            padding: '0 12px',
+            fontSize: '13px',
+            color: 'var(--text-primary)',
+            outline: 'none',
+            cursor: 'pointer'
+          }}
         >
-          <option value="7">Last 7 Days</option>
-          <option value="30">Last 30 Days</option>
-          <option value="90">Last 90 Days</option>
+          <option value="7" style={{ background: '#1a2129', color: '#f3f1ea' }}>Last 7 Days</option>
+          <option value="30" style={{ background: '#1a2129', color: '#f3f1ea' }}>Last 30 Days</option>
+          <option value="90" style={{ background: '#1a2129', color: '#f3f1ea' }}>Last 90 Days</option>
         </select>
       </div>
 
@@ -81,34 +123,50 @@ const AdminAnalytics = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         
         {/* DAU Chart */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-lg">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '20px',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
             Daily Active Users (DAU)
           </h4>
-          <div className="h-64 w-full">
+          <div style={{ height: '256px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={dauHistory}>
-                <XAxis dataKey="date" stroke="#A8A29E" fontSize={10} tickLine={false} />
-                <YAxis stroke="#A8A29E" fontSize={10} tickLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: '#1C1917', border: '1px solid #444', color: '#fff' }} />
-                <Line type="monotone" dataKey="dau" stroke="#10B981" strokeWidth={3} dot={{ r: 4 }} />
+                <XAxis dataKey="date" stroke="#9ba6ad" fontSize={10} tickLine={false} />
+                <YAxis stroke="#9ba6ad" fontSize={10} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }} />
+                <Line type="monotone" dataKey="dau" stroke="var(--moss)" strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Trips Created Chart */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-lg">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '20px',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
             Trips Created
           </h4>
-          <div className="h-64 w-full">
+          <div style={{ height: '256px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={tripsHistory}>
-                <XAxis dataKey="date" stroke="#A8A29E" fontSize={10} tickLine={false} />
-                <YAxis stroke="#A8A29E" fontSize={10} tickLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: '#1C1917', border: '1px solid #444', color: '#fff' }} />
-                <Bar dataKey="count" fill="#F97316" radius={[4, 4, 0, 0]} />
+                <XAxis dataKey="date" stroke="#9ba6ad" fontSize={10} tickLine={false} />
+                <YAxis stroke="#9ba6ad" fontSize={10} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }} />
+                <Bar dataKey="count" fill="var(--accent)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -117,27 +175,49 @@ const AdminAnalytics = () => {
       </div>
 
       {/* City Comparison Table */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+      <div 
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '14px',
+          padding: '20px',
+          boxShadow: 'var(--shadow-card)'
+        }}
+      >
+        <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
           City Comparative Metrics
         </h4>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-stone-300">
-            <thead className="text-[10px] font-bold text-stone-400 uppercase border-b border-white/10">
+          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <thead 
+              style={{
+                fontSize: '11px',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--text-primary)',
+                background: 'var(--surface-raised)',
+                borderBottom: '1px solid var(--border)'
+              }}
+            >
               <tr>
-                <th className="pb-3">City Name</th>
-                <th className="pb-3">Total Signups</th>
-                <th className="pb-3">Trips Posted</th>
-                <th className="pb-3">Completion Rate</th>
+                <th style={{ padding: '12px 16px' }}>City Name</th>
+                <th style={{ padding: '12px 16px' }}>Total Signups</th>
+                <th style={{ padding: '12px 16px' }}>Trips Posted</th>
+                <th style={{ padding: '12px 16px' }}>Completion Rate</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody style={{ divideY: '1px solid rgba(255,255,255,0.04)' }}>
               {cityComparison.map((row, idx) => (
-                <tr key={idx} className="hover:bg-white/5 transition-colors">
-                  <td className="py-3.5 font-bold text-white">{row.city}</td>
-                  <td className="py-3.5">{row.signups}</td>
-                  <td className="py-3.5">{row.trips}</td>
-                  <td className="py-3.5 font-bold text-emerald-400">{row.completionRate}%</td>
+                <tr 
+                  key={idx} 
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 150ms' }}
+                  className="hover:bg-white/[0.02]"
+                >
+                  <td style={{ padding: '14px 16px', fontWeight: '700', color: '#f3f1ea' }}>{row.city}</td>
+                  <td style={{ padding: '14px 16px' }}>{row.signups}</td>
+                  <td style={{ padding: '14px 16px' }}>{row.trips}</td>
+                  <td style={{ padding: '14px 16px', fontBold: '700', color: 'var(--moss)', fontWeight: '700' }}>{row.completionRate}%</td>
                 </tr>
               ))}
             </tbody>

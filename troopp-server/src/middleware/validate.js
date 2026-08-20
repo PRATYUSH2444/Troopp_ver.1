@@ -115,4 +115,15 @@ export const resetPasswordSchema = Joi.object({
     'string.pattern': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
   })
 })
+
+export const updateProfileSchema = Joi.object({
+  name: Joi.string().min(2).max(150).optional(),
+  bio: Joi.string().min(10).max(500).allow('').optional(),
+  gender: Joi.string().valid('male', 'female', 'other', 'prefer_not_to_say').optional(),
+  cityId: Joi.string().uuid().optional(),
+  interestTags: Joi.array().items(
+    Joi.string().valid('Trekking', 'Camping', 'Photography Walk', 'Road Trips', 'Night Drives', 'Cycling', 'Heritage Walks', 'Day Trips')
+  ).max(8).optional()
+})
+
 export default validate

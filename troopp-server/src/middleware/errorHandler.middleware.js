@@ -1,4 +1,5 @@
 import logger from '../config/logger.js'
+import { Sentry } from '../config/sentry.js'
 
 // Custom AppError class to throw operational errors
 export class AppError extends Error {
@@ -22,6 +23,11 @@ const errorHandler = (err, req, res, next) => {
 
   // Log the complete error stack in Winston
   logger.error(`Error processing request [${req.method} ${req.originalUrl}] [Req ID: ${req.id || 'N/A'}]:`, err)
+
+  // Report exception to Sentry if DSN is configured
+  if (process.env.SENTRY_DSN) {
+    Sentry.captureException(err)
+  }
 
   // 1. Sequelize Database Validation Errors
   if (err.name === 'SequelizeValidationError') {

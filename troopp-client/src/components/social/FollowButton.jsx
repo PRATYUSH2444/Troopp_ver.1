@@ -36,11 +36,45 @@ const FollowButton = ({ targetUserId, initialIsFollowing = false }) => {
   return (
     <button
       onClick={handleFollowClick}
-      className={`h-8 px-3.5 rounded-lg text-[10px] font-extrabold transition-all shadow-sm ${
-        isFollowing
-          ? 'bg-stone-150 border border-stone-250 text-text-secondary hover:bg-stone-200/50'
-          : 'bg-primary text-white hover:bg-primary-dark'
-      }`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '38px',
+        padding: '0 24px',
+        borderRadius: '100px',
+        fontSize: '13px',
+        fontWeight: '700',
+        cursor: 'pointer',
+        transition: 'all 150ms ease',
+        boxSizing: 'border-box',
+        ...(isFollowing ? {
+          background: 'transparent',
+          color: 'var(--accent)',
+          border: '1.5px solid var(--accent)',
+        } : {
+          background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
+          color: '#1a0e08',
+          border: 'none',
+          boxShadow: '0 4px 12px rgba(255, 106, 44, 0.2)'
+        })
+      }}
+      onMouseEnter={(e) => {
+        if (isFollowing) {
+          e.currentTarget.style.background = 'var(--accent-soft)'
+        } else {
+          e.currentTarget.style.transform = 'translateY(-1px)'
+          e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 106, 44, 0.3)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'none'
+        if (isFollowing) {
+          e.currentTarget.style.background = 'transparent'
+        } else {
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 106, 44, 0.2)'
+        }
+      }}
     >
       {isFollowing ? '✓ Following' : '＋ Follow'}
     </button>

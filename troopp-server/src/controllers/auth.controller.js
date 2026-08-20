@@ -14,9 +14,38 @@ import { sendOTPEmail, sendResetPasswordEmail } from '../services/email.service.
 import logger from '../config/logger.js'
 
 // Token Secrets
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789'
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET
 const RESET_SECRET = process.env.JWT_RESET_SECRET || 'password_reset_token_secret_key_123456'
+const DUMMY_HASH = process.env.BCRYPT_DUMMY_HASH || '$2b$12$LRY.L9zZ4CWhGz5hS9d/QeO2X9vYc4h84.s2f.H/K9O0zZ9zZ9zZ.'
+
+const isValidCollegeEmail = (email) => {
+  if (!email) return false
+  const domain = email.split('@')[1]?.toLowerCase().trim()
+  if (!domain) return false
+
+  // Standard college domains
+  if (
+    domain === 'edu' ||
+    domain === 'ac.in' ||
+    domain === 'edu.in' ||
+    domain.endsWith('.edu') ||
+    domain.endsWith('.ac.in') ||
+    domain.endsWith('.edu.in')
+  ) {
+    return true
+  }
+
+  // Development bypass list
+  if (process.env.NODE_ENV !== 'production') {
+    const devDomains = ['troopp.com', 'example.com', 'gmail.com', 'test.com']
+    if (devDomains.includes(domain)) {
+      return true
+    }
+  }
+
+  return false
+}
 
 // Cookie settings for refresh token
 const COOKIE_OPTIONS = {
@@ -31,7 +60,7 @@ const COOKIE_OPTIONS = {
  */
 const generateTokens = (user, profileName) => {
   const accessToken = jwt.sign(
-    { id: user.id, email: user.email, role: user.role, name: profileName, trust_score: user.trust_score, is_id_verified: user.is_id_verified },
+    { id: user.id, email: user.email, role: user.role, name: profileName, trust_score: user.trust_score, onboarding_completed: user.onboarding_completed },
     ACCESS_SECRET,
     { expiresIn: process.env.JWT_ACCESS_EXPIRY || '15m' }
   )
@@ -62,8 +91,13 @@ export const signup = async (req, res, next) => {
       return next(new AppError('An account is already registered with this email address.', 409, 'EMAIL_TAKEN'))
     }
 
+    // Verify email belongs to an approved college domain
+    if (!isValidCollegeEmail(email)) {
+      return next(new AppError('Please use a valid college email address (ending with .edu or .ac.in).', 400, 'INVALID_COLLEGE_EMAIL'))
+    }
+
     // Send/Cache Email OTP
-    const code = generateEmailOTP(email)
+    const code = await generateEmailOTP(email)
     await sendOTPEmail(email, code)
 
     res.status(200).json({
@@ -81,7 +115,7 @@ export const signup = async (req, res, next) => {
 export const verifyEmail = async (req, res, next) => {
   try {
     const { email, code } = req.body
-    const isValid = verifyEmailOTP(email, code)
+    const isValid = await verifyEmailOTP(email, code)
 
     if (!isValid) {
       return next(new AppError('Invalid or expired verification code.', 400, 'INVALID_OTP'))
@@ -103,9 +137,9 @@ export const verifyPhone = async (req, res, next) => {
   try {
     const { email, phone } = req.body
 
-    // Check if phone number is already taken by another fully onboarded member
+    const targetEmail = (email || req.user?.email || '').toLowerCase().trim()
     const existingPhone = await User.findOne({ where: { phone, onboarding_completed: true } })
-    if (existingPhone && existingPhone.email !== email.toLowerCase().trim()) {
+    if (existingPhone && targetEmail && existingPhone.email !== targetEmail) {
       return next(new AppError('Phone number is already associated with another account.', 409, 'PHONE_TAKEN'))
     }
 
@@ -164,7 +198,7 @@ export const completeSignup = async (req, res, next) => {
       user.password_hash = passwordHash
       user.city_id = city_id
       user.interest_tags = interest_tags || []
-      user.onboarding_completed = true
+      user.onboarding_completed = false
       user.tos_accepted_at = new Date()
       await user.save()
     } else {
@@ -174,9 +208,8 @@ export const completeSignup = async (req, res, next) => {
         password_hash: passwordHash,
         city_id,
         interest_tags: interest_tags || [],
-        onboarding_completed: true,
+        onboarding_completed: false,
         is_phone_verified: true, // Set from previous validation step
-        trust_score: 10,
         account_status: 'active',
         tos_accepted_at: new Date()
       })
@@ -226,7 +259,7 @@ export const completeSignup = async (req, res, next) => {
         email: user.email,
         role: user.role,
         trustScore: user.trust_score,
-        idVerified: user.is_id_verified
+        onboardingCompleted: user.onboarding_completed
       }
     })
   } catch (error) {
@@ -249,14 +282,33 @@ export const login = async (req, res, next) => {
     // 1. Fetch user by email
     const user = await User.findOne({ where: { email: normalizedEmail } })
     if (!user || !user.password_hash) {
+      // Timing-attack mitigation: run dummy compare on non-existent users
+      await bcrypt.compare(password, DUMMY_HASH)
+      return next(new AppError('Invalid email address or password.', 401, 'INVALID_CREDENTIALS'))
+    }
+
+    // Check account lockout status
+    if (user.lockout_until && new Date() < new Date(user.lockout_until)) {
+      // Run dummy compare to maintain constant response timing
+      await bcrypt.compare(password, DUMMY_HASH)
       return next(new AppError('Invalid email address or password.', 401, 'INVALID_CREDENTIALS'))
     }
 
     // 2. Check password hash
     const isMatch = await bcrypt.compare(password, user.password_hash)
     if (!isMatch) {
+      user.failed_login_attempts = (user.failed_login_attempts || 0) + 1
+      if (user.failed_login_attempts >= 5) {
+        user.lockout_until = new Date(Date.now() + 15 * 60 * 1000) // 15 mins lock
+      }
+      await user.save()
       return next(new AppError('Invalid email address or password.', 401, 'INVALID_CREDENTIALS'))
     }
+
+    // Reset attempts on successful login
+    user.failed_login_attempts = 0
+    user.lockout_until = null
+    await user.save()
 
     // 3. Verify Account Status
     if (user.account_status === 'banned') {
@@ -293,7 +345,7 @@ export const login = async (req, res, next) => {
         email: user.email,
         role: user.role,
         trustScore: user.trust_score,
-        idVerified: user.is_id_verified
+        onboardingCompleted: user.onboarding_completed
       }
     })
   } catch (error) {

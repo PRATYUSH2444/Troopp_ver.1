@@ -40,7 +40,6 @@ export const logAdminAction = async (adminId, action, targetId, targetType, deta
  */
 export const getDashboard = async () => {
   const totalUsers = await User.count()
-  const verifiedUsers = await User.count({ where: { is_id_verified: true } })
   const activeTrips = await Activity.count({ where: { status: 'active' } })
   
   const pendingReports = (await Report.count({ where: { status: 'pending' } })) +
@@ -76,7 +75,6 @@ export const getDashboard = async () => {
   return {
     kpis: {
       totalUsers,
-      verifiedPct: totalUsers > 0 ? parseFloat(((verifiedUsers / totalUsers) * 100).toFixed(1)) : 0,
       activeTrips,
       pendingReports,
       newSignupsToday,
@@ -95,7 +93,6 @@ export const searchUsers = async (filters = {}, page = 1, limit = 50) => {
 
   if (filters.city_id) where.city_id = filters.city_id
   if (filters.account_status) where.account_status = filters.account_status
-  if (filters.is_id_verified !== undefined) where.is_id_verified = filters.is_id_verified === 'true'
 
   if (filters.search) {
     where[Op.or] = [
@@ -338,60 +335,6 @@ export const resolveActivityReport = async (adminId, reportId, status, resolutio
   return report
 }
 
-/**
- * Approve uploaded KYC document validation.
- */
-export const approveVerification = async (adminId, userId) => {
-  const user = await User.findByPk(userId)
-  if (!user) throw new AppError('User not found.', 404)
-
-  user.is_id_verified = true
-  user.verification_status = 'verified'
-  await user.save()
-
-  // Bumps trust score +30
-  await trustService.addTrustScore(userId, 30, 'id_verified')
-
-  // FCM push
-  await notificationService.createNotificationRecord(
-    userId,
-    'trust_score_changed',
-    '✅ Verification Approved!',
-    'Your uploaded document has been verified. You gained +30 Trust score points!'
-  )
-  await notificationService.sendFCM(userId, '✅ Verification Approved!', 'Identity verified.', {
-    type: 'trust_score_changed'
-  })
-
-  await logAdminAction(adminId, 'approve_verification', userId, 'user', 'KYC approved.')
-  return user
-}
-
-/**
- * Reject uploaded KYC document.
- */
-export const rejectVerification = async (adminId, userId, reason) => {
-  const user = await User.findByPk(userId)
-  if (!user) throw new AppError('User not found.', 404)
-
-  user.is_id_verified = false
-  user.verification_status = 'failed'
-  await user.save()
-
-  // FCM push
-  await notificationService.createNotificationRecord(
-    userId,
-    'system_update',
-    '❌ Verification Rejected',
-    `Your uploaded identity document was rejected. Reason: ${reason}`
-  )
-  await notificationService.sendFCM(userId, '❌ Verification Rejected', 'Identity verification failed.', {
-    type: 'system_update'
-  })
-
-  await logAdminAction(adminId, 'reject_verification', userId, 'user', `KYC Rejected. Reason: ${reason}`)
-  return user
-}
 
 /**
  * Administrative soft cancellation of trip activities.

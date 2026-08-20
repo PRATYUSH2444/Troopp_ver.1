@@ -3,6 +3,7 @@ import Spinner from '../../components/common/Spinner.jsx'
 
 /**
  * System and Admin Settings Panel. Handles administrator rosters and Grievance Officer details.
+ * Overhauled to match the premium dark moody theme.
  */
 const AdminSettings = () => {
   const [loading, setLoading] = useState(true)
@@ -75,42 +76,109 @@ const AdminSettings = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-white">
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+          color: 'var(--text-primary)'
+        }}
+      >
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="p-6 text-white bg-stone-950 min-h-screen flex flex-col gap-6 font-sans">
+    <div 
+      style={{
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        fontFamily: 'var(--font-body)'
+      }}
+    >
       
       {/* Header title */}
-      <div className="flex justify-between items-center border-b border-white/10 pb-4">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Administrative Panel</span>
-          <h2 className="text-xl font-black mt-0.5">Control Center Settings</h2>
+      <div 
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '16px'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Administrative Panel
+          </span>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '4px 0 0 0', color: '#f3f1ea' }}>
+            Control Center Settings
+          </h2>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Left Column: Administrators Roster */}
-        <div className="flex flex-col gap-5">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 pb-2 border-b border-white/5">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '20px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: 0, fontFamily: 'var(--font-display)' }}>
               Administrators Roster
             </h4>
 
-            <div className="flex flex-col gap-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {admins.map((a) => (
-                <div key={a.id} className="bg-white/5 border border-white/5 p-3.5 rounded-xl flex items-center justify-between text-xs">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-white">{a.name}</span>
-                    <span className="text-[9px] text-stone-400 mt-0.5">{a.email}</span>
+                <div 
+                  key={a.id} 
+                  style={{
+                    background: 'var(--surface-raised)',
+                    border: '1px solid var(--border)',
+                    padding: '14px',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: '13px'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: '700', color: '#f3f1ea' }}>{a.name}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{a.email}</span>
                   </div>
                   <button
                     onClick={() => handleDemote(a.id)}
-                    className="h-8 px-3 bg-white/10 hover:bg-white/20 border border-white/10 text-rose-500 rounded-lg text-[9px] font-bold transition-colors"
+                    style={{
+                      height: '30px',
+                      padding: '0 12px',
+                      background: 'transparent',
+                      border: '1px solid var(--border)',
+                      color: 'var(--danger)',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'background 150ms'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--danger-soft)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                   >
                     Demote back
                   </button>
@@ -119,20 +187,41 @@ const AdminSettings = () => {
             </div>
 
             {/* Promote Form */}
-            <form onSubmit={handlePromoteSubmit} className="mt-2 border-t border-white/5 pt-4 flex flex-col gap-2.5">
-              <span className="text-[10px] font-bold text-stone-300">Promote Traveler to Admin</span>
-              <div className="flex gap-2">
+            <form onSubmit={handlePromoteSubmit} style={{ marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)' }}>Promote Traveler to Admin</span>
+              <div style={{ display: 'flex', gap: '10px' }}>
                 <input
                   type="email"
                   required
                   value={promoteEmail}
                   onChange={(e) => setPromoteEmail(e.target.value)}
                   placeholder="Enter traveler email..."
-                  className="flex-1 h-10 bg-stone-900 border border-white/10 rounded-xl px-3 outline-none text-xs text-white focus:border-primary"
+                  style={{
+                    flex: 1,
+                    height: '40px',
+                    background: 'var(--surface-raised)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '100px',
+                    padding: '0 16px',
+                    fontSize: '13px',
+                    color: '#f3f1ea',
+                    outline: 'none'
+                  }}
                 />
                 <button
                   type="submit"
-                  className="h-10 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs shadow transition-all"
+                  style={{
+                    height: '40px',
+                    padding: '0 18px',
+                    background: 'var(--accent)',
+                    color: '#1a0e08',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: '700',
+                    borderRadius: '100px',
+                    fontSize: '12px',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
                 >
                   Promote
                 </button>
@@ -142,54 +231,104 @@ const AdminSettings = () => {
         </div>
 
         {/* Right Column: Grievance Officer Settings */}
-        <div className="flex flex-col gap-5">
-          <form onSubmit={handleSaveOfficer} className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 pb-2 border-b border-white/5">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <form 
+            onSubmit={handleSaveOfficer} 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '20px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: 0, fontFamily: 'var(--font-display)' }}>
               Public Grievance Officer details
             </h4>
 
             {/* Officer Name */}
-            <div className="flex flex-col gap-1.5 text-xs">
-              <span className="font-bold text-stone-300">Compliance Officer Name</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Compliance Officer Name</span>
               <input
                 type="text"
                 required
                 value={officerName}
                 onChange={(e) => setOfficerName(e.target.value)}
                 placeholder="Prakash Joshi..."
-                className="h-10 bg-stone-900 border border-white/10 rounded-xl px-3 outline-none text-white focus:border-primary"
+                style={{
+                  height: '40px',
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '100px',
+                  padding: '0 16px',
+                  fontSize: '13px',
+                  color: '#f3f1ea',
+                  outline: 'none'
+                }}
               />
             </div>
 
             {/* Officer Email */}
-            <div className="flex flex-col gap-1.5 text-xs">
-              <span className="font-bold text-stone-300">Official Compliance Email</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Official Compliance Email</span>
               <input
                 type="email"
                 required
                 value={officerEmail}
                 onChange={(e) => setOfficerEmail(e.target.value)}
                 placeholder="grievance.officer@troopp.com..."
-                className="h-10 bg-stone-900 border border-white/10 rounded-xl px-3 outline-none text-white focus:border-primary"
+                style={{
+                  height: '40px',
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '100px',
+                  padding: '0 16px',
+                  fontSize: '13px',
+                  color: '#f3f1ea',
+                  outline: 'none'
+                }}
               />
             </div>
 
             {/* Officer Designation */}
-            <div className="flex flex-col gap-1.5 text-xs">
-              <span className="font-bold text-stone-300">Corporate Designation</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Corporate Designation</span>
               <input
                 type="text"
                 required
                 value={officerDesignation}
                 onChange={(e) => setOfficerDesignation(e.target.value)}
                 placeholder="Chief Compliance Officer..."
-                className="h-10 bg-stone-900 border border-white/10 rounded-xl px-3 outline-none text-white focus:border-primary"
+                style={{
+                  height: '40px',
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '100px',
+                  padding: '0 16px',
+                  fontSize: '13px',
+                  color: '#f3f1ea',
+                  outline: 'none'
+                }}
               />
             </div>
 
             <button
               type="submit"
-              className="mt-2 h-11 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs shadow transition-all"
+              style={{
+                marginTop: '8px',
+                height: '44px',
+                background: 'var(--accent)',
+                color: '#1a0e08',
+                fontFamily: 'var(--font-display)',
+                fontWeight: '700',
+                borderRadius: '100px',
+                fontSize: '13px',
+                border: 'none',
+                cursor: 'pointer'
+              }}
             >
               💾 Save Compliance settings
             </button>

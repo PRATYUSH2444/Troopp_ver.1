@@ -110,11 +110,7 @@ const CATEGORIES_CONFIG = {
 const FAQ_ITEMS = [
   {
     q: 'How does the Behavioral Trust Score work?',
-    a: 'Your trust score starts at 10 and increases as you complete profile milestones, verify your government ID (+30), add emergency contacts (+10), and receive high reliability reviews from co-travelers after completed trips. Cancellations or verified rule violations result in deductions.'
-  },
-  {
-    q: 'Is my government ID verification secure?',
-    a: 'Yes. ID validation is processed securely through Digio. Troopp never stores your raw ID document or credentials. We only flag is_id_verified as true in the database and unlock your verified badge upon validation.'
+    a: 'Your trust score starts at 50 and increases as you complete profile milestones, add emergency contacts (+10), and receive high reliability reviews from co-travelers after completed trips. Cancellations or verified rule violations result in deductions.'
   },
   {
     q: 'What happens if I trigger the SOS emergency trigger?',
@@ -122,7 +118,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Can I host women-only activities on Troopp?',
-    a: 'Absolutely. Hostesses can flag an activity as "Women Only" during creation. The platform validates travelers seeking to join against their verified profile gender, maintaining safe, gated spaces.'
+    a: 'Absolutely. Hostesses can flag an activity as "Women Only" during creation. The platform validates travelers seeking to join against their profile gender, maintaining safe, gated spaces.'
   }
 ]
 
@@ -478,7 +474,7 @@ const Landing = () => {
             <div className="problem-list">
               {[
                 { title: 'WhatsApp Coordination Hell', desc: 'Endless threads of silent followups, dropouts, and zero structure.' },
-                { title: 'Unknown Traveler Risks', desc: 'Hosting or joining strangers without KYC background checks.' },
+                { title: 'Unknown Traveler Risks', desc: 'Hosting or joining strangers without reputation score checks.' },
                 { title: 'Cancellations last-minute', desc: 'Flaky members pulling out right before departure with zero reputation impacts.' }
               ].map((p, i) => (
                 <div key={i} className="list-item">
@@ -500,7 +496,7 @@ const Landing = () => {
             <div className="solution-list">
               {[
                 { title: 'Gated Trip Rooms', desc: 'Automated checklist controls, polling trackers, and split ledgers.' },
-                { title: 'Verification checks', desc: 'Secure Digio validation and biometric face verification checks.' },
+                { title: 'Emergency Contacts', desc: 'Secure connection with pre-configured emergency contacts.' },
                 { title: 'Behavioral reputation', desc: 'Account trust scoring linking contact details and rating history.' }
               ].map((s, i) => (
                 <div key={i} className="list-item">
@@ -534,7 +530,7 @@ const Landing = () => {
           {/* LEFT: Existing timeline (unchanged) */}
           <div className="timeline-container" style={{ marginTop: 0 }}>
             {[
-              { step: '01', title: 'Verify Identity & Build Trust', desc: 'Register with your college email, pass Digio KYC verification (+30 trust points), and link emergency contacts (+10 trust points).' },
+              { step: '01', title: 'Link Contacts & Build Trust', desc: 'Register with your college email and link emergency contacts (+10 trust points).' },
               { step: '02', title: 'Discover & Join Matches', desc: 'Filter trips by category, difficulty, or price. Request to join and get reviewed by the host.' },
               { step: '03', title: 'Co-coordinate inside Trip Rooms', desc: 'Use checklist tools, ledger splits, and safety check-ins inside gated rooms.' },
               { step: '04', title: 'Travel Together & Build Reputation', desc: 'Share coordinates safely via locations, and leave verified ratings after checkout to build your score.' }
@@ -590,19 +586,9 @@ const Landing = () => {
         <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <span style={{ fontSize: '10px', fontWeight: '700', color: '#4fbe8e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Trust Layer</span>
           <h3 style={{ fontSize: '32px', fontWeight: '800', fontFamily: 'Space Grotesk', margin: 0 }}>Safety isn't a feature. It's the foundation.</h3>
-          <p style={{ fontSize: '14.5px', color: '#9ba6ad', lineHeight: 1.5, maxWidth: '600px', margin: '0 auto' }}>
-            We implement biometric verification, university verification protocols, and community review tracking. Badges are linked directly to your database KYC logs.
+          <p style={{ fontSize: '14px', color: '#9ba6ad', lineHeight: 1.5, maxWidth: '600px', margin: '0 auto' }}>
+            We implement university email verification, emergency contact linking, and community review tracking.
           </p>
-
-          {/* Badge Examples */}
-          <div className="badge-row">
-            <div style={{ background: '#1a2129', border: '1px solid #3b82f6', color: '#3b82f6', padding: '8px 16px', borderRadius: '100px', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              🛡️ VERIFIED EXPLORER
-            </div>
-            <div style={{ background: '#1a2129', border: '1px solid #4fbe8e', color: '#4fbe8e', padding: '8px 16px', borderRadius: '100px', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              👑 TRUSTED LEGEND
-            </div>
-          </div>
         </div>
       </motion.section>
 

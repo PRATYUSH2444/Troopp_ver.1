@@ -27,7 +27,7 @@ const GroupTrustSnapshot = ({ members = [] }) => {
 
   const getAvgBadge = (score) => {
     if (score >= 75) return { label: 'Trusted', bg: 'bg-emerald-100 text-emerald-800' }
-    if (score >= 50) return { label: 'Verified', bg: 'bg-blue-100 text-blue-800' }
+    if (score >= 50) return { label: 'Explorer', bg: 'bg-blue-100 text-blue-800' }
     return { label: 'New', bg: 'bg-stone-100 text-stone-700' }
   }
 

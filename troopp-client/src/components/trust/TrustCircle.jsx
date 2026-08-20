@@ -122,7 +122,7 @@ const TrustCircle = ({ score = 50, size = 100, onClick }) => {
     }
     if (val >= 50) {
       return {
-        label: 'VERIFIED EXPLORER',
+        label: 'ACTIVE EXPLORER',
         icon: '🛡️',
         background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(59,130,246,0.28) 100%)',
         borderColor: 'rgba(59,130,246,0.35)',
@@ -214,7 +214,7 @@ const TrustCircle = ({ score = 50, size = 100, onClick }) => {
               pointerEvents: 'none'
             }}
           >
-            This score reflects verified identity status, trip history, and host ratings.
+            This score reflects profile completeness, trip history, and host ratings.
             <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderWidth: '6px', borderStyle: 'solid', borderColor: '#1a2129 transparent transparent transparent' }} />
           </motion.div>
         )}

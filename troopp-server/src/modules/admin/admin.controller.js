@@ -142,38 +142,6 @@ export const resolveActivityReport = async (req, res, next) => {
   }
 }
 
-export const getVerificationQueue = async (req, res, next) => {
-  try {
-    const list = await User.findAll({
-      where: { verification_status: 'manual_review' },
-      include: [{ model: Profile, as: 'Profile', attributes: ['name'] }]
-    })
-    res.status(200).json({ success: true, data: list })
-  } catch (error) {
-    next(error)
-  }
-}
-
-export const approveVerification = async (req, res, next) => {
-  try {
-    const { userId } = req.params
-    const user = await adminService.approveVerification(req.user.id, userId)
-    res.status(200).json({ success: true, message: 'Verification approved.', data: user })
-  } catch (error) {
-    next(error)
-  }
-}
-
-export const rejectVerification = async (req, res, next) => {
-  try {
-    const { userId } = req.params
-    const { reason } = req.body
-    const user = await adminService.rejectVerification(req.user.id, userId, reason)
-    res.status(200).json({ success: true, message: 'Verification rejected.', data: user })
-  } catch (error) {
-    next(error)
-  }
-}
 
 export const cancelActivity = async (req, res, next) => {
   try {

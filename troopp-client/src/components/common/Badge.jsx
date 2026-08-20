@@ -27,40 +27,7 @@ const Badge = ({
 }) => {
   const isSmall = size === 'sm'
 
-  // Render TrustBadge
-  if (type === 'trust') {
-    let label = 'New'
-    let colorClass = 'bg-text-secondary text-white'
-    let icon = '○'
 
-    if (isFlagged) {
-      label = 'Flagged'
-      colorClass = 'bg-status-danger text-white animate-pulse'
-      icon = '⚠'
-    } else if (score >= 75) {
-      label = 'Trusted'
-      colorClass = 'bg-secondary text-white'
-      icon = '✓'
-    } else if (score >= 50) {
-      label = 'Verified'
-      colorClass = 'bg-badge-verified text-white'
-      icon = '◈'
-    }
-
-    return (
-      <div
-        className={clsx(
-          'inline-flex items-center gap-1 font-sans font-bold rounded-full select-none shadow-sm',
-          isSmall ? 'text-[11px] px-2 h-5' : 'text-xs px-3 h-6.5',
-          colorClass,
-          className
-        )}
-      >
-        <span className="text-[10px]" aria-hidden="true">{icon}</span>
-        <span>{label}</span>
-      </div>
-    )
-  }
 
   // Render VibeBadge
   if (type === 'vibe') {

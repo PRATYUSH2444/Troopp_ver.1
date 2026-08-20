@@ -370,7 +370,7 @@ const CreateActivityPage = () => {
               <div className="flex items-center justify-between border-t border-border pt-4">
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-text-primary">👩 Women-Only Trip</span>
-                  <span className="text-[10px] text-text-secondary">Restrict to verified female travelers only.</span>
+                  <span className="text-[10px] text-text-secondary">Restrict to female travelers only.</span>
                 </div>
                 <button
                   type="button"

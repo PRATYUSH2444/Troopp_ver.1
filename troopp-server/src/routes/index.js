@@ -8,7 +8,7 @@ import memoryWallRouter from '../modules/memory-wall/memory-wall.routes.js'
 import socialRouter from '../modules/social/social.routes.js'
 import notificationRouter from '../modules/notifications/notification.routes.js'
 import profileRouter from './profile.routes.js'
-import kycRouter from './kyc.routes.js'
+import communityRouter from './community.routes.js'
 
 import { User, Activity, City, Profile } from '../models/index.js'
 
@@ -39,7 +39,7 @@ router.get('/public/home', async (req, res, next) => {
         {
           model: User,
           as: 'Creator',
-          attributes: ['id', 'trust_score', 'is_id_verified'],
+          attributes: ['id', 'trust_score'],
           include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'] }]
         }
       ],
@@ -68,9 +68,8 @@ router.use('/auth', authRouter)
 // Cities listing route
 router.use('/cities', cityRouter)
 
-// Profiles & KYC Routes
+// Profiles Routes
 router.use('/profiles', profileRouter)
-router.use('/kyc', kycRouter)
 
 // Activities & Feed Routes
 router.use('/activities', activitiesRouter)
@@ -89,6 +88,9 @@ router.use('/notifications', notificationRouter)
 
 // Social follower & block layer routes
 router.use('/', socialRouter)
+
+// Community Boards routes
+router.use('/community', communityRouter)
 
 // Admin Management overrides routes
 import adminRouter from '../modules/admin/admin.routes.js'

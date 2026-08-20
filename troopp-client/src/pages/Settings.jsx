@@ -1,15 +1,40 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext.jsx'
 import { haptics } from '../utils/haptics.js'
+import { apiRequest } from '../utils/api.js'
 
 /**
  * Premium Settings Panel conforming to Section 3.7 specifications.
  */
 const Settings = () => {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const navigate = useNavigate()
+
+  const [profileData, setProfileData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    const fetchProfile = async () => {
+      try {
+        const res = await apiRequest('/profiles/me')
+        if (res.ok && active) {
+          const json = await res.json()
+          setProfileData(json.data)
+        }
+      } catch (err) {
+        console.error('Failed to load settings profile:', err)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    fetchProfile()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const [soundEnabled, setSoundEnabled] = useState(() => {
     return localStorage.getItem('troopp_sounds_enabled') === 'true'
@@ -134,6 +159,33 @@ const Settings = () => {
           </Link>
 
           <Link
+            to="/profile/me/emergency"
+            onClick={() => haptics.lightTap()}
+            onMouseEnter={() => setHoveredRowId('emergency-contacts')}
+            onMouseLeave={() => setHoveredRowId(null)}
+            style={{
+              padding: '16px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              transition: 'background 150ms ease',
+              textDecoration: 'none',
+              background: hoveredRowId === 'emergency-contacts' ? 'rgba(255,255,255,0.03)' : 'transparent'
+            }}
+          >
+            <svg style={{ width: '20px', height: '20px', color: '#9ba6ad', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span style={{ fontSize: '15px', fontWeight: '500', color: '#f3f1ea', flex: 1 }}>
+              Manage Emergency Contacts
+            </span>
+            <svg style={{ width: '16px', height: '16px', color: '#6b757c', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+
+          <Link
             to="/profile/me/settings/notifications"
             onClick={() => haptics.lightTap()}
             onMouseEnter={() => setHoveredRowId('notif-prefs')}
@@ -158,6 +210,97 @@ const Settings = () => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </Link>
+        </div>
+
+        {/* SECTION: VERIFICATION & SECURITY */}
+        <div
+          style={{
+            background: '#1a2129',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '14px',
+            overflow: 'hidden',
+            marginBottom: '16px'
+          }}
+        >
+          <div style={{ padding: '11px 18px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6b757c' }}>
+              🛡️ Verification & Security
+            </span>
+          </div>
+
+          <div
+            style={{
+              padding: '16px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid rgba(255,255,255,0.06)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <svg style={{ width: '20px', height: '20px', color: '#9ba6ad' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '15px', fontWeight: '500', color: '#f3f1ea' }}>Email Address</span>
+                <span style={{ fontSize: '11px', color: '#6b757c' }}>{user?.email}</span>
+              </div>
+            </div>
+            <span style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 10px', borderRadius: '100px' }}>
+              ✓ Verified via Google
+            </span>
+          </div>
+
+          <div
+            onMouseEnter={() => setHoveredRowId('verify-phone-row')}
+            onMouseLeave={() => setHoveredRowId(null)}
+            style={{
+              padding: '16px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: hoveredRowId === 'verify-phone-row' ? 'rgba(255,255,255,0.03)' : 'transparent',
+              transition: 'background 150ms ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <svg style={{ width: '20px', height: '20px', color: '#9ba6ad' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '15px', fontWeight: '500', color: '#f3f1ea' }}>Mobile Number</span>
+                <span style={{ fontSize: '11px', color: '#6b757c' }}>
+                  {profileData?.isPhoneVerified ? (profileData?.profile?.phone || 'Verified') : 'Not verified yet'}
+                </span>
+              </div>
+            </div>
+            
+            {profileData?.isPhoneVerified ? (
+              <span style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 10px', borderRadius: '100px' }}>
+                ✓ Verified via SMS
+              </span>
+            ) : (
+              <button
+                onClick={() => {
+                  haptics.lightTap()
+                  navigate('/profile/me/verify-phone')
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
+                  border: 'none',
+                  color: '#1a0e08',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  padding: '6px 14px',
+                  borderRadius: '100px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(255,106,44,0.2)'
+                }}
+              >
+                Verify Now
+              </button>
+            )}
+          </div>
         </div>
 
         {/* SECTION: PREFERENCES */}

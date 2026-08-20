@@ -64,7 +64,6 @@ const ActivityDetailPage = () => {
             id: 'creator-1',
             trust_score: 84,
             reliability_score: 95,
-            is_id_verified: true,
             Profile: {
               name: 'Raj Malhotra',
               avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',

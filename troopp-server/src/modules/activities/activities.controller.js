@@ -22,15 +22,25 @@ export const getAllActivities = async (req, res, next) => {
       difficulty: req.query.difficulty,
       maxGroupSize: req.query.maxGroupSize,
       startDate: req.query.startDate,
-      endDate: req.query.endDate
+      endDate: req.query.endDate,
+      q: req.query.q,
+      latitude: req.query.latitude,
+      longitude: req.query.longitude,
+      radiusKm: req.query.radiusKm,
+      sort: req.query.sort,
+      cursor: req.query.cursor
     }
 
     const pagination = {
-      limit: req.query.limit || 20,
-      offset: req.query.offset || 0
+      limit: req.query.limit || 20
     }
 
-    const data = await activitiesService.getAllByCity(filters, pagination)
+    // Instrumentation tracking
+    if (filters.q) {
+      logger.info(`Activity Discovery Search applied: query="${filters.q}" city="${filters.cityId || 'all'}" user="${req.user.id}"`)
+    }
+
+    const data = await activitiesService.getAllByCity(filters, pagination, req.user.id)
     res.status(200).json({
       success: true,
       data
@@ -44,7 +54,7 @@ export const getFollowedActivities = async (req, res, next) => {
   try {
     const pagination = {
       limit: req.query.limit || 20,
-      offset: req.query.offset || 0
+      cursor: req.query.cursor
     }
 
     const data = await activitiesService.getByFollowing(req.user.id, pagination)
@@ -63,8 +73,10 @@ export const searchActivities = async (req, res, next) => {
     const cityId = req.query.cityId
     const pagination = {
       limit: req.query.limit || 20,
-      offset: req.query.offset || 0
+      cursor: req.query.cursor
     }
+
+    logger.info(`Activity search query query="${query}" cityId="${cityId}" user="${req.user.id}"`)
 
     const data = await activitiesService.search(query, cityId, pagination)
     res.status(200).json({
@@ -134,7 +146,9 @@ export const cancelActivity = async (req, res, next) => {
 export const joinActivity = async (req, res, next) => {
   try {
     const intent = req.body.intent || 'request'
-    const member = await activitiesService.joinActivity(req.params.id, req.user.id, intent)
+    const role = req.body.role || req.body.roleIntent || 'member'
+    const message = req.body.message || ''
+    const member = await activitiesService.joinActivity(req.params.id, req.user.id, intent, role, message)
     res.status(200).json({
       success: true,
       message: member.status === 'confirmed' ? 'Successfully joined the activity!' : 'Join request sent to the host.',
@@ -304,6 +318,45 @@ export const getMemberTrustCard = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const publishActivity = async (req, res, next) => {
+  try {
+    const activity = await activitiesService.publish(req.params.id, req.user.id, req.body)
+    res.status(200).json({
+      success: true,
+      message: 'Activity published successfully.',
+      data: activity
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const acceptHostingInvite = async (req, res, next) => {
+  try {
+    const result = await activitiesService.acceptHostingInvite(req.params.id, req.user.id)
+    res.status(200).json({
+      success: true,
+      message: 'Co-hosting invitation accepted successfully.',
+      data: result
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const declineHostingInvite = async (req, res, next) => {
+  try {
+    const activity = await activitiesService.declineHostingInvite(req.params.id, req.user.id)
+    res.status(200).json({
+      success: true,
+      message: 'Co-hosting invitation declined successfully.',
+      data: activity
     })
   } catch (error) {
     next(error)

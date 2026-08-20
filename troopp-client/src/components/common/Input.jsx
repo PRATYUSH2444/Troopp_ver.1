@@ -87,12 +87,13 @@ const Input = React.forwardRef(({
   }
 
   return (
-    <div className="flex flex-col w-full text-left relative">
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', textAlign: 'left', position: 'relative' }}>
       {/* Label */}
       {label && (
         <label
           htmlFor={id || name}
           className="block text-[13px] font-semibold text-text-secondary mb-1.5 select-none"
+          style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}
         >
           {label}
         </label>

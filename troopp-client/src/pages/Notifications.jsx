@@ -10,48 +10,14 @@ import Spinner from '../components/common/Spinner.jsx'
  */
 const Notifications = () => {
   const navigate = useNavigate()
-  const { notificationList, setNotificationList, markAllAsRead } = useNotifications()
+  const { notificationList, fetchNotifications, markAllAsRead, markAsRead } = useNotifications()
   const [loading, setLoading] = useState(true)
   const [hoveredId, setHoveredId] = useState(null)
 
   useEffect(() => {
     const syncNotifications = async () => {
       try {
-        await new Promise((r) => setTimeout(r, 400))
-
-        if (notificationList.length === 0) {
-          setNotificationList([
-            {
-              id: 'notif-1',
-              type: 'join_request_approved',
-              title: 'Trek Approved! 🎉',
-              body: 'Raj Malhotra approved your join request for: Harishchandragad Monsoon Trek.',
-              createdAt: new Date(Date.now() - 30 * 60 * 1000),
-              is_read: false,
-              data: { deepLink: '/trip-rooms/a7a7a7a7-a7a7-a7a7-a7a7-a7a7a7a7a7a7' }
-            },
-            {
-              id: 'notif-2',
-              type: 'trust_score_changed',
-              title: 'Trust Score Increased! 📈',
-              body: 'Your safety trust score bumped to 83 (+3 points) for completing post-trip ratings.',
-              createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-              is_read: true,
-              data: { deepLink: '/profile/me' }
-            },
-            {
-              id: 'notif-3',
-              type: 'new_activity_in_city',
-              title: 'New Trip nearby 🗺️',
-              body: 'A cycling trip "Saturday Morning Lonavala Spin" was created in Pune.',
-              createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-              is_read: true,
-              data: { deepLink: '/activities/34343434-3434-3434-3434-343434343434' }
-            }
-          ])
-        }
-
-        await markAllAsRead()
+        await fetchNotifications()
       } catch (err) {
         console.error('Failed syncing notifications list:', err)
       } finally {
@@ -135,6 +101,7 @@ const Notifications = () => {
 
   const handleNotificationTap = (notif) => {
     haptics.lightTap()
+    markAsRead(notif.id)
     const link = notif.data?.deepLink || '/feed'
     navigate(link)
   }

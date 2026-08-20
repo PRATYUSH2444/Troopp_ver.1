@@ -1,31 +1,50 @@
 import * as activityRepo from './activities.repository.js'
 import { deductReliability, addReliability } from '../trust/reliability.service.js'
 import { sendNotification } from '../../services/notification.service.js'
+import { cacheGet, cacheSet, cacheInvalidatePattern } from '../../utils/cache.js'
 import logger from '../../config/logger.js'
 
 /**
- * Get all activities by city.
+ * Get all activities by city (cached).
  */
 export const getAllByCity = async (filters, pagination) => {
-  return await activityRepo.getAllByCity(filters, pagination)
+  const cacheKey = `feed:list:${JSON.stringify(filters)}:${JSON.stringify(pagination)}`
+  const cached = await cacheGet(cacheKey)
+  if (cached) return cached
+
+  const result = await activityRepo.getAllByCity(filters, pagination)
+  await cacheSet(cacheKey, result, 300) // 5 minutes TTL
+  return result
 }
 
 /**
- * Get followed users' activities.
+ * Get followed users' activities (cached).
  */
 export const getByFollowing = async (userId, pagination) => {
-  return await activityRepo.getByFollowing(userId, pagination)
+  const cacheKey = `feed:following:${userId}:${JSON.stringify(pagination)}`
+  const cached = await cacheGet(cacheKey)
+  if (cached) return cached
+
+  const result = await activityRepo.getByFollowing(userId, pagination)
+  await cacheSet(cacheKey, result, 300)
+  return result
 }
 
 /**
- * Search activities.
+ * Search activities (cached).
  */
 export const search = async (query, cityId, pagination) => {
-  return await activityRepo.search(query, cityId, pagination)
+  const cacheKey = `feed:search:${query}:${cityId || 'all'}:${JSON.stringify(pagination)}`
+  const cached = await cacheGet(cacheKey)
+  if (cached) return cached
+
+  const result = await activityRepo.search(query, cityId, pagination)
+  await cacheSet(cacheKey, result, 300)
+  return result
 }
 
 /**
- * Get detailed activity with profile context and mutual links.
+ * Get detailed activity with profile context.
  */
 export const getByIdWithDetails = async (id, requestingUserId) => {
   return await activityRepo.getByIdWithDetails(id, requestingUserId)
@@ -36,8 +55,13 @@ export const getByIdWithDetails = async (id, requestingUserId) => {
  */
 export const create = async (creatorId, data) => {
   const result = await activityRepo.create(creatorId, data)
-  
-  // Send notification to host
+  await cacheInvalidatePattern('feed:*')
+
+  // Socket broadcast of new activity
+  if (global.io) {
+    global.io.emit('activity_created', result.activity)
+  }
+
   await sendNotification(creatorId, {
     type: 'activity_created',
     title: 'Trip Published! 🎒',
@@ -51,16 +75,29 @@ export const create = async (creatorId, data) => {
  * Update activity details.
  */
 export const update = async (id, data, creatorId) => {
-  return await activityRepo.update(id, data, creatorId)
+  const activity = await activityRepo.update(id, data, creatorId)
+  await cacheInvalidatePattern('feed:*')
+
+  // Socket broadcast of updated activity details
+  if (global.io) {
+    global.io.emit('activity_updated', activity)
+  }
+
+  return activity
 }
 
 /**
- * Cancel an activity, notifying all enrolled members.
+ * Cancel an activity.
  */
 export const cancel = async (id, creatorId) => {
   const { activity, members } = await activityRepo.cancel(id, creatorId)
+  await cacheInvalidatePattern('feed:*')
 
-  // Notify each member of cancellation
+  // Socket broadcast status update
+  if (global.io) {
+    global.io.emit('activity_updated', { id, status: 'cancelled' })
+  }
+
   for (const member of members) {
     if (member.user_id !== creatorId) {
       await sendNotification(member.user_id, {
@@ -75,7 +112,7 @@ export const cancel = async (id, creatorId) => {
 }
 
 /**
- * Get pending join requests for host approval.
+ * Get pending join requests.
  */
 export const getJoinRequests = async (activityId, creatorId) => {
   return await activityRepo.getJoinRequests(activityId, creatorId)
@@ -86,8 +123,17 @@ export const getJoinRequests = async (activityId, creatorId) => {
  */
 export const approveJoin = async (activityId, requestId, creatorId) => {
   const { member, activity } = await activityRepo.approveJoin(activityId, requestId, creatorId)
+  await cacheInvalidatePattern('feed:*')
 
-  // Notify approved user
+  // Broadcast real-time slot update
+  if (global.io) {
+    global.io.emit('activity_updated', {
+      id: activityId,
+      current_members: activity.current_members,
+      status: activity.status
+    })
+  }
+
   await sendNotification(member.user_id, {
     type: 'join_request_approved',
     title: 'Join Request Approved! 🎉',
@@ -101,53 +147,74 @@ export const approveJoin = async (activityId, requestId, creatorId) => {
  * Decline a user join request.
  */
 export const declineJoin = async (activityId, requestId, creatorId) => {
-  const member = await activityRepo.declineJoin(activityId, requestId, creatorId)
-
-  // Notify declined user
-  await sendNotification(member.user_id, {
-    type: 'join_request_declined',
-    title: 'Join Request Declined',
-    body: `The host declined your request to join: "${activityId}".`
-  })
-
+  const { member, activity } = await activityRepo.declineJoin(activityId, requestId, creatorId)
   return member
 }
 
 /**
- * Join an activity, checking gates.
+ * Primary join gateway.
  */
-export const joinActivity = async (activityId, userId, intent) => {
-  const { member, activity } = await activityRepo.joinActivity(activityId, userId, intent)
+export const joinActivity = async (activityId, userId, intent, role, message) => {
+  const { member, activity } = await activityRepo.joinActivity(activityId, userId, intent, role)
 
-  // Notify Host of join request or confirmation
+  if (member.status === 'confirmed') {
+    await cacheInvalidatePattern('feed:*')
+    // Broadcast slots update
+    if (global.io) {
+      global.io.emit('activity_updated', {
+        id: activityId,
+        current_members: activity.current_members,
+        status: activity.status
+      })
+    }
+  }
+
+  let bodyText = `A member has requested to join your trip: "${activity.title}".`
+  if (role && role !== 'member') {
+    bodyText += ` Role Intent: ${role}.`
+  }
+  if (message) {
+    bodyText += ` Message: "${message}"`
+  }
+
   await sendNotification(activity.creator_id, {
     type: 'new_join_request',
     title: 'New Member Applied 👤',
-    body: `A member has requested to join your trip: "${activity.title}".`
+    body: bodyText,
+    data: {
+      deepLink: `/activities/${activityId}/requests`
+    }
   })
 
   return member
 }
 
 /**
- * Withdraw enrollment, assessing penalties under 24 hours.
+ * Withdraw enrollment, promoting waitlist if spots open.
  */
 export const withdrawFromActivity = async (activityId, userId, reason) => {
   const { member, activity, isLateWithdrawal, promotedMember } = await activityRepo.withdrawFromActivity(activityId, userId, reason)
+  await cacheInvalidatePattern('feed:*')
 
-  // 1. If withdrawal is late (under 24h notice), deduct -10 reliability points
+  // Broadcast slots update to all clients
+  if (global.io) {
+    global.io.emit('activity_updated', {
+      id: activityId,
+      current_members: activity.current_members,
+      status: activity.status
+    })
+  }
+
   if (isLateWithdrawal) {
     await deductReliability(userId, 10, 'late_withdrawal', activityId)
   }
 
-  // 2. Notify Host
   await sendNotification(activity.creator_id, {
     type: 'member_withdrawn',
     title: 'Member Withdrew 🚶',
     body: `A member has left your trip: "${activity.title}".`
   })
 
-  // 3. Notify promoted waitlist member
   if (promotedMember) {
     await sendNotification(promotedMember.user_id, {
       type: 'waitlist_promoted',
@@ -160,8 +227,61 @@ export const withdrawFromActivity = async (activityId, userId, reason) => {
 }
 
 /**
- * Fetch behavioral metrics for member trust card review.
+ * Fetch behavioral metrics.
  */
 export const getMemberTrustCard = async (userId, requestingUserId) => {
   return await activityRepo.getMemberTrustCard(userId, requestingUserId)
+}
+
+/**
+ * Publish trip setup draft.
+ */
+export const publish = async (id, creatorId, data) => {
+  const activity = await activityRepo.publish(id, creatorId, data)
+  await cacheInvalidatePattern('feed:*')
+
+  if (global.io) {
+    global.io.emit('activity_created', activity)
+  }
+
+  await sendNotification(creatorId, {
+    type: 'activity_created',
+    title: 'Trip Published! 🎒',
+    body: `Your trip "${activity.title}" is live! Next: configure rules and waypoints.`
+  })
+
+  return activity
+}
+
+/**
+ * Accept host invite.
+ */
+export const acceptHostingInvite = async (id, hostId) => {
+  const { activity, member } = await activityRepo.acceptHostingInvite(id, hostId)
+  await cacheInvalidatePattern('feed:*')
+
+  if (global.io) {
+    global.io.emit('activity_updated', activity)
+  }
+
+  await sendNotification(activity.creator_id, {
+    type: 'host_invite_accepted',
+    title: 'Host Invitation Accepted! 🤝',
+    body: `Awesome! The assigned host accepted your invitation to host "${activity.title}".`
+  })
+
+  return { activity, member }
+}
+
+/**
+ * Decline host invite.
+ */
+export const declineHostingInvite = async (id, hostId) => {
+  const activity = await activityRepo.declineHostingInvite(id, hostId)
+  await sendNotification(activity.creator_id, {
+    type: 'host_invite_declined',
+    title: 'Host Invitation Declined',
+    body: `The assigned host declined your invitation to host "${activity.title}".`
+  })
+  return activity
 }

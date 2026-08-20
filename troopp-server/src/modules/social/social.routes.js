@@ -4,18 +4,16 @@ import * as socialController from './social.controller.js'
 
 const router = Router()
 
-// All social operations require active session validation
-router.use(authGuard)
-
 // Follow links
-router.post('/follows/:userId', socialController.followUser)
-router.delete('/follows/:userId', socialController.unfollowUser)
-router.get('/follows/:userId/followers', socialController.getFollowers)
-router.get('/follows/:userId/following', socialController.getFollowing)
+router.post('/follows/:userId', authGuard, socialController.followUser)
+router.delete('/follows/:userId', authGuard, socialController.unfollowUser)
+router.get('/follows/:userId/followers', authGuard, socialController.getFollowers)
+router.get('/follows/:userId/following', authGuard, socialController.getFollowing)
 
 // Block links
-router.post('/blocks/:userId', socialController.blockUser)
-router.delete('/blocks/:userId', socialController.unblockUser)
+router.post('/blocks/:userId', authGuard, socialController.blockUser)
+router.delete('/blocks/:userId', authGuard, socialController.unblockUser)
 
 export default router
 export { router }
+

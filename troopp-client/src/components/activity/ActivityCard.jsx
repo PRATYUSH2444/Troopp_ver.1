@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import Avatar from '../common/Avatar.jsx'
-import VibeBadge from '../common/VibeBadge.jsx'
-import ProgressiveImage from '../common/ProgressiveImage.jsx'
 import { haptics } from '../../utils/haptics.js'
+
+const TOKENS = {
+  bg: "#121319",
+  bgCard: "#181A22",
+  border: "rgba(245,243,238,0.08)",
+  text: "#F5F3EE",
+  textMuted: "#9294A0",
+  amber: "#F2994A",
+  amberSoft: "rgba(242,153,74,0.16)",
+  teal: "#2DD4BF",
+  tealSoft: "rgba(45,212,191,0.14)",
+  blue: "#5B8DEF",
+  rose: "#F2578C",
+}
 
 /**
  * Format date string into relative user-friendly text.
@@ -31,9 +42,151 @@ const formatRelativeDate = (dateString) => {
   }
 }
 
-/**
- * Premium Activity Card component conforming to Section 3.3 specifications.
- */
+function SlotGauge({ filled, total }) {
+  const pct = total > 0 ? Math.min(1.0, filled / total) : 0
+  const r = 40
+  const circumference = Math.PI * r // half circle length
+  const offset = circumference * (1 - pct)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '96px' }}>
+      <svg width="96" height="58" viewBox="0 0 100 58">
+        <path
+          d="M10,52 A40,40 0 0 1 90,52"
+          fill="none"
+          stroke="rgba(245,243,238,0.08)"
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+        <path
+          d="M10,52 A40,40 0 0 1 90,52"
+          fill="none"
+          stroke={TOKENS.amber}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 700ms ease" }}
+        />
+        <text
+          x="50"
+          y="44"
+          textAnchor="middle"
+          fill={TOKENS.text}
+          fontSize="16"
+          fontFamily="'JetBrains Mono', monospace"
+          fontWeight="600"
+        >
+          {filled}/{total}
+        </text>
+      </svg>
+      <span
+        style={{ color: TOKENS.textMuted, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: '4px' }}
+      >
+        Slots filled
+      </span>
+    </div>
+  )
+}
+
+function CompositionGauge({ male, female }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+        <span
+          style={{ color: TOKENS.textMuted, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', whiteSpace: 'nowrap' }}
+        >
+          Composition
+        </span>
+        <span
+          style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: TOKENS.text, whiteSpace: 'nowrap' }}
+        >
+          <span style={{ color: TOKENS.blue }}>{male}% M</span>
+          <span style={{ color: TOKENS.textMuted }}> · </span>
+          <span style={{ color: TOKENS.rose }}>{female}% F</span>
+        </span>
+      </div>
+      <div
+        style={{ height: '8px', width: '100%', borderRadius: '100px', overflow: 'hidden', display: 'flex', background: 'rgba(245,243,238,0.08)' }}
+      >
+        <div
+          style={{
+            width: `${male}%`,
+            background: `linear-gradient(90deg, ${TOKENS.blue}, #7BA6FF)`,
+            transition: "width 700ms ease",
+          }}
+        />
+        <div
+          style={{
+            width: `${female}%`,
+            background: `linear-gradient(90deg, #FF7FB0, ${TOKENS.rose})`,
+            transition: "width 700ms ease",
+          }}
+        />
+      </div>
+      <div
+        style={{ fontSize: '9px', color: 'rgba(146,148,160,0.7)', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+      >
+        Based on opt-in profiles
+      </div>
+    </div>
+  )
+}
+
+function TrustRingAvatar({ src, name, initials, score }) {
+  const r = 22
+  const c = 2 * Math.PI * r
+  const offset = c * (1 - score / 100)
+  return (
+    <div style={{ width: 56, height: 56, position: 'relative', flexShrink: 0 }}>
+      <svg width="56" height="56" viewBox="0 0 56 56" style={{ position: 'absolute', top: 0, left: 0 }}>
+        <circle
+          cx="28"
+          cy="28"
+          r={r}
+          fill="none"
+          stroke="rgba(245,243,238,0.1)"
+          strokeWidth="3"
+        />
+        <circle
+          cx="28"
+          cy="28"
+          r={r}
+          fill="none"
+          stroke={TOKENS.teal}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          transform="rotate(-90 28 28)"
+          style={{ transition: "stroke-dashoffset 700ms ease" }}
+        />
+      </svg>
+      <div
+        style={{
+          position: 'absolute',
+          inset: '5px',
+          borderRadius: '50%',
+          background: '#22242E',
+          color: TOKENS.text,
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: 14,
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: '600'
+        }}
+      >
+        {src ? (
+          <img src={src} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          initials
+        )}
+      </div>
+    </div>
+  )
+}
+
 const ActivityCard = ({ activity, index = 0 }) => {
   const {
     id,
@@ -47,11 +200,14 @@ const ActivityCard = ({ activity, index = 0 }) => {
     difficulty_level,
     vibe_score_tag,
     is_women_only,
-    Creator
+    Creator,
+    media,
+    createdAt
   } = activity
 
   const [liveMembers, setLiveMembers] = useState(current_members)
   const [isHovered, setIsHovered] = useState(false)
+  const [imgLoaded, setImgLoaded] = useState(false)
 
   useEffect(() => {
     setLiveMembers(current_members)
@@ -72,8 +228,13 @@ const ActivityCard = ({ activity, index = 0 }) => {
     const tripDate = new Date(date_time)
     const today = new Date()
     const isToday = tripDate.getDate() === today.getDate() && tripDate.getMonth() === today.getMonth() && tripDate.getFullYear() === today.getFullYear()
-    urgencyDateText = isToday ? 'Happening Today!' : 'Happening Tomorrow!'
+    urgencyDateText = isToday ? 'Happening Today' : 'Happening Tomorrow'
   }
+
+  // Real-time Discovery badging signals:
+  const isFillingFast = spotsRemaining > 0 && spotsRemaining <= 3
+  const isTrending = liveMembers >= 5
+  const isNew = createdAt && (Date.now() - new Date(createdAt).getTime()) < 24 * 60 * 60 * 1000
 
   const fallbackCovers = {
     trek: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80',
@@ -86,44 +247,46 @@ const ActivityCard = ({ activity, index = 0 }) => {
     day_trip: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=400&q=80'
   }
 
-  const coverUrl = fallbackCovers[type] || fallbackCovers.day_trip
+  const mediaList = Array.isArray(media) ? media : []
+  const coverUrl = mediaList[0] || fallbackCovers[type] || fallbackCovers.day_trip
 
-  // Calculate deterministic gender composition based on activity ID and Creator gender
+  // Calculate actual gender composition with privacy-safe sparsity rules
   const getGenderComposition = () => {
-    const hostGender = (Creator?.Profile?.gender || 'male').toLowerCase()
-    const seed = id ? id.charCodeAt(0) + id.charCodeAt(id.length - 1) : 42
-    
-    let mRatio = 0
-    let fRatio = 0
-    
-    if (hostGender === 'female' || hostGender === 'f') {
-      fRatio = 55 + (seed % 25) // 55% to 80%
-      mRatio = 100 - fRatio - (seed % 8)
-    } else {
-      mRatio = 55 + (seed % 25) // 55% to 80%
-      fRatio = 100 - mRatio - (seed % 8)
-    }
-    
-    return { maleRatio: mRatio, femaleRatio: fRatio }
+    const confirmed = Array.isArray(activity.ActivityMembers)
+      ? activity.ActivityMembers.filter(m => m.status === 'confirmed')
+      : []
+
+    const total = confirmed.length
+    if (total === 0) return { maleRatio: 0, femaleRatio: 0, totalConfirmed: 0, eligibleCount: 0 }
+
+    let mCount = 0
+    let fCount = 0
+    let oCount = 0
+
+    confirmed.forEach(m => {
+      const g = (m.User?.Profile?.gender || '').toLowerCase()
+      if (g === 'male') mCount++
+      else if (g === 'female') fCount++
+      else if (g === 'other') oCount++
+    })
+
+    const eligibleCount = mCount + fCount + oCount
+    if (eligibleCount === 0) return { maleRatio: 0, femaleRatio: 0, totalConfirmed: total, eligibleCount: 0 }
+
+    const maleRatio = Math.round((mCount / eligibleCount) * 100)
+    const femaleRatio = Math.round((fCount / eligibleCount) * 100)
+
+    return { maleRatio, femaleRatio, totalConfirmed: total, eligibleCount }
   }
 
-  const { maleRatio, femaleRatio } = getGenderComposition()
+  const { maleRatio, femaleRatio, totalConfirmed, eligibleCount } = getGenderComposition()
 
-  const isCreatorVerified = Creator?.is_id_verified ?? Creator?.isIdVerified ?? false
   const creatorScore = Creator?.trust_score ?? Creator?.trustScore ?? 0
+  const reliabilityScore = Creator?.reliability_score ?? Creator?.reliabilityScore ?? 100
 
-  const getCreatorBadge = () => {
-    if (isCreatorVerified && creatorScore >= 75) return { label: '👑 Trusted', bg: 'var(--moss-soft)', color: 'var(--moss)' }
-    if (isCreatorVerified && creatorScore >= 50) return { label: '🛡️ Verified', bg: 'rgba(59,130,246,0.14)', color: '#3b82f6' }
-    return { label: '🌱 New', bg: 'rgba(107,117,124,0.20)', color: '#6b757c' }
-  }
-  const creatorBadge = getCreatorBadge()
-
-  const getSlotText = () => {
-    if (isFull) return 'Trip is full'
-    if (spotsRemaining === 1) return 'Last spot!'
-    if (isUrgent) return `Only ${spotsRemaining} spots left!`
-    return `${liveMembers} of ${max_group_size} spots filled`
+  const getCreatorInitials = () => {
+    const nameStr = Creator?.Profile?.name || 'Explorer'
+    return nameStr.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
   }
 
   const categoryIcons = {
@@ -138,35 +301,56 @@ const ActivityCard = ({ activity, index = 0 }) => {
   }
   const categoryLabel = categoryIcons[type] || 'Trip'
 
-  const typeGradients = {
-    trek: 'linear-gradient(155deg, #1c3a3d, #101a1d 70%)',
-    road_trip: 'linear-gradient(155deg, #3a2a1f, #181410 70%)',
-    cycling: 'linear-gradient(155deg, #2a1c3a, #15101d 70%)',
-    camping: 'linear-gradient(155deg, #1a2e1a, #0e1a0e 70%)',
-    night_drive: 'linear-gradient(155deg, #1a1a2e, #0e0e18 70%)',
-    heritage_walk: 'linear-gradient(155deg, #2e2a1a, #1a180e 70%)',
-    photography_walk: 'linear-gradient(155deg, #2e1a2e, #180e18 70%)',
-    day_trip: 'linear-gradient(155deg, #1c2a1c, #101810 70%)'
-  }
-  const bgGradient = typeGradients[type] || typeGradients.day_trip
-
   return (
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        background: '#1a2129',
-        border: '1px solid',
-        borderColor: isHovered ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)',
-        borderRadius: '20px',
+        width: '100%',
+        borderRadius: '24px',
         overflow: 'hidden',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.03) inset',
+        background: TOKENS.bgCard,
+        border: `1px solid ${isHovered ? 'rgba(255,255,255,0.14)' : TOKENS.border}`,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.4), 0 20px 40px -20px rgba(0,0,0,0.6)",
+        transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
+        transition: 'transform 300ms ease, border-color 300ms ease',
         display: 'flex',
-        flexDirection: 'column',
-        transform: isHovered ? 'translateY(-3px)' : 'translateY(0)',
-        transition: 'transform 180ms ease, border-color 180ms ease'
+        flexDirection: 'column'
       }}
     >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap');
+        
+        .card-tooltip-trigger {
+          position: relative;
+        }
+        .card-tooltip-content {
+          visibility: hidden;
+          opacity: 0;
+          position: absolute;
+          bottom: 125%;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: #121319;
+          border: 1px solid rgba(255,255,255,0.12);
+          color: #f3f1ea;
+          text-align: left;
+          padding: 10px 14px;
+          border-radius: 12px;
+          width: 190px;
+          font-size: 11px;
+          z-index: 100;
+          transition: opacity 150ms ease, visibility 150ms ease;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+          line-height: 1.4;
+          pointer-events: none;
+        }
+        .card-tooltip-trigger:hover .card-tooltip-content {
+          visibility: visible;
+          opacity: 1;
+        }
+      `}</style>
+
       <Link
         to={`/activities/${id}`}
         style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', height: '100%' }}
@@ -178,93 +362,197 @@ const ActivityCard = ({ activity, index = 0 }) => {
           }
         }}
       >
-        {/* CARD MEDIA (image/gradient area) */}
-        <div
-          style={{
-            position: 'relative',
-            height: '170px',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'flex-end',
-            padding: '14px',
-            background: bgGradient
-          }}
-        >
-          {/* Real Image */}
-          <ProgressiveImage
-            src={coverUrl}
-            alt={title}
-            className="transition-transform duration-700"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              zIndex: 0,
-              transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-              transition: 'transform 700ms ease'
-            }}
-          />
+        {/* HERO IMAGE AREA */}
+        <div style={{ position: 'relative', height: '192px', overflow: 'hidden' }}>
+          
+          {/* Lazy-Loading Blur-Up Image Container */}
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {!imgLoaded && (
+              <div 
+                style={{ 
+                  position: 'absolute', 
+                  inset: 0, 
+                  filter: 'blur(20px)', 
+                  background: `url(${coverUrl}) center/cover no-repeat`,
+                  transform: 'scale(1.2)'
+                }} 
+              />
+            )}
+            <img
+              src={coverUrl}
+              alt={title}
+              onLoad={() => setImgLoaded(true)}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: imgLoaded ? 1 : 0,
+                transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+                transition: 'transform 700ms ease, opacity 300ms ease'
+              }}
+            />
+          </div>
 
-          {/* Dark overlay */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(0deg, rgba(0,0,0,0.55), transparent 60%)',
-              zIndex: 1
+              background: "linear-gradient(180deg, rgba(18,19,25,0) 40%, rgba(18,19,25,0.85) 100%)"
             }}
           />
-          
-          {/* Persona/Vibe tag (overlay) */}
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <VibeBadge
-              vibe={vibe_score_tag}
-              index={index}
-            />
-          </div>
 
-          {/* Women Only Indicator */}
-          {is_women_only && (
+          {/* Mood Badge */}
+          {vibe_score_tag && (
             <div
               style={{
                 position: 'absolute',
                 top: '12px',
-                right: '12px',
-                background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
-                color: 'white',
-                padding: '4px 10px',
+                left: '12px',
+                padding: '6px 12px',
                 borderRadius: '100px',
-                fontSize: '10px',
-                fontWeight: '900',
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                boxShadow: '0 4px 12px rgba(244,63,94,0.3)',
-                zIndex: 2,
+                fontSize: '12px',
+                fontWeight: '500',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px'
+                gap: '6px',
+                backdropFilter: 'blur(12px)',
+                background: 'rgba(18,19,25,0.55)',
+                border: '1px solid rgba(245,243,238,0.15)',
+                color: TOKENS.text
               }}
             >
-              🔒 <span>Women-Only</span>
+              <span>🧭</span>
+              {vibe_score_tag}
             </div>
           )}
+
+          {/* Live Badge Alerts (Filling Fast, Trending, New) */}
+          <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
+            {is_women_only && (
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+                  color: 'white',
+                  padding: '4px 10px',
+                  borderRadius: '100px',
+                  fontSize: '10px',
+                  fontWeight: '900',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 4px 12px rgba(244,63,94,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                🔒 <span>Women-Only</span>
+              </div>
+            )}
+            {(() => {
+              const displayBadges = Array.isArray(activity.computed_badges)
+                ? activity.computed_badges
+                : [
+                    isFillingFast && 'Filling Fast',
+                    isTrending && 'Trending',
+                    isNew && 'New'
+                  ].filter(Boolean)
+
+              return displayBadges.map(badge => {
+                if (badge === 'Just Listed' || badge === 'New') {
+                  return (
+                    <div
+                      key={badge}
+                      style={{
+                        background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+                        color: 'white',
+                        padding: '4px 10px',
+                        borderRadius: '100px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 4px 12px rgba(4,120,87,0.3)'
+                      }}
+                    >
+                      ✨ New
+                    </div>
+                  )
+                }
+                if (badge === 'Trending') {
+                  return (
+                    <div
+                      key={badge}
+                      style={{
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                        color: 'white',
+                        padding: '4px 10px',
+                        borderRadius: '100px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 4px 12px rgba(29,78,216,0.3)'
+                      }}
+                    >
+                      🔥 Trending
+                    </div>
+                  )
+                }
+                if (badge === 'Filling Fast' || badge === 'Almost Full') {
+                  return (
+                    <div
+                      key={badge}
+                      style={{
+                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                        color: 'white',
+                        padding: '4px 10px',
+                        borderRadius: '100px',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 4px 12px rgba(217,119,6,0.3)'
+                      }}
+                    >
+                      ⚡ {badge}
+                    </div>
+                  )
+                }
+                return null
+              })
+            })()}
+
+            {urgencyDateText && (
+              <div 
+                style={{ 
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  padding: '4px 10px',
+                  borderRadius: '100px',
+                  backdropFilter: 'blur(12px)',
+                  background: 'rgba(18,19,25,0.55)',
+                  border: '1px solid rgba(245,243,238,0.15)',
+                  color: TOKENS.amber
+                }}
+              >
+                {urgencyDateText}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* CARD BODY */}
-        <div style={{ padding: '18px 20px 20px', display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+        {/* CARD CONTENT BODY */}
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
           
           {/* Title & Price Row */}
-          <div style={{ display: 'flex', justifySpace: 'between', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
             <h3
               style={{
-                fontSize: '17px',
+                fontSize: '18px',
                 fontWeight: '600',
-                letterSpacing: '-0.01em',
                 lineHeight: '1.3',
-                color: '#f3f1ea',
-                fontFamily: 'var(--font-display)',
+                fontFamily: "'Space Grotesk', sans-serif",
+                color: TOKENS.text,
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
@@ -277,181 +565,209 @@ const ActivityCard = ({ activity, index = 0 }) => {
             </h3>
             <span
               style={{
-                fontSize: '16px',
+                fontSize: '18px',
                 fontWeight: '600',
-                color: 'var(--accent)',
+                fontFamily: "'JetBrains Mono', monospace",
+                color: TOKENS.amber,
                 whiteSpace: 'nowrap',
-                flexShrink: 0,
-                fontFamily: 'var(--font-mono)'
+                flexShrink: 0
               }}
             >
               {cost_per_person === 0 ? 'Free' : `₹${Math.round(cost_per_person)}`}
             </span>
           </div>
 
-          {/* TAGS ROW */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {/* Category tag */}
+          {/* Tags (Category & Difficulty) */}
+          <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
             <span
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: '11.5px',
-                fontWeight: '600',
-                padding: '5px 10px',
-                borderRadius: '7px',
-                whiteSpace: 'nowrap',
-                background: '#212b33',
-                color: '#9ba6ad'
+                fontSize: '11px',
+                padding: '4px 10px',
+                borderRadius: '100px',
+                fontWeight: '500',
+                background: 'rgba(91,141,239,0.14)',
+                color: TOKENS.blue
               }}
             >
               {categoryLabel}
             </span>
-            {/* Difficulty tag */}
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: '11.5px',
-                fontWeight: '600',
-                padding: '5px 10px',
-                borderRadius: '7px',
-                whiteSpace: 'nowrap',
-                background: difficulty_level?.toLowerCase() === 'easy' 
-                  ? 'var(--moss-soft)' 
-                  : difficulty_level?.toLowerCase() === 'hard' 
-                    ? 'var(--danger-soft)' 
-                    : 'var(--amber-soft)',
-                color: difficulty_level?.toLowerCase() === 'easy' 
-                  ? 'var(--moss)' 
-                  : difficulty_level?.toLowerCase() === 'hard' 
-                    ? 'var(--danger)' 
-                    : 'var(--amber)'
-              }}
-            >
-              {difficulty_level}
-            </span>
+            {difficulty_level && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  padding: '4px 10px',
+                  borderRadius: '100px',
+                  fontWeight: '500',
+                  background: TOKENS.tealSoft,
+                  color: TOKENS.teal
+                }}
+              >
+                {difficulty_level}
+              </span>
+            )}
           </div>
 
           {/* Location & Date Details */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px', fontWeight: '500', color: 'var(--text-secondary)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg style={{ width: '15px', height: '15px', color: 'var(--text-tertiary)', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <span style={{ color: isWithin24Hours ? 'var(--amber)' : 'var(--text-secondary)', fontWeight: isWithin24Hours ? '700' : '500' }}>
-                {isWithin24Hours ? urgencyDateText : formatRelativeDate(date_time)}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-              <svg style={{ width: '15px', height: '15px', color: 'var(--text-tertiary)', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-              </svg>
-              <span style={{ lineHeight: '1.4', wordBreak: 'break-word' }}>{destination}</span>
-            </div>
-          </div>
-
-          {/* SLOTS SECTION */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifySpace: 'between', justifyContent: 'space-between', fontSize: '11.5px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: '600' }}>
-              <span>Slots Occupancy</span>
-              <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{getSlotText()}</span>
-            </div>
-            <div style={{ height: '6px', borderRadius: '100px', background: '#212b33', overflow: 'hidden' }}>
-              <div
-                style={{
-                  height: '100%',
-                  borderRadius: '100px',
-                  width: `${fillPercentage}%`,
-                  background: fillPercentage >= 80 
-                    ? 'var(--danger)' 
-                    : fillPercentage >= 50 
-                      ? 'var(--amber)' 
-                      : 'var(--moss)',
-                  transition: 'width 250ms ease'
-                }}
-              />
-            </div>
-          </div>
-
-          {/* COMPOSITION SECTION */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifySpace: 'between', justifyContent: 'space-between', fontSize: '11.5px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', fontWeight: '600' }}>
-              <span>Composition</span>
-              <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{maleRatio}% M · {femaleRatio}% F</span>
-            </div>
-            <div style={{ height: '8px', borderRadius: '100px', overflow: 'hidden', display: 'flex', background: '#212b33' }}>
-              <div style={{ width: `${femaleRatio}%`, background: '#e0668f' }} />
-              <div style={{ width: `${maleRatio}%`, background: '#5b8fd6' }} />
-              <div style={{ width: `${100 - maleRatio - femaleRatio}%`, background: '#212b33' }} />
-            </div>
-          </div>
-
-          {/* HOST ROW */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              paddingTop: '12px',
-              borderTop: '1px solid rgba(255,255,255,0.08)',
-              marginTop: 'auto'
+              gap: '6px',
+              marginTop: '12px',
+              fontSize: '13px',
+              color: TOKENS.textMuted
             }}
           >
-            <Avatar
-              src={Creator?.Profile?.avatar_url}
-              name={Creator?.Profile?.name || 'User'}
-              size="sm"
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#f3f1ea', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {Creator?.Profile?.name || 'Explorer'}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+              <path
+                d="M12 22s7-7.58 7-13a7 7 0 10-14 0c0 5.42 7 13 7 13z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <circle cx="12" cy="9" r="2.4" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {destination}
+            </span>
+          </div>
+
+          {/* Instrument Cluster Section */}
+          <div
+            style={{
+              marginTop: '16px',
+              paddingTop: '16px',
+              borderTop: `1px solid ${TOKENS.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px'
+            }}
+          >
+            <SlotGauge filled={liveMembers} total={max_group_size} />
+            <div style={{ width: '1px', height: '44px', background: TOKENS.border }} />
+            
+            {/* Render Composition Gauge if Sparsity check is met, otherwise show a clean placeholder text */}
+            {totalConfirmed >= (activity.min_reveal_count || 3) && eligibleCount > 0 ? (
+              <CompositionGauge male={maleRatio} female={femaleRatio} />
+            ) : (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, justifyContent: 'center' }}>
+                <span style={{ color: TOKENS.textMuted, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                  Composition
+                </span>
+                <span style={{ fontSize: '11px', color: 'rgba(146,148,160,0.6)', marginTop: '4px' }}>
+                  🔒 Minimum {activity.min_reveal_count || 3} members required to reveal demographics
+                </span>
               </div>
-              <div style={{ fontSize: '10.5px', color: '#6b757c', fontFamily: 'var(--font-mono)' }}>
-                Score: {Creator?.reliability_score || 100}%
+            )}
+          </div>
+
+          {/* Host Row & CTA Button */}
+          <div
+            style={{
+              marginTop: '16px',
+              paddingTop: '16px',
+              borderTop: `1px solid ${TOKENS.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+              <div style={{ position: 'relative' }}>
+                <TrustRingAvatar
+                  src={Creator?.Profile?.avatar_url}
+                  name={Creator?.Profile?.name}
+                  initials={getCreatorInitials()}
+                  score={creatorScore}
+                />
+                {/* Host Presence active indicator dot */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '2px',
+                    right: '2px',
+                    width: '11px',
+                    height: '11px',
+                    borderRadius: '50%',
+                    background: Creator?.is_online ? '#22c55e' : '#6b757c',
+                    border: `2px solid ${TOKENS.bgCard}`,
+                    boxShadow: Creator?.is_online ? '0 0 8px #22c55e' : 'none'
+                  }}
+                  title={Creator?.is_online ? 'Host is active now' : 'Host is offline'}
+                />
+              </div>
+              
+              {/* Detailed Trust Tooltip */}
+              <div className="card-tooltip-trigger" style={{ minWidth: 0 }}>
+                <div className="card-tooltip-content">
+                  <div style={{ fontWeight: '700', marginBottom: '6px', color: '#ff6a2c', fontFamily: "'Space Grotesk', sans-serif" }}>Host Safety Profile</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <span style={{ color: '#9ba6ad' }}>Trust score:</span>
+                    <span style={{ fontWeight: '600', color: TOKENS.teal }}>{creatorScore}%</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <span style={{ color: '#9ba6ad' }}>Reliability:</span>
+                    <span style={{ fontWeight: '600', color: TOKENS.amber }}>{reliabilityScore}%</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '4px', marginTop: '4px' }}>
+                    <span style={{ color: '#9ba6ad' }}>Avg Response:</span>
+                    <span style={{ fontWeight: '500', color: '#f3f1ea' }}>
+                      {Creator?.response_time_hours ? `${Creator.response_time_hours} hrs` : '< 15 mins'}
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    color: TOKENS.text,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {Creator?.Profile?.name || 'Explorer'}
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill={TOKENS.teal}>
+                    <path d="M12 2l2.4 6.6L21 9.3l-5 4.4L17.4 21 12 17.3 6.6 21 8 13.7 3 9.3l6.6-.7L12 2z" />
+                  </svg>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontFamily: "'JetBrains Mono', monospace",
+                      color: TOKENS.teal,
+                      borderBottom: '1px dashed rgba(45,212,191,0.4)',
+                      paddingBottom: '1px'
+                    }}
+                  >
+                    {creatorScore}% trusted
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Trust chip */}
-            <span
+            <button
               style={{
-                fontSize: '10.5px',
+                padding: '8px 16px',
+                borderRadius: '12px',
+                fontSize: '13px',
                 fontWeight: '600',
-                padding: '4px 9px',
-                borderRadius: '100px',
-                background: creatorBadge.bg,
-                color: creatorBadge.color,
+                background: `linear-gradient(135deg, ${TOKENS.amber}, #E8763C)`,
+                color: "#1A1109",
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 200ms ease',
+                boxShadow: "0 4px 14px rgba(242,153,74,0.35)",
                 whiteSpace: 'nowrap',
                 flexShrink: 0
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.filter = 'none' }}
             >
-              {creatorBadge.label}
-            </span>
-
-            {/* JOIN button */}
-            <button
-              style={{
-                fontSize: '12px',
-                fontWeight: '600',
-                padding: '6px 14px',
-                borderRadius: '100px',
-                background: 'rgba(255,106,44,0.14)',
-                color: '#ff6a2c',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background 150ms ease',
-                flexShrink: 0
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,106,44,0.25)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,106,44,0.14)' }}
-            >
-              {isFull ? 'Waitlist' : 'Join'} ➔
+              {isFull ? 'Waitlist' : 'Join'} →
             </button>
           </div>
 

@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
                 role: payload.role,
                 name: payload.name,
                 trustScore: payload.trust_score,
-                idVerified: payload.is_id_verified || false
+                onboardingCompleted: payload.onboarding_completed || false
               })
               setIsAuthenticated(true)
             }

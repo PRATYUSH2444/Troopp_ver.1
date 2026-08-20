@@ -4,6 +4,7 @@ import User from '../models/User.js'
 import TokenBlacklist from '../models/TokenBlacklist.js'
 import { AppError } from './errorHandler.middleware.js'
 import logger from '../config/logger.js'
+import { getRedisClient, isRedisHealthy } from '../config/redis.js'
 
 /**
  * Middleware to protect routes. Verifies JWT Access token.
@@ -32,7 +33,7 @@ export const protect = async (req, res, next) => {
     }
 
     // 3. Verify JWT Access token
-    const secret = process.env.JWT_ACCESS_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+    const secret = process.env.JWT_ACCESS_SECRET
     let decoded
     try {
       decoded = jwt.verify(token, secret)
@@ -43,8 +44,33 @@ export const protect = async (req, res, next) => {
       return next(new AppError('Invalid token.', 401, 'JWT_INVALID'))
     }
 
-    // 4. Retrieve User from database
-    const user = await User.findByPk(decoded.id)
+    // 4. Retrieve User from database (with Redis caching and graceful DB fallback)
+    let user = null
+    const cacheKey = `user:session:${decoded.id}`
+    const redis = getRedisClient()
+
+    if (isRedisHealthy() && redis) {
+      try {
+        const cachedUser = await redis.get(cacheKey)
+        if (cachedUser) {
+          user = User.build(JSON.parse(cachedUser), { isNewRecord: false })
+        }
+      } catch (cacheErr) {
+        logger.error(`Graceful fallback: failed to fetch user from Redis cache: ${cacheErr.message}`)
+      }
+    }
+
+    if (!user) {
+      user = await User.findByPk(decoded.id)
+      if (user && isRedisHealthy() && redis) {
+        try {
+          await redis.setex(cacheKey, 60, JSON.stringify(user.toJSON())) // 60s safety TTL
+        } catch (cacheErr) {
+          logger.error(`Failed to cache user session in Redis: ${cacheErr.message}`)
+        }
+      }
+    }
+
     if (!user) {
       return next(new AppError('User belonging to this token no longer exists.', 401, 'USER_NOT_FOUND'))
     }
@@ -74,6 +100,35 @@ export const protect = async (req, res, next) => {
     // Attach verified user and token to request context
     req.user = user
     req.token = token
+
+    // 6. Update user's last_active_at with a 2-minute write-throttle
+    try {
+      const throttleKey = `user:presence-throttle:${user.id}`
+      let shouldUpdateDb = true
+      if (isRedisHealthy() && redis) {
+        const hasThrottle = await redis.get(throttleKey)
+        if (hasThrottle) {
+          shouldUpdateDb = false
+        } else {
+          await redis.setex(throttleKey, 120, '1')
+        }
+      }
+      
+      // Also register live user presence key for online status check (5-minute TTL)
+      if (isRedisHealthy() && redis) {
+        await redis.setex(`user:presence:${user.id}`, 300, 'online')
+      }
+
+      if (shouldUpdateDb) {
+        // Run update in background (non-blocking)
+        User.update({ last_active_at: new Date() }, { where: { id: user.id } }).catch(err => {
+          logger.error(`Failed to update last_active_at: ${err.message}`)
+        })
+      }
+    } catch (presenceErr) {
+      logger.error(`Presence tracking error: ${presenceErr.message}`)
+    }
+
     next()
   } catch (error) {
     logger.error('Error executing authentication protection guards:', error)
@@ -91,6 +146,47 @@ export const adminOnly = (req, res, next) => {
   }
   next()
 }
+
+/**
+ * Middleware to optionally resolve user from JWT if present.
+ * Does not block/return 401 if token is missing or invalid.
+ */
+export const resolveUserOptional = async (req, res, next) => {
+  try {
+    let token
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1]
+    }
+
+    if (!token) {
+      return next()
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+    const isBlacklisted = await TokenBlacklist.findOne({ where: { token_hash: tokenHash } })
+    if (isBlacklisted) {
+      return next()
+    }
+
+    const secret = process.env.JWT_ACCESS_SECRET
+    let decoded
+    try {
+      decoded = jwt.verify(token, secret)
+    } catch (err) {
+      return next()
+    }
+
+    const user = await User.findByPk(decoded.id)
+    if (user && user.account_status === 'active') {
+      req.user = user
+      req.token = token
+    }
+    next()
+  } catch (error) {
+    next()
+  }
+}
+
 export const authGuard = protect
 export default protect
 

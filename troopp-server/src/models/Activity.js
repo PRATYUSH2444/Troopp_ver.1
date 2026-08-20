@@ -155,8 +155,48 @@ Activity.init(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
+    hosting_reason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    location_rationale: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    host_role: {
+      type: DataTypes.ENUM('creator_is_host', 'creator_assigns_host'),
+      defaultValue: 'creator_is_host',
+      allowNull: false,
+    },
+    host_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    media: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: [],
+    },
+    search_vector: {
+      type: DataTypes.TSVECTOR,
+      allowNull: true,
+    },
+    min_reveal_count: {
+      type: DataTypes.INTEGER,
+      defaultValue: 3,
+      allowNull: false,
+    },
+    urgency_badges_enabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+      allowNull: false,
+    },
+    capacity_reduced_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     status: {
-      type: DataTypes.ENUM('open', 'full', 'closed', 'cancelled', 'completed'),
+      type: DataTypes.ENUM('draft', 'open', 'full', 'closed', 'cancelled', 'completed'),
       defaultValue: 'open',
       allowNull: false,
     },

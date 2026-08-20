@@ -3,6 +3,7 @@ import Spinner from '../../components/common/Spinner.jsx'
 
 /**
  * Administrative Grievance Reports Queue. Reviews reported traveler profiles.
+ * Overhauled to match the premium dark moody theme.
  */
 const AdminReports = () => {
   const [loading, setLoading] = useState(true)
@@ -83,98 +84,212 @@ const AdminReports = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-white">
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+          color: 'var(--text-primary)'
+        }}
+      >
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="p-6 text-white bg-stone-950 min-h-screen flex flex-col gap-5 font-sans">
+    <div 
+      style={{
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        fontFamily: 'var(--font-body)'
+      }}
+    >
       
       {/* Header Title */}
-      <div className="flex justify-between items-center border-b border-white/10 pb-4">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Administrative Panel</span>
-          <h2 className="text-xl font-black mt-0.5">Grievance Reports Queue</h2>
+      <div 
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '16px'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Administrative Panel
+          </span>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '4px 0 0 0', color: '#f3f1ea' }}>
+            Grievance Reports Queue
+          </h2>
         </div>
       </div>
 
       {/* Filters row */}
-      <div className="flex gap-4">
+      <div style={{ display: 'flex', gap: '10px' }}>
         <button
           onClick={() => setStatusFilter('pending')}
-          className={`h-10 px-4 rounded-xl text-xs font-bold transition-all ${
-            statusFilter === 'pending' ? 'bg-primary text-white shadow' : 'bg-white/5 text-stone-400 hover:text-white'
-          }`}
+          style={{
+            height: '38px',
+            padding: '0 16px',
+            borderRadius: '100px',
+            fontSize: '13px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'all 150ms ease',
+            background: statusFilter === 'pending' ? 'var(--accent-soft)' : 'var(--surface-raised)',
+            color: statusFilter === 'pending' ? 'var(--accent)' : 'var(--text-secondary)',
+            border: statusFilter === 'pending' ? '1px solid transparent' : '1px solid var(--border)'
+          }}
         >
           📥 Pending Queue ({reports.filter((r) => r.status === 'pending').length})
         </button>
         <button
           onClick={() => setStatusFilter('resolved')}
-          className={`h-10 px-4 rounded-xl text-xs font-bold transition-all ${
-            statusFilter === 'resolved' ? 'bg-emerald-700 text-white shadow' : 'bg-white/5 text-stone-400 hover:text-white'
-          }`}
+          style={{
+            height: '38px',
+            padding: '0 16px',
+            borderRadius: '100px',
+            fontSize: '13px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'all 150ms ease',
+            background: statusFilter === 'resolved' ? 'var(--moss-soft)' : 'var(--surface-raised)',
+            color: statusFilter === 'resolved' ? 'var(--moss)' : 'var(--text-secondary)',
+            border: statusFilter === 'resolved' ? '1px solid transparent' : '1px solid var(--border)'
+          }}
         >
           ✓ Resolved Reports
         </button>
         <button
           onClick={() => setStatusFilter('dismissed')}
-          className={`h-10 px-4 rounded-xl text-xs font-bold transition-all ${
-            statusFilter === 'dismissed' ? 'bg-stone-700 text-white shadow' : 'bg-white/5 text-stone-400 hover:text-white'
-          }`}
+          style={{
+            height: '38px',
+            padding: '0 16px',
+            borderRadius: '100px',
+            fontSize: '13px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'all 150ms ease',
+            background: statusFilter === 'dismissed' ? 'var(--surface)' : 'var(--surface-raised)',
+            color: statusFilter === 'dismissed' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            border: statusFilter === 'dismissed' ? '1px solid transparent' : '1px solid var(--border)'
+          }}
         >
           🚫 Dismissed Reports
         </button>
       </div>
 
       {/* Reports Data Grid */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-lg">
+      <div 
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '14px',
+          overflow: 'hidden',
+          boxShadow: 'var(--shadow-card)'
+        }}
+      >
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-stone-300">
-            <thead className="text-[10px] font-bold text-stone-400 uppercase border-b border-white/10 bg-white/5">
+          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <thead 
+              style={{
+                fontSize: '11px',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--text-primary)',
+                background: 'var(--surface-raised)',
+                borderBottom: '1px solid var(--border)'
+              }}
+            >
               <tr>
-                <th className="p-4">Reporter</th>
-                <th className="p-4">Reported Traveler</th>
-                <th className="p-4">Reason / Category</th>
-                <th className="p-4">Description Details</th>
-                <th className="p-4">Date Filed</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Actions</th>
+                <th style={{ padding: '16px' }}>Reporter</th>
+                <th style={{ padding: '16px' }}>Reported Traveler</th>
+                <th style={{ padding: '16px' }}>Reason / Category</th>
+                <th style={{ padding: '16px' }}>Description Details</th>
+                <th style={{ padding: '16px' }}>Date Filed</th>
+                <th style={{ padding: '16px' }}>Status</th>
+                <th style={{ padding: '16px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody style={{ divideY: '1px solid rgba(255,255,255,0.04)' }}>
               {filteredReports.map((r) => (
-                <tr key={r.id} className={`hover:bg-white/5 transition-colors ${r.status !== 'pending' ? 'opacity-60 bg-stone-900/10' : ''}`}>
-                  <td className="p-4 font-bold text-white">{r.reporterName}</td>
-                  <td className="p-4 font-extrabold text-stone-200">{r.reportedName}</td>
-                  <td className="p-4">
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-rose-950/30 border border-rose-500/20 text-rose-400 font-extrabold">
+                <tr 
+                  key={r.id} 
+                  style={{ 
+                    borderBottom: '1px solid rgba(255,255,255,0.04)', 
+                    transition: 'background 150ms',
+                    opacity: r.status !== 'pending' ? 0.6 : 1
+                  }}
+                  className="hover:bg-white/[0.02]"
+                >
+                  <td style={{ padding: '16px', fontWeight: '700', color: '#f3f1ea' }}>{r.reporterName}</td>
+                  <td style={{ padding: '16px', fontWeight: '700', color: '#f3f1ea' }}>{r.reportedName}</td>
+                  <td style={{ padding: '16px', whiteSpace: 'nowrap' }}>
+                    <span 
+                      style={{
+                        fontSize: '10px',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        background: 'var(--danger-soft)',
+                        color: 'var(--danger)',
+                        fontWeight: '700',
+                        display: 'inline-block',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
                       {r.reason}
                     </span>
                   </td>
-                  <td className="p-4 max-w-xs truncate" title={r.details}>{r.details}</td>
-                  <td className="p-4">
+                  <td style={{ padding: '16px', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.details}>{r.details}</td>
+                  <td style={{ padding: '16px', whiteSpace: 'nowrap' }}>
                     {new Date(r.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short' })}
                   </td>
-                  <td className="p-4">
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                      r.status === 'pending' ? 'bg-amber-950/20 text-amber-400 border border-amber-500/20' :
-                      r.status === 'resolved' ? 'bg-emerald-950/20 text-emerald-400 border border-emerald-500/20' :
-                      'bg-stone-800 text-stone-400'
-                    }`}>
+                  <td style={{ padding: '16px', whiteSpace: 'nowrap' }}>
+                    <span 
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        padding: '3px 8px',
+                        borderRadius: '100px',
+                        textTransform: 'uppercase',
+                        background: r.status === 'pending' ? 'var(--amber-soft)' : r.status === 'resolved' ? 'var(--moss-soft)' : 'var(--border)',
+                        color: r.status === 'pending' ? 'var(--amber)' : r.status === 'resolved' ? 'var(--moss)' : 'var(--text-secondary)',
+                        display: 'inline-block',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
                       {r.status}
                     </span>
                   </td>
-                  <td className="p-4 text-right">
+                  <td style={{ padding: '16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {r.status === 'pending' ? (
-                      <div className="flex gap-2 justify-end">
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         <button
                           onClick={() => {
                             setActiveReport(r)
                             setActionType('resolve')
                           }}
-                          className="h-8 px-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold transition-all shadow-sm"
+                          style={{
+                            height: '30px',
+                            padding: '0 12px',
+                            background: 'var(--moss)',
+                            color: '#1a0e08',
+                            borderRadius: '8px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            border: 'none',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
                         >
                           Mark Valid
                         </button>
@@ -183,13 +298,24 @@ const AdminReports = () => {
                             setActiveReport(r)
                             setActionType('dismiss')
                           }}
-                          className="h-8 px-2.5 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-lg text-[10px] font-bold transition-all"
+                          style={{
+                            height: '30px',
+                            padding: '0 12px',
+                            background: 'var(--surface-raised)',
+                            border: '1px solid var(--border)',
+                            color: '#f3f1ea',
+                            borderRadius: '8px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
                         >
                           Dismiss
                         </button>
                       </div>
                     ) : (
-                      <span className="text-[10px] text-stone-500 italic">No action needed</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontStyle: 'italic', whiteSpace: 'nowrap' }}>No action needed</span>
                     )}
                   </td>
                 </tr>
@@ -201,47 +327,85 @@ const AdminReports = () => {
 
       {/* Resolution Note modal overlay */}
       {activeReport && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-white/10 rounded-2xl p-5 w-full max-w-xs shadow-xl flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '360px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <h4 style={{ fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#f3f1ea', margin: 0, fontFamily: 'var(--font-display)' }}>
               {actionType === 'resolve' ? 'Confirm Mark Valid' : 'Confirm Dismiss Report'}
             </h4>
             
-            <p className="text-[10px] text-stone-400 leading-relaxed">
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>
               {actionType === 'resolve'
                 ? 'Validating this report will increment warning strikes on the reported traveler, applying penalties.'
                 : 'Dismissing this report files it as invalid. No penalties will be applied.'}
             </p>
 
-            <div className="flex flex-col gap-2 text-xs">
-              <span className="font-bold text-stone-300">Auditor Action Notes</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Auditor Action Notes</span>
               <textarea
                 rows={3}
                 value={resolutionNote}
                 onChange={(e) => setResolutionNote(e.target.value)}
                 placeholder="Write resolution justification notes..."
-                className="w-full bg-stone-950 border border-white/10 rounded-xl p-2.5 resize-none outline-none text-white focus:border-primary"
+                style={{
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '10px',
+                  color: '#f3f1ea',
+                  resize: 'none',
+                  outline: 'none'
+                }}
               />
             </div>
             
-            <div className="flex gap-2 border-t border-white/10 pt-4">
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
               <button
                 onClick={() => {
                   setActiveReport(null)
                   setResolutionNote('')
                 }}
-                className="flex-1 h-10 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 transition-colors"
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
               >
                 Cancel
               </button>
               <button
                 disabled={!resolutionNote.trim()}
                 onClick={handleActionSubmit}
-                className={`flex-1 h-10 rounded-xl text-xs font-bold transition-all ${
-                  actionType === 'resolve'
-                    ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                    : 'bg-stone-700 hover:bg-stone-850 text-white'
-                }`}
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: actionType === 'resolve' ? 'var(--moss)' : 'var(--surface-raised)',
+                  color: actionType === 'resolve' ? '#1a0e08' : '#f3f1ea',
+                  border: actionType === 'resolve' ? 'none' : '1px solid var(--border)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  opacity: !resolutionNote.trim() ? 0.4 : 1
+                }}
               >
                 Submit Resolution
               </button>

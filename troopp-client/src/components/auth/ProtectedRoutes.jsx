@@ -1,5 +1,5 @@
 import React from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Spinner from '../common/Spinner.jsx'
 
@@ -7,7 +7,8 @@ import Spinner from '../common/Spinner.jsx'
  * Route protection HOC. Redirects to login if user is unauthenticated.
  */
 export const ProtectedRoute = () => {
-  const { isAuthenticated, loading } = useAuth()
+  const { user, isAuthenticated, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -17,7 +18,21 @@ export const ProtectedRoute = () => {
     )
   }
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  // If user has not completed onboarding and is trying to access a protected app route
+  if (!user?.onboardingCompleted && !['/onboarding', '/suspended', '/banned'].includes(location.pathname)) {
+    return <Navigate to="/onboarding" replace />
+  }
+
+  // If user has completed onboarding and is trying to access the onboarding route
+  if (user?.onboardingCompleted && location.pathname === '/onboarding') {
+    return <Navigate to="/feed" replace />
+  }
+
+  return <Outlet />
 }
 
 /**

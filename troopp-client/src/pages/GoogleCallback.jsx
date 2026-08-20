@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -9,8 +9,12 @@ const GoogleCallback = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { setUser, setIsAuthenticated } = useAuth()
+  const processedRef = useRef(false)
 
   useEffect(() => {
+    if (processedRef.current) return
+    processedRef.current = true
+
     const token = searchParams.get('token')
     const onboarded = searchParams.get('onboarded') === 'true'
 
@@ -27,8 +31,7 @@ const GoogleCallback = () => {
             email: payload.email,
             role: payload.role,
             name: payload.name,
-            trustScore: payload.trust_score,
-            idVerified: payload.idVerified || false
+            trustScore: payload.trust_score
           })
           setIsAuthenticated(true)
           toast.success('Successfully authenticated with Google!')

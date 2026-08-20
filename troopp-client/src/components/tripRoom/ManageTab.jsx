@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import Avatar from '../common/Avatar.jsx'
 
 /**
@@ -32,13 +33,15 @@ const ManageTab = ({
 
   const handleMuteSubmit = () => {
     if (!muteTargetUser) return
-    onMuteMember(muteTargetUser.userId, parseInt(muteDuration))
+    const uid = muteTargetUser.userId || muteTargetUser.user_id || muteTargetUser.User?.id || muteTargetUser.id
+    onMuteMember(uid, parseInt(muteDuration))
     setMuteTargetUser(null)
   }
 
   const handleKickSubmit = () => {
     if (!kickTargetUser) return
-    onRemoveMember(kickTargetUser.userId)
+    const uid = kickTargetUser.userId || kickTargetUser.user_id || kickTargetUser.User?.id || kickTargetUser.id
+    onRemoveMember(uid)
     setKickTargetUser(null)
   }
 
@@ -47,6 +50,9 @@ const ManageTab = ({
     onCancelTrip(cancelReason.trim())
     setCancelOpen(false)
   }
+
+  // Safely resolve display name from potentially nested member objects
+  const getDisplayName = (m) => m?.name || m?.User?.Profile?.name || 'Explorer'
 
   // Fallback defaults for health metrics
   const {
@@ -97,57 +103,65 @@ const ManageTab = ({
           Member Roster ({members.length})
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {members.map((m) => (
-            <div key={m.userId} style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', padding: '12px 14px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                <Avatar src={m.avatarUrl} name={m.name} size="sm" score={m.trustScore} />
-                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                  <span style={{ fontSize: '11px', color: '#9ba6ad', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    Trust: {m.trustScore} · Reliability: {m.reliabilityScore}%
-                  </span>
+          {members.map((m) => {
+            const uid = m.userId || m.user_id || m.User?.id || m.id
+            const mName = m.name || m.User?.Profile?.name || 'Explorer'
+            const mAvatar = m.avatarUrl || m.User?.Profile?.avatar_url
+            const mTrust = m.trustScore || m.User?.trust_score || 50
+            const mReliability = m.reliabilityScore || m.User?.reliability_score || 100
+            
+            return (
+              <div key={uid} style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', padding: '12px 14px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                  <Avatar src={mAvatar} name={mName} size="sm" score={mTrust} />
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mName}</span>
+                    <span style={{ fontSize: '11px', color: '#9ba6ad', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      Trust: {mTrust} · Reliability: {mReliability}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <button
+                    onClick={() => setMuteTargetUser(m)}
+                    style={{
+                      height: '28px',
+                      padding: '0 10px',
+                      border: '1px solid rgba(255,255,255,0.14)',
+                      background: '#212b33',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: '#9ba6ad',
+                      cursor: 'pointer'
+                    }}
+                    title="Mute traveler"
+                  >
+                    🔇 Mute
+                  </button>
+                  <button
+                    onClick={() => setKickTargetUser(m)}
+                    style={{
+                      height: '28px',
+                      padding: '0 10px',
+                      border: 'none',
+                      background: 'rgba(255,84,112,0.14)',
+                      color: '#ff5470',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                    title="Remove traveler"
+                  >
+                    🥾 Kick
+                  </button>
                 </div>
               </div>
-
-              {/* Action row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                <button
-                  onClick={() => setMuteTargetUser(m)}
-                  style={{
-                    height: '28px',
-                    padding: '0 10px',
-                    border: '1px solid rgba(255,255,255,0.14)',
-                    background: '#212b33',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    color: '#9ba6ad',
-                    cursor: 'pointer'
-                  }}
-                  title="Mute traveler"
-                >
-                  🔇 Mute
-                </button>
-                <button
-                  onClick={() => setKickTargetUser(m)}
-                  style={{
-                    height: '28px',
-                    padding: '0 10px',
-                    border: 'none',
-                    background: 'rgba(255,84,112,0.14)',
-                    color: '#ff5470',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    cursor: 'pointer'
-                  }}
-                  title="Remove traveler"
-                >
-                  🥾 Kick
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -323,7 +337,7 @@ const ManageTab = ({
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(12,16,19,0.75)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
             <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '320px', boxShadow: '0 12px 36px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <h4 style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#9ba6ad' }}>
-                Mute {muteTargetUser.name}
+                Mute {getDisplayName(muteTargetUser)}
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
                 <span style={{ fontWeight: '700', color: '#9ba6ad' }}>Select Mute Expiry</span>
@@ -369,7 +383,7 @@ const ManageTab = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <h4 style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#ff5470' }}>Remove Member?</h4>
                 <p style={{ fontSize: '12px', color: '#9ba6ad', marginTop: '6px' }}>
-                  Are you sure you want to kick {kickTargetUser.name} from this trip room? This will promote the next waitlisted traveler.
+                  Are you sure you want to kick {getDisplayName(kickTargetUser)} from this trip room? This will promote the next waitlisted traveler.
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>

@@ -25,10 +25,7 @@ router.put('/reports/:reportId/resolve', adminController.resolveReport)
 router.get('/activity-reports', adminController.getActivityReportsQueue)
 router.put('/activity-reports/:reportId/resolve', adminController.resolveActivityReport)
 
-// Document manual verification queues
-router.get('/verifications', adminController.getVerificationQueue)
-router.put('/verifications/:userId/approve', adminController.approveVerification)
-router.put('/verifications/:userId/reject', adminController.rejectVerification)
+
 
 // Activity oversight
 router.put('/activities/:activityId/cancel', adminController.cancelActivity)

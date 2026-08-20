@@ -124,7 +124,7 @@ const SetupActivity = () => {
 
       haptics.success()
       toast.success('Trip parameters successfully configured!')
-      navigate(`/activities/${targetId}`)
+      navigate(`/activities/${id}`)
     } catch (err) {
       haptics.error()
       toast.error(err.message || 'Failed to complete setup configuration.')

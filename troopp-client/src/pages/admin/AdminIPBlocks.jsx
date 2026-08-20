@@ -3,6 +3,7 @@ import Spinner from '../../components/common/Spinner.jsx'
 
 /**
  * IP Block list and ban override panel.
+ * Overhauled to match the premium dark moody theme.
  */
 const AdminIPBlocks = () => {
   const [loading, setLoading] = useState(true)
@@ -71,72 +72,153 @@ const AdminIPBlocks = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-white">
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+          color: 'var(--text-primary)'
+        }}
+      >
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="p-6 text-white bg-stone-950 min-h-screen flex flex-col gap-6 font-sans">
+    <div 
+      style={{
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        fontFamily: 'var(--font-body)'
+      }}
+    >
       
       {/* Header title */}
-      <div className="flex justify-between items-center border-b border-white/10 pb-4">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Administrative Panel</span>
-          <h2 className="text-xl font-black mt-0.5">IP Blacklist Management</h2>
+      <div 
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '16px'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Administrative Panel
+          </span>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '4px 0 0 0', color: '#f3f1ea' }}>
+            IP Blacklist Management
+          </h2>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Column: Form to block IP */}
-        <div className="flex flex-col gap-5">
-          <form onSubmit={handleAddBlock} className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 pb-2 border-b border-white/5">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <form 
+            onSubmit={handleAddBlock} 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '20px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: 0, fontFamily: 'var(--font-display)' }}>
               Add IP Block
             </h4>
 
             {/* IP Address */}
-            <div className="flex flex-col gap-1.5 text-xs">
-              <span className="font-bold text-stone-300">IP Address</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>IP Address</span>
               <input
                 type="text"
                 required
                 value={ip}
                 onChange={(e) => setIp(e.target.value)}
                 placeholder="e.g. 192.168.1.1"
-                className="h-10 bg-stone-900 border border-white/10 rounded-xl px-3 outline-none text-white focus:border-rose-500"
+                style={{
+                  height: '40px',
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '100px',
+                  padding: '0 16px',
+                  fontSize: '13px',
+                  color: '#f3f1ea',
+                  outline: 'none'
+                }}
               />
             </div>
 
             {/* Reason */}
-            <div className="flex flex-col gap-1.5 text-xs">
-              <span className="font-bold text-stone-300">Block Justification</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Block Justification</span>
               <textarea
                 rows={3}
                 required
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Reason for blocking..."
-                className="bg-stone-900 border border-white/10 rounded-xl p-2.5 resize-none outline-none text-white focus:border-rose-500"
+                style={{
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  color: '#f3f1ea',
+                  outline: 'none',
+                  resize: 'none'
+                }}
               />
             </div>
 
             {/* Expiry */}
-            <div className="flex flex-col gap-1.5 text-xs">
-              <span className="font-bold text-stone-300">Block Expiry (Optional)</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Block Expiry (Optional)</span>
               <input
                 type="date"
                 value={expiry}
                 onChange={(e) => setExpiry(e.target.value)}
-                className="h-10 bg-stone-900 border border-white/10 rounded-xl px-3 outline-none text-white focus:border-rose-500"
+                style={{
+                  height: '40px',
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '100px',
+                  padding: '0 16px',
+                  fontSize: '13px',
+                  color: '#f3f1ea',
+                  outline: 'none'
+                }}
               />
             </div>
 
             <button
               type="submit"
-              className="mt-2 h-11 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-md transition-all"
+              style={{
+                marginTop: '8px',
+                height: '44px',
+                background: 'var(--danger)',
+                color: 'white',
+                fontFamily: 'var(--font-display)',
+                fontWeight: '700',
+                borderRadius: '100px',
+                fontSize: '13px',
+                border: 'none',
+                cursor: 'pointer'
+              }}
             >
               🚫 Block IP Address
             </button>
@@ -145,34 +227,72 @@ const AdminIPBlocks = () => {
 
         {/* Right Columns: IP Blocks Grid */}
         <div className="lg:col-span-2 flex flex-col gap-5">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '20px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: 0, fontFamily: 'var(--font-display)' }}>
               Active IP blocks blacklist
             </h4>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-stone-300">
-                <thead className="text-[10px] font-bold text-stone-400 uppercase border-b border-white/10">
+              <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                <thead 
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: 'var(--text-primary)',
+                    background: 'var(--surface-raised)',
+                    borderBottom: '1px solid var(--border)'
+                  }}
+                >
                   <tr>
-                    <th className="pb-3">IP Address</th>
-                    <th className="pb-3">Block Reason</th>
-                    <th className="pb-3">Blocked By</th>
-                    <th className="pb-3">Expires At</th>
-                    <th className="pb-3 text-right">Actions</th>
+                    <th style={{ padding: '12px 16px' }}>IP Address</th>
+                    <th style={{ padding: '12px 16px' }}>Block Reason</th>
+                    <th style={{ padding: '12px 16px' }}>Blocked By</th>
+                    <th style={{ padding: '12px 16px' }}>Expires At</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody style={{ divideY: '1px solid rgba(255,255,255,0.04)' }}>
                   {blocks.map((b) => (
-                    <tr key={b.id} className="hover:bg-white/5 transition-colors">
-                      <td className="py-3.5 font-bold text-white">{b.ip_address}</td>
-                      <td className="py-3.5" title={b.reason}>{b.reason}</td>
-                      <td className="py-3.5">{b.blocked_by}</td>
-                      <td className="py-3.5">
+                    <tr 
+                      key={b.id} 
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 150ms' }}
+                      className="hover:bg-white/[0.02]"
+                    >
+                      <td style={{ padding: '14px 16px', fontWeight: '700', color: '#f3f1ea' }}>{b.ip_address}</td>
+                      <td style={{ padding: '14px 16px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={b.reason}>{b.reason}</td>
+                      <td style={{ padding: '14px 16px' }}>{b.blocked_by}</td>
+                      <td style={{ padding: '14px 16px' }}>
                         {b.expires_at ? new Date(b.expires_at).toLocaleDateString() : 'Permanent'}
                       </td>
-                      <td className="py-3.5 text-right">
+                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                         <button
                           onClick={() => handleRemoveBlock(b.id)}
-                          className="h-8 px-3.5 bg-white/10 hover:bg-white/20 border border-white/10 text-rose-500 rounded-lg text-[10px] font-bold transition-all"
+                          style={{
+                            height: '30px',
+                            padding: '0 12px',
+                            background: 'transparent',
+                            border: '1px solid var(--border)',
+                            color: 'var(--danger)',
+                            borderRadius: '8px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            transition: 'background 150ms'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--danger-soft)' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                         >
                           Remove Block
                         </button>
@@ -181,7 +301,7 @@ const AdminIPBlocks = () => {
                   ))}
                   {blocks.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="p-8 text-center text-stone-500 font-bold">
+                      <td colSpan="5" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-tertiary)', fontWeight: '700' }}>
                         No active IP blocks blacklists.
                       </td>
                     </tr>

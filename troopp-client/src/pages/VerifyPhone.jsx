@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast'
 import { apiRequest } from '../utils/api.js'
 import { haptics } from '../utils/haptics.js'
 import SignupStepIndicator from '../components/auth/SignupStepIndicator.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 
 /**
  * Signup Step 3: Phone number capture.
@@ -15,14 +16,15 @@ const VerifyPhone = () => {
   const [submitting, setSubmitting] = useState(false)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const email = searchParams.get('email')
+  const { user, isAuthenticated } = useAuth()
+  const email = searchParams.get('email') || user?.email
 
   useEffect(() => {
-    if (!email) {
-      toast.error('Missing email verification token.')
+    if (!email && !isAuthenticated) {
+      toast.error('Missing email verification details.')
       navigate('/signup')
     }
-  }, [email, navigate])
+  }, [email, isAuthenticated, navigate])
 
   const handleSendSMS = async (e) => {
     e.preventDefault()
@@ -38,7 +40,8 @@ const VerifyPhone = () => {
     setSubmitting(true)
     haptics.lightTap()
     try {
-      const res = await apiRequest('/auth/verify-phone', {
+      const endpoint = isAuthenticated ? '/profiles/verify-phone' : '/auth/verify-phone'
+      const res = await apiRequest(endpoint, {
         method: 'POST',
         body: JSON.stringify({ email, phone: formattedPhone })
       })
@@ -50,7 +53,10 @@ const VerifyPhone = () => {
 
       haptics.success()
       toast.success('Verification SMS sent to your phone!')
-      navigate(`/signup/verify-phone/check?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(formattedPhone)}`)
+      const checkPath = isAuthenticated
+        ? `/profile/me/verify-phone/check?phone=${encodeURIComponent(formattedPhone)}`
+        : `/signup/verify-phone/check?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(formattedPhone)}`
+      navigate(checkPath)
     } catch (err) {
       haptics.error()
       toast.error(err.message || 'SMS dispatch failed. Try again.')
@@ -141,9 +147,31 @@ const VerifyPhone = () => {
           }}>T</div>
 
           {/* Step Indicator */}
-          <div style={{ marginBottom: '14px', width: '100%' }}>
-            <SignupStepIndicator currentStep={3} />
-          </div>
+          {!isAuthenticated && (
+            <div style={{ marginBottom: '14px', width: '100%' }}>
+              <SignupStepIndicator currentStep={3} />
+            </div>
+          )}
+
+          {isAuthenticated && (
+            <button
+              onClick={() => navigate('/profile/me/settings')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#9ba6ad',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              ← Back to Settings
+            </button>
+          )}
 
           <h2 style={{
             fontFamily: 'Space Grotesk',
@@ -152,9 +180,9 @@ const VerifyPhone = () => {
             color: '#f3f1ea',
             letterSpacing: '-0.02em',
             marginBottom: '6px'
-          }}>Phone Verification</h2>
+          }}>{isAuthenticated ? 'Verify Phone Number' : 'Phone Verification'}</h2>
           <p style={{ fontSize: '14px', color: '#9ba6ad', textAlign: 'center' }}>
-            Enter your mobile number to secure your account
+            {isAuthenticated ? 'Enter your mobile number to verify your account' : 'Enter your mobile number to secure your account'}
           </p>
         </div>
 

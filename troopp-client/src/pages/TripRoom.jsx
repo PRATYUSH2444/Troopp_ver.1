@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { io } from 'socket.io-client'
+import { toast } from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext.jsx'
 import { apiRequest, getAccessToken } from '../utils/api.js'
 import { haptics } from '../utils/haptics.js'
@@ -245,7 +246,7 @@ const TripRoom = () => {
     socket.on('split_settled', (payload) => {
       setExpenses((prev) =>
         prev.map((e) => {
-          const updatedSplits = e.Splits?.map((s) => (s.id === splitId ? payload.split : s))
+          const updatedSplits = e.Splits?.map((s) => (s.id === payload.splitId ? payload.split : s))
           return { ...e, Splits: updatedSplits }
         })
       )

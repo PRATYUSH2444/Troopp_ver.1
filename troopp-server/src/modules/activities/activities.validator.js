@@ -29,7 +29,15 @@ export const createActivitySchema = Joi.object({
   visibility: Joi.string().valid('open', 'followers_only').default('open'),
   is_women_only: Joi.boolean().default(false),
   min_trust_score: Joi.number().integer().min(0).max(100).default(0),
-  min_reliability_score: Joi.number().integer().min(0).max(100).default(0)
+  min_reliability_score: Joi.number().integer().min(0).max(100).default(0),
+  min_reveal_count: Joi.number().integer().min(1).max(10).default(3),
+  urgency_badges_enabled: Joi.boolean().default(true),
+  status: Joi.string().valid('draft', 'open').default('open'),
+  hosting_reason: Joi.string().min(10).max(1000).allow('', null).optional(),
+  location_rationale: Joi.string().min(10).max(1000).allow('', null).optional(),
+  host_role: Joi.string().valid('creator_is_host', 'creator_assigns_host').default('creator_is_host'),
+  host_id: Joi.string().uuid().allow('', null).optional(),
+  media: Joi.array().items(Joi.string().uri()).max(10).default([])
 })
 
 // 2. Update Activity Request Schema
@@ -50,13 +58,35 @@ export const updateActivitySchema = Joi.object({
       qty: Joi.string().default('1'),
       checked: Joi.boolean().default(false)
     })
-  ).optional()
+  ).optional(),
+  hosting_reason: Joi.string().min(10).max(1000).allow('', null).optional(),
+  location_rationale: Joi.string().min(10).max(1000).allow('', null).optional(),
+  host_role: Joi.string().valid('creator_is_host', 'creator_assigns_host').optional(),
+  host_id: Joi.string().uuid().allow('', null).optional(),
+  media: Joi.array().items(Joi.string().uri()).max(10).optional(),
+  min_reveal_count: Joi.number().integer().min(1).max(10).optional(),
+  urgency_badges_enabled: Joi.boolean().optional(),
+  status: Joi.string().valid('draft', 'open', 'full', 'closed', 'cancelled', 'completed').optional()
+})
+
+// 2.1 Publish Activity Request Schema
+export const publishActivitySchema = Joi.object({
+  hosting_reason: Joi.string().min(10).max(1000).required().messages({
+    'any.required': 'Why you are hosting this is required for publication.',
+    'string.min': 'Hosting reason must be at least 10 characters long.'
+  }),
+  location_rationale: Joi.string().min(10).max(1000).required().messages({
+    'any.required': 'Location rationale is required for publication.',
+    'string.min': 'Location rationale must be at least 10 characters long.'
+  })
 })
 
 // 3. Join Request Intent Schema
 export const joinActivitySchema = Joi.object({
-  message: Joi.string().max(300).optional(),
-  intent: Joi.string().valid('request', 'confirm').default('request')
+  message: Joi.string().max(300).optional().allow(''),
+  intent: Joi.string().valid('request', 'confirm').default('request'),
+  roleIntent: Joi.string().max(100).optional().allow(''),
+  role: Joi.string().max(100).optional().allow('')
 })
 
 // 4. Setup Group Rules Schema

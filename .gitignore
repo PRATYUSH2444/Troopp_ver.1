@@ -11,6 +11,9 @@
 **/.env.test.local
 **/.env.production.local
 **/.env.*
+**/dump.rdb
+**/scratch/
+**/*.log
 
 # Production / Builds
 **/dist/

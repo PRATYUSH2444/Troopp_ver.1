@@ -48,7 +48,7 @@ export const AvatarSkeleton = ({ size = 'md', className }) => {
  */
 export const CardSkeleton = () => {
   return (
-    <div className="bg-white border border-stone-200 rounded-3xl shadow-sm overflow-hidden flex flex-col p-4 gap-3.5 w-full">
+    <div className="bg-[#1a2129] border border-[rgba(255,255,255,0.08)] rounded-3xl shadow-lg overflow-hidden flex flex-col p-4 gap-3.5 w-full">
       {/* 1. Cover Image Placeholder */}
       <LineBlock height="h-44" width="w-full" rounded="rounded-2xl" />
 
@@ -109,7 +109,7 @@ export const ProfileSkeleton = () => {
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-6 w-full px-4 py-8">
       {/* Top Header Card */}
-      <div className="bg-white border border-stone-200 rounded-3xl p-6 flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden shadow-sm">
+      <div className="bg-[#1a2129] border border-[rgba(255,255,255,0.08)] rounded-3xl p-6 flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden shadow-lg">
         <AvatarSkeleton size="xl" />
         <div className="flex-1 flex flex-col items-center sm:items-start gap-2">
           <LineBlock height="h-6" width="w-48" />
@@ -119,7 +119,7 @@ export const ProfileSkeleton = () => {
       </div>
 
       {/* Verification status pill banner */}
-      <div className="bg-white border border-stone-200 rounded-3xl p-4 flex justify-between items-center shadow-sm">
+      <div className="bg-[#1a2129] border border-[rgba(255,255,255,0.08)] rounded-3xl p-4 flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3 flex-1">
           <AvatarSkeleton size="xs" />
           <div className="flex flex-col gap-1 flex-1">
@@ -132,7 +132,7 @@ export const ProfileSkeleton = () => {
       {/* Stats row of 3 bars */}
       <div className="grid grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white border border-stone-200 rounded-3xl p-4 flex flex-col items-center gap-2 shadow-sm">
+          <div key={i} className="bg-[#1a2129] border border-[rgba(255,255,255,0.08)] rounded-3xl p-4 flex flex-col items-center gap-2 shadow-lg">
             <LineBlock height="h-5" width="w-12" />
             <LineBlock height="h-2.5" width="w-16" />
           </div>
@@ -140,7 +140,7 @@ export const ProfileSkeleton = () => {
       </div>
 
       {/* Tab bar header */}
-      <div className="bg-white border border-stone-200 rounded-2xl p-1.5 flex gap-2 w-full shadow-sm">
+      <div className="bg-[#1a2129] border border-[rgba(255,255,255,0.08)] rounded-2xl p-1.5 flex gap-2 w-full shadow-lg">
         <LineBlock height="h-8" width="w-1/2" rounded="rounded-xl" />
         <LineBlock height="h-8" width="w-1/2" rounded="rounded-xl" />
       </div>
@@ -154,7 +154,7 @@ export const ProfileSkeleton = () => {
  */
 export const TrustCardSkeleton = () => {
   return (
-    <div className="bg-white border border-stone-200 rounded-3xl p-6 flex flex-col items-center gap-6 w-full max-w-sm mx-auto shadow-sm">
+    <div className="bg-[#1a2129] border border-[rgba(255,255,255,0.08)] rounded-3xl p-6 flex flex-col items-center gap-6 w-full max-w-sm mx-auto shadow-lg">
       {/* Large circle avatar */}
       <AvatarSkeleton size="xl" />
       
@@ -165,7 +165,7 @@ export const TrustCardSkeleton = () => {
       </div>
 
       {/* Circular score indicator outline */}
-      <div className="relative w-28 h-28 flex items-center justify-center border-4 border-stone-100 rounded-full my-1">
+      <div className="relative w-28 h-28 flex items-center justify-center border-4 border-[rgba(255,255,255,0.08)] rounded-full my-1">
         <div className="flex flex-col items-center gap-1.5">
           <LineBlock height="h-4" width="w-8" />
           <LineBlock height="h-2.5" width="w-10" />
@@ -173,7 +173,7 @@ export const TrustCardSkeleton = () => {
       </div>
 
       {/* 4 stats rows */}
-      <div className="flex flex-col gap-3 w-full border-t border-stone-100 pt-4 mt-1">
+      <div className="flex flex-col gap-3 w-full border-t border-[rgba(255,255,255,0.08)] pt-4 mt-1">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex justify-between items-center">
             <LineBlock height="h-3" width="w-24" />

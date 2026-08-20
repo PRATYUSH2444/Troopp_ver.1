@@ -38,12 +38,12 @@ const MyProfile = () => {
   const [showBottomSheet, setShowBottomSheet] = useState(false)
 
   const MOCK_TRUST_CHANGES = [
-    { id: 1, type: 'increase', amount: 15, reason: 'ID Verification Complete', date: '2026-07-06', icon: '🛡️' },
+    { id: 1, type: 'increase', amount: 15, reason: 'Profile Complete', date: '2026-07-06', icon: '🛡️' },
     { id: 2, type: 'increase', amount: 10, reason: 'Completed first group trip', date: '2026-07-05', icon: '🚗' },
     { id: 3, type: 'increase', amount: 5, reason: 'Received 5-star host rating', date: '2026-07-02', icon: '⭐' },
-    { id: 4, type: 'increase', amount: 5, reason: 'KYC Face Matching Success', date: '2026-06-30', icon: '👩' },
-    { id: 5, type: 'increase', amount: 5, reason: 'Verified phone number linking', date: '2026-06-25', icon: '📱' },
-    { id: 6, type: 'increase', amount: 5, reason: 'Verified email address linking', date: '2026-06-25', icon: '📧' },
+    { id: 4, type: 'increase', amount: 5, reason: 'Vibe Tags Setup', date: '2026-06-30', icon: '👩' },
+    { id: 5, type: 'increase', amount: 5, reason: 'Phone number linking', date: '2026-06-25', icon: '📱' },
+    { id: 6, type: 'increase', amount: 5, reason: 'Email address linking', date: '2026-06-25', icon: '📧' },
     { id: 7, type: 'increase', amount: 3, reason: 'Added emergency contacts list', date: '2026-06-25', icon: '🚨' },
     { id: 8, type: 'increase', amount: 2, reason: 'Created traveler profile info', date: '2026-06-25', icon: '📝' }
   ]
@@ -109,9 +109,11 @@ const MyProfile = () => {
   // Crash-safe fallback destructuring from profileData API keys
   const trustScore = profileData.trustScore ?? profileData.trust_score ?? 0
   const reliabilityScore = profileData.reliabilityScore ?? profileData.reliability_score ?? 100
-  const idVerified = profileData.idVerified ?? profileData.id_verified ?? false
   const interestTags = profileData.interestTags ?? profileData.interest_tags ?? []
   const profile = profileData.profile ?? {}
+  const reliabilityBreakdown = profileData.reliabilityBreakdown ?? { completedTrips: 0, noShows: 0, lateCancellations: 0 }
+  const emergencyContacts = profileData.emergencyContacts ?? []
+  const isPhoneVerified = profileData.isPhoneVerified || false
   
   // Filter hosted & joined activities
   const hostedTrips = myActivities.filter((a) => a.creator_id === user?.id)
@@ -211,7 +213,7 @@ const MyProfile = () => {
                   {profile?.name || 'Explorer'}
                 </span>
                 <span style={{ fontSize: '9px', color: '#9ba6ad', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Level {idVerified && trustScore >= 75 ? 'Trusted Legend' : idVerified && trustScore >= 50 ? 'Verified Explorer' : 'New Seed'}
+                  Level {reliabilityBreakdown.completedTrips === 0 ? 'Basecamp Newbie' : trustScore >= 75 ? 'Trusted Legend' : 'Active Explorer'}
                 </span>
               </div>
             </div>
@@ -247,17 +249,8 @@ const MyProfile = () => {
               src={profile?.avatar_url}
               name={profile?.name || 'User'}
               size="xl"
-            />
-            {/* Outline ring based on status */}
-            <div 
-              style={{
-                position: 'absolute',
-                inset: '-3px',
-                borderRadius: '50%',
-                border: '2px solid',
-                borderColor: trustScore >= 75 ? '#4fbe8e' : trustScore >= 50 ? '#3b82f6' : 'transparent',
-                pointerEvents: 'none'
-              }}
+              score={trustScore}
+              showStatusRing={true}
             />
           </div>
 
@@ -284,33 +277,41 @@ const MyProfile = () => {
               <p style={{ fontSize: '14px', color: '#6b757c', fontStyle: 'italic', margin: 0 }}>No bio added yet.</p>
             )}
 
-            {/* Verification status pill */}
-            <div style={{ display: 'flex', marginTop: '4px' }} className="justify-center sm:justify-start">
-              {idVerified ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: trustScore >= 75 ? 'rgba(79, 190, 142, 0.14)' : 'rgba(59, 130, 246, 0.14)', border: trustScore >= 75 ? '1px solid rgba(79, 190, 142, 0.20)' : '1px solid rgba(59, 130, 246, 0.20)', color: trustScore >= 75 ? '#4fbe8e' : '#3b82f6', fontSize: '12px', fontWeight: '600', borderRadius: '100px' }}>
-                  {trustScore >= 75 ? '👑 Trusted Legend' : '🛡️ Verified Explorer'}
+            {/* Reputation status & Gender pills */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }} className="justify-center sm:justify-start">
+              <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 12px',
+                background: reliabilityBreakdown.completedTrips === 0 ? 'rgba(245, 158, 11, 0.14)' : trustScore >= 75 ? 'rgba(79, 190, 142, 0.14)' : 'rgba(59, 130, 246, 0.14)',
+                border: reliabilityBreakdown.completedTrips === 0 ? '1px solid rgba(245, 158, 11, 0.20)' : trustScore >= 75 ? '1px solid rgba(79, 190, 142, 0.20)' : '1px solid rgba(59, 130, 246, 0.20)',
+                color: reliabilityBreakdown.completedTrips === 0 ? '#f59e0b' : trustScore >= 75 ? '#4fbe8e' : '#3b82f6',
+                fontSize: '12px',
+                fontWeight: '600',
+                borderRadius: '100px'
+              }}>
+                {reliabilityBreakdown.completedTrips === 0 ? '🌱 Basecamp Newbie' : trustScore >= 75 ? '👑 Trusted Legend' : '🛡️ Active Explorer'}
+              </span>
+
+              {profile?.gender && profile?.gender !== 'prefer_not_to_say' && (
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 12px',
+                  background: 'rgba(99, 102, 241, 0.14)',
+                  border: '1px solid rgba(99, 102, 241, 0.20)',
+                  color: '#818cf8',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  borderRadius: '100px'
+                }}>
+                  {profile.gender.toLowerCase() === 'male' ? '👨 Male Traveler' : 
+                   profile.gender.toLowerCase() === 'female' ? '👩 Female Traveler' : 
+                   profile.gender.toLowerCase() === 'non-binary' ? '🧑 Non-Binary Traveler' : 
+                   `🧑 ${profile.gender} Traveler`}
                 </span>
-              ) : (
-                <Link
-                  to="/profile/me/verify-id"
-                  onMouseEnter={() => setIsVerifyHovered(true)}
-                  onMouseLeave={() => setIsVerifyHovered(false)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '4px 12px',
-                    background: isVerifyHovered ? 'rgba(255, 201, 77, 0.25)' : 'rgba(255, 201, 77, 0.16)',
-                    border: '1px solid rgba(255, 201, 77, 0.20)',
-                    color: '#ffc94d',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    borderRadius: '100px',
-                    transition: 'background 150ms ease'
-                  }}
-                >
-                  🌱 New Seed (Verify ID ➔)
-                </Link>
               )}
             </div>
           </div>
@@ -369,7 +370,7 @@ const MyProfile = () => {
           >
             <TrustCircle score={trustScore} size={64} />
             <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1 }}>
-              Trust Score
+              Peer Trust Index
             </span>
           </button>
 
@@ -384,16 +385,34 @@ const MyProfile = () => {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
+              gap: '12px',
               textAlign: 'center'
             }}
           >
-            <span style={{ fontSize: '32px', fontWeight: '900', fontFamily: 'var(--font-mono)', color: '#f3f1ea', lineHeight: 1 }}>
-              {reliabilityScore}%
-            </span>
-            <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1 }}>
-              Reliability
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: reliabilityBreakdown.completedTrips === 0 ? '15px' : '32px', fontWeight: '900', fontFamily: 'var(--font-mono)', color: '#f3f1ea', lineHeight: 1 }}>
+                {reliabilityBreakdown.completedTrips === 0 ? 'No N8 trips yet' : `${reliabilityScore}%`}
+              </span>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1 }}>
+                Reliability
+              </span>
+            </div>
+            
+            {/* Reliability Stats Breakdown */}
+            <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left', fontSize: '11px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#9ba6ad' }}>
+                <span>Trips Attended</span>
+                <span style={{ fontWeight: '700', color: '#f3f1ea' }}>{reliabilityBreakdown.completedTrips}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#9ba6ad' }}>
+                <span>Late Withdrawals</span>
+                <span style={{ fontWeight: '700', color: '#ff5470' }}>{reliabilityBreakdown.lateCancellations}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#9ba6ad' }}>
+                <span>No-shows</span>
+                <span style={{ fontWeight: '700', color: '#ff5470' }}>{reliabilityBreakdown.noShows}</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -481,6 +500,25 @@ const MyProfile = () => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </Link>
+
+          {/* Active Contacts summary list */}
+          {emergencyContacts.length > 0 ? (
+            <div style={{ padding: '0 18px 16px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '12px' }}>
+              {emergencyContacts.map((contact) => (
+                <div key={contact.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: '600', color: '#f3f1ea' }}>{contact.name}</span>
+                    <span style={{ fontSize: '11px', color: '#9ba6ad' }}>{contact.relationship}</span>
+                  </div>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: '#4fbe8e', fontWeight: '600' }}>{contact.phone}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '0 18px 16px', fontSize: '12px', color: '#6b757c', fontStyle: 'italic', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '12px' }}>
+              🌱 No emergency contacts configured yet. Tap to set up.
+            </div>
+          )}
         </div>
 
         {/* Trip History Tabs */}
@@ -693,52 +731,109 @@ const MyProfile = () => {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' }}>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: '700', color: '#f3f1ea', margin: 0, lineHeight: 1.2 }}>
-                  Trust Score Breakdown
+                  Peer Trust Index Checklist
                 </h3>
                 <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6b757c', fontWeight: '700' }}>
-                  Audit log of your trust status changes
+                  Dynamic verified criteria status
                 </span>
               </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', maxHeight: '320px', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '6px' }}>
-                {MOCK_TRUST_CHANGES.map((log) => {
-                  const isHovered = hoveredLogId === log.id
+              <div style={{ flex: 1, overflowY: 'auto', maxHeight: '380px', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '6px' }}>
+                {/* 1. Google Link */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#212b33', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '16px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea' }}>Google Auth Link</span>
+                      <span style={{ fontSize: '10px', color: '#9ba6ad' }}>Identity anchor link verified</span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 8px', borderRadius: '100px' }}>+20 PTS</span>
+                </div>
+
+                {/* 2. Bio & Gender */}
+                {(() => {
+                  const isSatisfied = profile.bio && profile.bio.trim().length >= 10 && profile.gender && profile.gender !== 'prefer_not_to_say'
                   return (
-                    <div
-                      key={log.id}
-                      onMouseEnter={() => setHoveredLogId(log.id)}
-                      onMouseLeave={() => setHoveredLogId(null)}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '12px 14px',
-                        background: '#212b33',
-                        border: '1px solid',
-                        borderColor: isHovered ? '#ff6a2c' : 'rgba(255,255,255,0.08)',
-                        borderRadius: '12px',
-                        transition: 'border-color 150ms ease'
-                      }}
-                    >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#212b33', border: isSatisfied ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '18px', background: '#1a2129', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifycontent: 'center', border: '1px solid rgba(255,255,255,0.08)' }} className="justify-center">
-                          {log.icon}
+                        <span style={{ fontSize: '16px', background: isSatisfied ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: isSatisfied ? '#10b981' : '#ef4444', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {isSatisfied ? '✓' : '✗'}
                         </span>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea', lineHeight: 1.2 }}>
-                            {log.reason}
-                          </span>
-                          <span style={{ fontSize: '10px', color: '#6b757c', marginTop: '2px', fontWeight: '500' }}>
-                            {log.date}
-                          </span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea' }}>Gender & Bio Complete</span>
+                          <span style={{ fontSize: '10px', color: '#9ba6ad' }}>{isSatisfied ? 'Required traveler declaration complete' : 'Biology/Gender indicator & self-declaration required'}</span>
                         </div>
                       </div>
-                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#4fbe8e', fontFamily: 'var(--font-mono)' }}>
-                        +{log.amount}
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: isSatisfied ? '#10b981' : '#ef4444', background: isSatisfied ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', padding: '2px 8px', borderRadius: '100px' }}>
+                        {isSatisfied ? '+20 PTS' : '0 PTS'}
                       </span>
                     </div>
                   )
-                })}
+                })()}
+
+                {/* 3. Vibe Tags */}
+                {(() => {
+                  const isSatisfied = interestTags.length >= 3
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#212b33', border: isSatisfied ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '16px', background: isSatisfied ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: isSatisfied ? '#10b981' : '#ef4444', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {isSatisfied ? '✓' : '✗'}
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea' }}>Trip Preference Alignment</span>
+                          <span style={{ fontSize: '10px', color: '#9ba6ad' }}>{isSatisfied ? 'Hobbies & trip characteristics declared' : 'Provide at least 3 interest vibe tags'}</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: isSatisfied ? '#10b981' : '#ef4444', background: isSatisfied ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', padding: '2px 8px', borderRadius: '100px' }}>
+                        {isSatisfied ? '+20 PTS' : '0 PTS'}
+                      </span>
+                    </div>
+                  )
+                })()}
+
+                {/* 4. Emergency Contacts */}
+                {(() => {
+                  const isSatisfied = emergencyContacts.length > 0
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#212b33', border: isSatisfied ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '16px', background: isSatisfied ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: isSatisfied ? '#10b981' : '#ef4444', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {isSatisfied ? '✓' : '✗'}
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea' }}>Emergency Contacts Configured</span>
+                          <span style={{ fontSize: '10px', color: '#9ba6ad' }}>{isSatisfied ? 'Emergency helper notification link verified' : 'Set helper contact details for trip dispatch safety'}</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: isSatisfied ? '#10b981' : '#ef4444', background: isSatisfied ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', padding: '2px 8px', borderRadius: '100px' }}>
+                        {isSatisfied ? '+20 PTS' : '0 PTS'}
+                      </span>
+                    </div>
+                  )
+                })()}
+
+                {/* 5. Phone Number Verification */}
+                {(() => {
+                  const isSatisfied = isPhoneVerified
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#212b33', border: isSatisfied ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '16px', background: isSatisfied ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: isSatisfied ? '#10b981' : '#ef4444', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {isSatisfied ? '✓' : '✗'}
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea' }}>Mobile Network Verification</span>
+                          <span style={{ fontSize: '10px', color: '#9ba6ad' }}>{isSatisfied ? 'Registered phone network carrier verified' : 'Verify carrier routing details in Settings'}</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: isSatisfied ? '#10b981' : '#ef4444', background: isSatisfied ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', padding: '2px 8px', borderRadius: '100px' }}>
+                        {isSatisfied ? '+20 PTS' : '0 PTS'}
+                      </span>
+                    </div>
+                  )
+                })()}
               </div>
             </motion.div>
           </>

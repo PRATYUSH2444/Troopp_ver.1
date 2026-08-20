@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals'
-import { addTrustScore, deductTrustScore, getTrustBadge } from '../../src/modules/trust/trust.service.js'
+import { addTrustScore, deductTrustScore } from '../../src/modules/trust/trust.service.js'
 import User from '../../src/models/User.js'
 import TrustScoreLog from '../../src/models/TrustScoreLog.js'
 import * as notificationService from '../../src/services/notification.service.js'
@@ -65,12 +65,5 @@ describe('Trust Score Service Unit Tests', () => {
     const score = await deductTrustScore('user-1', 20, 'report_filed')
     expect(score).toBe(50)
     expect(mockUser.save).not.toHaveBeenCalled()
-  })
-
-  test('getTrustBadge maps scores to correct labels and icons', () => {
-    expect(getTrustBadge(80)).toEqual({ label: 'Trusted', color: '#166534', icon: 'shield' })
-    expect(getTrustBadge(60)).toEqual({ label: 'Verified', color: '#1D4ED8', icon: 'check' })
-    expect(getTrustBadge(40)).toEqual({ label: 'New', color: '#78716C', icon: 'info' })
-    expect(getTrustBadge(80, true)).toEqual({ label: 'Flagged', color: '#DC2626', icon: 'warning' })
   })
 })

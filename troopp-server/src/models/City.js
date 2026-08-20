@@ -39,6 +39,16 @@ City.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    latitude: {
+      type: DataTypes.DOUBLE,
+      allowNull: false,
+      defaultValue: 12.9716 // Bengaluru coordinates default fallback
+    },
+    longitude: {
+      type: DataTypes.DOUBLE,
+      allowNull: false,
+      defaultValue: 77.5946
+    },
   },
   {
     sequelize,

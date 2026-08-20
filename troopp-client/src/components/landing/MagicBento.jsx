@@ -12,7 +12,7 @@ const cardData = [
   {
     color: '#161d24',
     title: 'Smart Trust Engine',
-    description: 'Build trust through verified identity, reputation scorecards, travel history records, and traveler community feedback.',
+    description: 'Build trust through reputation scorecards, travel history records, and traveler community feedback.',
     label: 'Reputation',
     glowColor: '255, 106, 44' // Orange
   },
@@ -32,9 +32,9 @@ const cardData = [
   },
   {
     color: '#161d24',
-    title: 'Secure Identity Verification',
-    description: 'Verify government ID credentials and authenticate facial matches securely through our encrypted Digio KYC pipelines.',
-    label: 'Verification',
+    title: 'College Group Network',
+    description: 'Connect with peers from verified college email campuses, and join trusted academic interest clubs.',
+    label: 'Campuses',
     glowColor: '16, 185, 129' // Emerald Green
   },
   {
@@ -47,7 +47,7 @@ const cardData = [
   {
     color: '#161d24',
     title: 'Discover & Join Activities',
-    description: 'Explore nearby hikes, camps, and tours, filter active community matches, and connect safely with verified co-travelers.',
+    description: 'Explore nearby hikes, camps, and tours, filter active community matches, and connect safely with like-minded co-travelers.',
     label: 'Discover',
     glowColor: '20, 184, 166' // Teal
   }

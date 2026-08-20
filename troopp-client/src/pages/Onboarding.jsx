@@ -38,10 +38,6 @@ const NumberTicker = ({ value, duration = 400 }) => {
     return () => cancelAnimationFrame(frameId)
   }, [value, duration])
 
-  useEffect(() => {
-    prevValueRef.current = value
-  }, [value])
-  
   return <span>{displayValue}</span>
 }
 
@@ -115,6 +111,7 @@ const Onboarding = () => {
   const [step, setStep] = useState(1)
   const [cities, setCities] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [loadingProfile, setLoadingProfile] = useState(true)
   const navigate = useNavigate()
   const { setUser } = useAuth()
 
@@ -129,18 +126,14 @@ const Onboarding = () => {
   const [emergencyPhone, setEmergencyPhone] = useState('')
   const [emergencyRelation, setEmergencyRelation] = useState('')
 
-  // KYC details
-  const [docType, setDocType] = useState('aadhaar')
-  const [idFile, setIdFile] = useState(null)
-  const [selfieFile, setSelfieFile] = useState(null)
+  const [trustScore, setTrustScore] = useState(50)
 
   // Onboarding completion calculations
   const calculateCompletion = () => {
     let score = 0
-    if (bio.trim().length > 0) score += 25
-    if (emergencyName.trim().length > 0 && emergencyPhone.length === 10 && emergencyRelation.trim().length > 0) score += 25
-    if (idFile && selfieFile) score += 25
-    if (selectedTags.length >= 3) score += 25
+    if (bio.trim().length >= 10) score += 34
+    if (emergencyName.trim().length >= 2 && emergencyPhone.length === 10 && emergencyRelation.trim().length >= 2) score += 33
+    if (selectedTags.length >= 3) score += 33
     return score
   }
 
@@ -161,22 +154,81 @@ const Onboarding = () => {
   }, [completionPercent])
 
   useEffect(() => {
-    // Fetch active cities list
-    const loadCities = async () => {
+    // Load dynamic data on mount
+    const loadData = async () => {
       try {
-        const res = await apiRequest('/cities')
-        if (res.ok) {
-          const data = await res.json()
-          setCities(data.data || [])
-          if (data.data?.length > 0) {
-            setCityId(data.data[0].id)
+        // Fetch Cities
+        const citiesRes = await apiRequest('/cities')
+        let loadedCityId = ''
+        if (citiesRes.ok) {
+          const citiesData = await citiesRes.json()
+          const list = citiesData.data || []
+          setCities(list)
+          if (list.length > 0) {
+            loadedCityId = list[0].id
+            setCityId(list[0].id)
+          }
+        }
+
+        // Fetch existing profile
+        const profileRes = await apiRequest('/profiles/me')
+        if (profileRes.ok) {
+          const profileResult = await profileRes.json()
+          const profileData = profileResult.data
+          
+          if (profileData.profile) {
+            setBio(profileData.profile.bio || '')
+            setGender(profileData.profile.gender || 'prefer_not_to_say')
+            if (profileData.cityId) {
+              setCityId(profileData.cityId)
+            } else if (loadedCityId) {
+              setCityId(loadedCityId)
+            }
+          }
+          if (profileData.interestTags) {
+            setSelectedTags(profileData.interestTags)
+          }
+
+          if (profileData.trustScore !== undefined) {
+            setTrustScore(profileData.trustScore)
+          }
+
+          // Fetch emergency contacts
+          const emergencyRes = await apiRequest('/profiles/emergency-contacts')
+          let hasEmergency = false
+          if (emergencyRes.ok) {
+            const emergencyData = await emergencyRes.json()
+            const contacts = emergencyData.data || []
+            if (contacts.length > 0) {
+              setEmergencyName(contacts[0].name || '')
+              setEmergencyRelation(contacts[0].relationship || '')
+              const ph = contacts[0].phone || ''
+              setEmergencyPhone(ph.startsWith('+91') ? ph.substring(3) : ph)
+              hasEmergency = true
+            }
+          }
+
+          // Determine starting step dynamically
+          const bioCompleted = (profileData.profile?.bio || '').trim().length >= 10
+          const hasTags = (profileData.interestTags || []).length >= 3
+
+          if (!bioCompleted) {
+            setStep(1)
+          } else if (!hasEmergency) {
+            setStep(2)
+          } else if (!hasTags) {
+            setStep(3)
+          } else {
+            setStep(3)
           }
         }
       } catch (err) {
-        console.error('Failed loading cities list:', err)
+        console.error('Failed loading onboarding baseline data:', err)
+      } finally {
+        setLoadingProfile(false)
       }
     }
-    loadCities()
+    loadData()
   }, [])
 
   const toggleTag = (tag) => {
@@ -192,77 +244,104 @@ const Onboarding = () => {
     })
   }
 
-  const handleIdChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) return toast.error('File size must be under 5MB.')
-      setIdFile(file)
+  const isStepValid = () => {
+    if (step === 1) {
+      return bio.trim().length >= 10 && cityId
     }
+    if (step === 2) {
+      const cleaned = emergencyPhone.replace(/\D/g, '')
+      return emergencyName.trim().length >= 2 && emergencyRelation.trim().length >= 2 && cleaned.length === 10
+    }
+    if (step === 3) {
+      return selectedTags.length >= 3
+    }
+    return true
   }
 
-  const handleSelfieChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) return toast.error('File size must be under 5MB.')
-      setSelfieFile(file)
+  const handleStepContinue = async () => {
+    if (step === 1) {
+      if (bio.trim().length < 10) {
+        return toast.error('Tagline bio must be at least 10 characters.')
+      }
+      if (!cityId) {
+        return toast.error('Please select your home city.')
+      }
+
+      setSubmitting(true)
+      try {
+        const profileRes = await apiRequest('/profiles/me', {
+          method: 'PUT',
+          body: JSON.stringify({
+            bio: bio.trim(),
+            gender,
+            cityId
+          })
+        })
+        if (!profileRes.ok) {
+          const errData = await profileRes.json()
+          throw new Error(errData.error?.message || 'Failed to save profile details.')
+        }
+        setStep(2)
+      } catch (err) {
+        toast.error(err.message)
+      } finally {
+        setSubmitting(false)
+      }
+    } else if (step === 2) {
+      if (emergencyName.trim().length < 2) {
+        return toast.error('Emergency contact name must be at least 2 characters.')
+      }
+      if (emergencyRelation.trim().length < 2) {
+        return toast.error('Relationship description must be at least 2 characters.')
+      }
+      const cleanedPhone = emergencyPhone.replace(/\D/g, '')
+      if (cleanedPhone.length !== 10) {
+        return toast.error('Please enter a valid 10-digit mobile number.')
+      }
+
+      setSubmitting(true)
+      try {
+        const res = await apiRequest('/profiles/emergency-contacts', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: emergencyName.trim(),
+            phone: `+91${cleanedPhone}`,
+            relationship: emergencyRelation.trim()
+          })
+        })
+        if (!res.ok) {
+          const errData = await res.json()
+          throw new Error(errData.error?.message || 'Failed to save emergency contact.')
+        }
+        setStep(3)
+      } catch (err) {
+        toast.error(err.message)
+      } finally {
+        setSubmitting(false)
+      }
     }
   }
 
   const handleComplete = async () => {
+    if (selectedTags.length < 3) {
+      return toast.error('Please select at least 3 vibe tags to complete your profile.')
+    }
+
     setSubmitting(true)
     try {
-      const { getAccessToken, BASE_URL } = await import('../utils/api.js')
-      const token = getAccessToken()
-
-      // 1. Submit Profile details
+      // 1. Submit Profile details (interest tags)
       const profileRes = await apiRequest('/profiles/me', {
         method: 'PUT',
         body: JSON.stringify({
-          bio: bio.trim(),
-          gender,
           interestTags: selectedTags
         })
       })
-      if (!profileRes.ok) throw new Error('Failed to save profile configurations.')
-
-      // 2. Submit Emergency contact if details filled
-      if (emergencyName && emergencyPhone && emergencyRelation) {
-        const cleaned = emergencyPhone.replace(/\D/g, '')
-        if (cleaned.length === 10) {
-          await apiRequest('/profiles/emergency-contacts', {
-            method: 'POST',
-            body: JSON.stringify({
-              name: emergencyName.trim(),
-              phone: `+91${cleaned}`,
-              relationship: emergencyRelation.trim()
-            })
-          })
-        }
+      if (!profileRes.ok) {
+        const errData = await profileRes.json()
+        throw new Error(errData.error?.message || 'Failed to save interest tags.')
       }
 
-      // 3. Submit KYC uploads if present
-      if (idFile && selfieFile) {
-        const idData = new FormData()
-        idData.append('document', idFile)
-        idData.append('docType', docType)
-
-        const idRes = await fetch(`${BASE_URL}/kyc/upload-id`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: idData
-        })
-        if (idRes.ok) {
-          const selfieData = new FormData()
-          selfieData.append('selfie', selfieFile)
-          await fetch(`${BASE_URL}/kyc/compare-face`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: selfieData
-          })
-        }
-      }
-
-      // 4. Complete Onboarding flag update
+      // 2. Complete Onboarding flag update
       const completeRes = await apiRequest('/profiles/complete-onboarding', {
         method: 'POST'
       })
@@ -272,7 +351,8 @@ const Onboarding = () => {
         setUser((prev) => ({ ...prev, onboardingCompleted: true }))
         navigate('/feed')
       } else {
-        throw new Error('Onboarding confirmation failed.')
+        const errData = await completeRes.json()
+        throw new Error(errData.error?.message || 'Onboarding completion confirmation failed.')
       }
 
     } catch (err) {
@@ -282,355 +362,689 @@ const Onboarding = () => {
     }
   }
 
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-bold text-stone-500 uppercase tracking-widest">
+            Loading your profile...
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-stone-50 px-4 py-12 flex items-center justify-center">
+    <div
+      className="min-h-screen px-4 py-12 flex items-center justify-center"
+      style={{
+        background: 'radial-gradient(circle at 30% 20%, rgba(255,106,44,0.12) 0%, transparent 60%), #10151a',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}
+    >
+      {/* Responsive stylesheet auth theme authority */}
+      <style>{`
+        .wizard-card {
+          background: #1a2129;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 24px;
+          width: 460px;
+          max-width: calc(100vw - 32px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.03) inset;
+          overflow: hidden;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+        }
+        .wizard-header {
+          background: linear-gradient(160deg, #1c2a2a 0%, #1a2129 100%);
+          padding: 32px 32px 24px;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          box-sizing: border-box;
+        }
+        .wizard-body {
+          padding: 32px 32px 36px;
+          box-sizing: border-box;
+        }
+        .wizard-input {
+          width: 100%;
+          height: 52px;
+          padding: 0 24px;
+          background: #212b33;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 100px;
+          font-size: 15px;
+          color: #f3f1ea;
+          transition: border-color 150ms ease, box-shadow 150ms ease;
+          outline: none;
+          box-sizing: border-box;
+        }
+        .wizard-input:focus {
+          border-color: #ff6a2c;
+          box-shadow: 0 0 0 3px rgba(255,106,44,0.20);
+        }
+        .wizard-textarea {
+          width: 100%;
+          padding: 16px 20px;
+          background: #212b33;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 20px;
+          font-size: 15px;
+          color: #f3f1ea;
+          outline: none;
+          box-sizing: border-box;
+          resize: none;
+          line-height: 1.5;
+          transition: border-color 150ms ease, box-shadow 150ms ease;
+        }
+        .wizard-textarea:focus {
+          border-color: #ff6a2c;
+          box-shadow: 0 0 0 3px rgba(255,106,44,0.20);
+        }
+        .wizard-select {
+          width: 100%;
+          height: 52px;
+          padding: 0 20px;
+          background: #212b33;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 100px;
+          font-size: 15px;
+          color: #f3f1ea;
+          outline: none;
+          box-sizing: border-box;
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ba6ad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+          background-repeat: no-repeat;
+          background-position: right 20px center;
+          background-size: 16px;
+        }
+        .wizard-select:focus {
+          border-color: #ff6a2c;
+          box-shadow: 0 0 0 3px rgba(255,106,44,0.20);
+        }
+        @media (max-width: 480px) {
+          .wizard-header {
+            padding: 24px 20px 20px;
+          }
+          .wizard-body {
+            padding: 24px 20px 28px;
+          }
+          .wizard-card {
+            max-width: calc(100vw - 24px);
+          }
+        }
+      `}</style>
+
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg bg-white border border-stone-200 rounded-3xl p-8 shadow-2xl flex flex-col gap-6"
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="wizard-card"
       >
-        {/* Wizard header */}
-        <div className="flex flex-col gap-3 bg-stone-50 border border-stone-150 p-4 rounded-2xl">
-          <div className="flex justify-between items-center w-full">
-            <span className="text-[10px] font-black text-stone-500 uppercase tracking-wider">
-              Setup Wizard - Step {step} of 4
-            </span>
-            <div className="flex gap-1.5">
-              {[1, 2, 3, 4].map((s) => (
-                <div
-                  key={s}
-                  className={`w-3 h-1.5 rounded-full transition-all ${
-                    step === s ? 'bg-primary w-6' : 'bg-stone-200'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-          
-          {/* Liquid Completion Bar */}
-          <div className="flex flex-col gap-1.5 mt-1 border-t border-stone-200/60 pt-2.5">
-            <div className="flex justify-between items-center text-[9px] font-extrabold text-stone-500 uppercase tracking-wider">
-              <span>Profile Completion</span>
-              <span className="text-primary font-black">{completionPercent}%</span>
-            </div>
-            <div className="w-full h-3 bg-stone-200/50 rounded-full overflow-hidden relative border border-stone-150">
-              <motion.div
-                animate={{ width: `${completionPercent}%` }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-                className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full relative overflow-hidden"
-              >
-                {/* Wave shimmer effect */}
-                <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:16px_16px] animate-[shimmer_1.5s_infinite_linear]" />
-              </motion.div>
-            </div>
+        {/* WIZARD HEADER & TIMELINE */}
+        <div className="wizard-header" style={{
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px',
+          padding: '24px 32px'
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: '500', color: '#9ba6ad', letterSpacing: '0.02em' }}>
+            Step {step} of 3, {completionPercent}% completed
+          </span>
+
+          {/* Rebuilt Progress Stepper Node Layout */}
+          <div className="relative flex items-center justify-between w-[260px] h-10 px-1">
+            {/* Background Track Line */}
+            <div className="absolute left-0 right-0 h-0.5 bg-[#2c3742] z-0" style={{ top: '50%', transform: 'translateY(-50%)' }} />
+            
+            {/* Animated Foreground Progress Line */}
+            <motion.div
+              className="absolute left-0 h-0.5 bg-[#4fbe8e] z-0"
+              style={{ top: '50%', transform: 'translateY(-50%)' }}
+              initial={{ width: '0%' }}
+              animate={{ width: `${((step - 1) / 2) * 100}%` }}
+              transition={{ type: 'spring', stiffness: 80, damping: 15 }}
+            />
+
+            {/* Step Circular Nodes */}
+            {[1, 2, 3].map((s) => {
+              const isCompleted = s < step;
+              const isActive = s === step;
+              return (
+                <div key={s} className="relative z-10 flex items-center justify-center">
+                  <motion.div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: '700',
+                      fontSize: '13px',
+                      border: '2px solid',
+                      borderColor: isCompleted
+                        ? '#4fbe8e'
+                        : isActive
+                        ? '#ff6a2c'
+                        : 'rgba(255,255,255,0.08)',
+                      background: isCompleted
+                        ? '#4fbe8e'
+                        : isActive
+                        ? 'linear-gradient(135deg, #ff8a4c 0%, #ff520d 100%)'
+                        : '#1a2129',
+                      color: isCompleted
+                        ? '#ffffff'
+                        : isActive
+                        ? '#ffffff'
+                        : '#6b757c',
+                      boxShadow: isActive ? '0 0 16px rgba(255,106,44,0.6)' : 'none',
+                      cursor: 'default',
+                      userSelect: 'none'
+                    }}
+                    animate={isActive ? { scale: 1.08 } : { scale: 1.0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    {isCompleted ? (
+                      <svg className="w-4.5 h-4.5 fill-current" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      s
+                    )}
+                  </motion.div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Step 1: Bio */}
-        {step === 1 && (
-          <div className="flex flex-col gap-4">
-            <h3 className="font-heading font-black text-2xl text-stone-900 tracking-tight">
-              Tell us about yourself
-            </h3>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
-                Tell us your tagline bio
-              </label>
-              <textarea
-                rows={3}
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Day dreamer, trek lover, or weekend driver..."
-                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary/50 resize-none leading-relaxed"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
-                  Gender
-                </label>
-                <select
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="w-full h-11 px-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary/50 cursor-pointer"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                  <option value="prefer_not_to_say">Prefer not to say</option>
-                </select>
+        {/* WIZARD BODY */}
+        <div className="wizard-body">
+          {/* Step 1: Bio */}
+          {step === 1 && (
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-1">
+                <h3 style={{
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  color: '#f3f1ea',
+                  letterSpacing: '-0.02em'
+                }}>
+                  Tell us about yourself
+                </h3>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
-                  Home City
+              <div className="flex flex-col">
+                <label style={{
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: '#9ba6ad',
+                  marginBottom: '8px',
+                  display: 'block'
+                }}>
+                  Tell us your tagline bio
                 </label>
-                <select
-                  value={cityId}
-                  onChange={(e) => setCityId(e.target.value)}
-                  className="w-full h-11 px-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary/50 cursor-pointer"
-                >
-                  {cities.map((city) => (
-                    <option key={city.id} value={city.id}>
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Emergency Contact */}
-        {step === 2 && (
-          <div className="flex flex-col gap-4">
-            <h3 className="font-heading font-black text-2xl text-stone-900 tracking-tight">
-              Emergency Contact Setup
-            </h3>
-            <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">
-              Safety measures: register someone we can alert in emergency situations
-            </span>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
-                Contact Full Name
-              </label>
-              <input
-                type="text"
-                value={emergencyName}
-                onChange={(e) => setEmergencyName(e.target.value)}
-                placeholder="Ramesh Malhotra"
-                className="w-full h-11 px-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
-                  Relationship
-                </label>
-                <input
-                  type="text"
-                  value={emergencyRelation}
-                  onChange={(e) => setEmergencyRelation(e.target.value)}
-                  placeholder="Father / Friend"
-                  className="w-full h-11 px-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none"
+                <textarea
+                  rows={3}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  maxLength={500}
+                  placeholder="Day dreamer, trek lover, or weekend driver..."
+                  className="wizard-textarea"
                 />
+                <div style={{ display: 'flex', justifycontent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Min 10 characters required
+                  </span>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {bio.length}/500
+                  </span>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
-                  Mobile Number
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={emergencyPhone}
-                    onChange={(e) => setEmergencyPhone(e.target.value.replace(/\D/g, ''))}
-                    placeholder="9876543210"
-                    className="w-full h-11 pl-12 pr-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold tracking-wider focus:outline-none"
-                  />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <label style={{
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: '#9ba6ad',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>
+                    Gender
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="wizard-select"
+                    >
+                      <option value="male" style={{ background: '#1a2129', color: '#f3f1ea' }}>Male</option>
+                      <option value="female" style={{ background: '#1a2129', color: '#f3f1ea' }}>Female</option>
+                      <option value="other" style={{ background: '#1a2129', color: '#f3f1ea' }}>Other</option>
+                      <option value="prefer_not_to_say" style={{ background: '#1a2129', color: '#f3f1ea' }}>Prefer not to say</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col">
+                  <label style={{
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: '#9ba6ad',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>
+                    Home City
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={cityId}
+                      onChange={(e) => setCityId(e.target.value)}
+                      className="wizard-select"
+                    >
+                      {cities.map((city) => (
+                        <option key={city.id} value={city.id} style={{ background: '#1a2129', color: '#f3f1ea' }}>
+                          {city.city_name || city.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Step 3: KYC Uploader */}
-        {step === 3 && (
-          <div className="flex flex-col gap-4">
-            <h3 className="font-heading font-black text-2xl text-stone-900 tracking-tight">
-              Identity Verification
-            </h3>
-            <span className="text-[10px] text-stone-450 font-bold uppercase tracking-wider">
-              Verify your ID card and camera selfie to secure trust score permissions (skip option below)
-            </span>
-
-            <div className="flex flex-col gap-3">
-              <select
-                value={docType}
-                onChange={(e) => setDocType(e.target.value)}
-                className="w-full h-11 px-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none"
-              >
-                <option value="aadhaar">Aadhaar Card (India)</option>
-                <option value="pan">PAN Card (India)</option>
-                <option value="passport">Passport</option>
-              </select>
-
-              {/* ID upload input */}
-              <div className="border border-stone-200 rounded-xl p-3 bg-stone-50 flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-605">
-                  {idFile ? idFile.name : 'Upload Government ID document'}
+          {/* Step 2: Emergency Contact */}
+          {step === 2 && (
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-1.5">
+                <h3 style={{
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  color: '#f3f1ea',
+                  letterSpacing: '-0.02em',
+                  marginBottom: '2px'
+                }}>
+                  Emergency Contact
+                </h3>
+                <span style={{ fontSize: '13px', color: '#9ba6ad', lineHeight: '1.4' }}>
+                  Safety first: register someone we can alert in emergency situations.
                 </span>
-                <input
-                  type="file"
-                  accept="image/png, image/jpeg, application/pdf"
-                  onChange={handleIdChange}
-                  className="hidden"
-                  id="id-file-onb"
-                />
-                <label
-                  htmlFor="id-file-onb"
-                  className="px-3.5 py-1.5 bg-stone-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-pointer"
-                >
-                  Browse ID
-                </label>
               </div>
 
-              {/* Selfie upload input */}
-              <div className="border border-stone-200 rounded-xl p-3 bg-stone-50 flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-605">
-                  {selfieFile ? selfieFile.name : 'Take or upload Face Selfie'}
-                </span>
-                <input
-                  type="file"
-                  accept="image/png, image/jpeg"
-                  onChange={handleSelfieChange}
-                  className="hidden"
-                  id="selfie-file-onb"
-                />
-                <label
-                  htmlFor="selfie-file-onb"
-                  className="px-3.5 py-1.5 bg-stone-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-pointer"
-                >
-                  Browse Face
+              <div className="flex flex-col">
+                <label style={{
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: '#9ba6ad',
+                  marginBottom: '8px',
+                  display: 'block'
+                }}>
+                  Contact Full Name
                 </label>
+                <input
+                  type="text"
+                  value={emergencyName}
+                  onChange={(e) => setEmergencyName(e.target.value)}
+                  placeholder="Ramesh Malhotra"
+                  className="wizard-input"
+                />
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* Step 4: Interests */}
-        {step === 4 && (
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <h3 className="font-heading font-black text-2xl text-stone-900 tracking-tight">
-                Select Interest Vibe Tags
-              </h3>
-              <p className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">
-                Select at least 3 vibe tags to complete your profile
-              </p>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <label style={{
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: '#9ba6ad',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>
+                    Relationship
+                  </label>
+                  <input
+                    type="text"
+                    value={emergencyRelation}
+                    onChange={(e) => setEmergencyRelation(e.target.value)}
+                    placeholder="Father / Friend"
+                    className="wizard-input"
+                  />
+                </div>
 
-            <div className="flex flex-wrap gap-2 py-2">
-              {AVAILABLE_TAGS.map((tag) => {
-                const selected = selectedTags.includes(tag)
-                return (
-                  <motion.button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`px-3.5 py-2 rounded-full text-xs font-semibold border transition-all cursor-pointer select-none ${
-                      selected
-                        ? 'bg-primary border-primary text-white shadow-sm'
-                        : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
-                    }`}
-                  >
-                    {tag}
-                  </motion.button>
-                )
-              })}
-            </div>
-
-            <AnimatePresence>
-              {selectedTags.length >= 3 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="flex flex-col gap-4 mt-2"
-                >
-                  <div className="text-center text-xs font-extrabold text-emerald-600 flex items-center justify-center gap-1.5">
-                    <span>✨ Let's go! (Minimum 3 tags selected)</span>
+                <div className="flex flex-col">
+                  <label style={{
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: '#9ba6ad',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>
+                    Mobile Number
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{
+                      position: 'absolute',
+                      left: '20px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      color: '#6b757c',
+                      pointerEvents: 'none'
+                    }}>
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      value={emergencyPhone}
+                      onChange={(e) => setEmergencyPhone(e.target.value.replace(/\D/g, ''))}
+                      placeholder="9876543210"
+                      className="wizard-input"
+                      style={{ paddingLeft: '54px' }}
+                    />
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-                  {completionPercent === 100 && (
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="flex flex-col items-center justify-center text-center p-5 border border-emerald-100 bg-emerald-50/15 rounded-3xl gap-3.5 shadow-sm"
+          {/* Step 3: Interests */}
+          {step === 3 && (
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-2" style={{ textAlign: 'center' }}>
+                <h3 style={{
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  color: '#f3f1ea',
+                  letterSpacing: '-0.02em',
+                }}>
+                  Select Interest Vibe Tags
+                </h3>
+              </div>
+
+              <div className="flex flex-wrap gap-2.5 py-3 justify-center">
+                {AVAILABLE_TAGS.map((tag) => {
+                  const selected = selectedTags.includes(tag)
+                  return (
+                    <motion.button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      whileHover={{ scale: 1.03, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: '100px',
+                        fontSize: '13.5px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        border: selected ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                        background: selected
+                          ? 'linear-gradient(135deg, #ff8a4c 0%, #ff520d 100%)'
+                          : 'transparent',
+                        color: selected ? '#ffffff' : '#9ba6ad',
+                        boxShadow: selected
+                          ? '0 0 16px rgba(255,106,44,0.4)'
+                          : 'none',
+                        transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                      onMouseOver={(e) => {
+                        if (!selected) {
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'
+                          e.currentTarget.style.color = '#ffffff'
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (!selected) {
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+                          e.currentTarget.style.color = '#9ba6ad'
+                        }
+                      }}
                     >
-                      <span className="text-2xl">🎉</span>
-                      <h4 className="text-sm font-black text-stone-900 tracking-tight">Profile Setup Complete!</h4>
-                      <p className="text-[9px] text-stone-500 font-bold uppercase tracking-wider leading-relaxed max-w-xs">
-                        Your details are 100% complete. Enjoy bonus starting privileges!
-                      </p>
-                      
-                      {/* Circular Trust Score Indicator */}
-                      <div className="relative w-24 h-24 flex items-center justify-center mt-1">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            className="stroke-stone-105"
-                            strokeWidth="8"
-                            fill="none"
-                          />
-                          <motion.circle
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            className="stroke-emerald-500"
-                            strokeWidth="8"
-                            fill="none"
-                            strokeDasharray="251.2"
-                            initial={{ strokeDashoffset: 251.2 }}
-                            animate={{ strokeDashoffset: 251.2 - (251.2 * 80) / 100 }}
-                            transition={{ duration: 1.2, ease: 'easeOut', delay: 0.2 }}
-                          />
+                      {tag}
+                    </motion.button>
+                  )
+                })}
+              </div>
+
+              <AnimatePresence>
+                {selectedTags.length >= 3 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="flex flex-col gap-6 mt-2"
+                  >
+                    <div className="flex items-center justify-center">
+                      <div style={{
+                        fontSize: '12.5px',
+                        fontWeight: '600',
+                        color: '#10b981',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        background: 'rgba(16,185,129,0.08)',
+                        border: '1px solid rgba(16,185,129,0.16)',
+                        padding: '8px 18px',
+                        borderRadius: '100px',
+                        boxShadow: '0 4px 12px rgba(16,185,129,0.05)'
+                      }}>
+                        <svg style={{ width: '15px', height: '15px', fill: 'currentColor' }} viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-2xl font-black text-stone-900">
-                            <NumberTicker value={80} duration={1200} />
-                          </span>
-                          <span className="text-[7px] font-black uppercase text-stone-400 tracking-widest mt-0.5">Trust Score</span>
-                        </div>
+                        <span>Ready to proceed (Minimum 3 tags selected)</span>
                       </div>
-                    </motion.div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    </div>
+
+                    {completionPercent === 100 && (
+                      <motion.div
+                        initial={{ scale: 0.96, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          padding: '24px 20px',
+                          border: '1.5px solid #4fbe8e',
+                          background: '#152520',
+                          borderRadius: '16px',
+                          boxShadow: '0 0 20px rgba(79,190,142,0.25)',
+                          gap: '16px',
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <h4 style={{
+                          fontFamily: 'Space Grotesk, sans-serif',
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          color: '#ffffff',
+                          letterSpacing: '-0.01em',
+                          margin: 0
+                        }}>
+                          Profile Setup Complete!
+                        </h4>
+                        
+                        {/* Circular Trust Score Indicator */}
+                        <div className="relative w-28 h-28 flex items-center justify-center" style={{ filter: 'drop-shadow(0 4px 12px rgba(79,190,142,0.2))' }}>
+                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="40"
+                              stroke="rgba(255,255,255,0.04)"
+                              strokeWidth="5"
+                              fill="none"
+                            />
+                            <motion.circle
+                              cx="50"
+                              cy="50"
+                              r="40"
+                              stroke="#4fbe8e"
+                              strokeWidth="6"
+                              strokeLinecap="round"
+                              fill="none"
+                              strokeDasharray="251.2"
+                              initial={{ strokeDashoffset: 251.2 }}
+                              animate={{ strokeDashoffset: 251.2 - (251.2 * (trustScore || 50)) / 100 }}
+                              transition={{ duration: 1.5, ease: 'easeOut', delay: 0.3 }}
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ top: '2px' }}>
+                            <span style={{
+                              fontSize: '28px',
+                              fontWeight: '800',
+                              color: '#ffffff',
+                              fontFamily: 'Space Grotesk, sans-serif',
+                              letterSpacing: '-0.02em',
+                              lineHeight: '1'
+                            }}>
+                              <NumberTicker value={trustScore || 80} duration={1400} />
+                            </span>
+                            <span style={{
+                              fontSize: '8px',
+                              fontWeight: '600',
+                              textTransform: 'uppercase',
+                              color: '#9ba6ad',
+                              letterSpacing: '0.04em',
+                              marginTop: '2px',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              Peer Trust Index
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Wizard Controls */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            paddingTop: '24px',
+            marginTop: '24px'
+          }}>
+            {step > 1 && (
+              <button
+                onClick={() => setStep(step - 1)}
+                disabled={submitting}
+                type="button"
+                style={{
+                  flex: 1,
+                  height: '52px',
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: '100px',
+                  color: '#9ba6ad',
+                  fontSize: '14.5px',
+                  fontWeight: '600',
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  cursor: 'pointer',
+                  transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
+                  e.currentTarget.style.color = '#ffffff'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = '#9ba6ad'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
+              >
+                Previous
+              </button>
+            )}
+            
+            <button
+              onClick={step < 3 ? handleStepContinue : handleComplete}
+              disabled={submitting || !isStepValid()}
+              type="button"
+              style={{
+                flex: 1,
+                height: '52px',
+                background: isStepValid()
+                  ? 'linear-gradient(135deg, #ff8a4c 0%, #ff520d 100%)'
+                  : 'rgba(255,106,44,0.12)',
+                color: isStepValid() ? '#1a0e08' : 'rgba(255,255,255,0.25)',
+                fontWeight: '700',
+                fontSize: '14.5px',
+                fontFamily: 'Space Grotesk, sans-serif',
+                border: 'none',
+                borderRadius: '100px',
+                cursor: isStepValid() ? 'pointer' : 'not-allowed',
+                boxShadow: isStepValid() ? '0 0 16px rgba(255,106,44,0.4)' : 'none',
+                transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onMouseOver={(e) => {
+                if (isStepValid()) {
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 0 24px rgba(255,106,44,0.6)'
+                }
+              }}
+              onMouseOut={(e) => {
+                if (isStepValid()) {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = '0 0 16px rgba(255,106,44,0.4)'
+                }
+              }}
+              onMouseDown={(e) => {
+                if (isStepValid()) {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }
+              }}
+            >
+              {submitting 
+                ? (step < 3 ? 'Saving...' : 'Completing...') 
+                : (step < 3 ? 'Continue' : 'Finish Setup')
+              }
+            </button>
           </div>
-        )}
-
-        {/* Wizard Controls */}
-        <div className="flex gap-3 border-t border-stone-100 pt-4 mt-1">
-          {step > 1 && (
-            <button
-              onClick={() => setStep(step - 1)}
-              className="flex-1 h-11 bg-white border border-stone-200 hover:bg-stone-50 rounded-xl text-xs font-bold cursor-pointer"
-            >
-              Previous
-            </button>
-          )}
-          {step < 4 ? (
-            <button
-              onClick={() => setStep(step + 1)}
-              className="flex-1 h-11 bg-stone-900 text-white hover:bg-stone-850 rounded-xl text-xs font-bold cursor-pointer"
-            >
-              Continue
-            </button>
-          ) : (
-            <button
-              onClick={handleComplete}
-              disabled={submitting}
-              className="flex-1 h-11 bg-primary text-white hover:bg-primary-dark rounded-xl text-xs font-black uppercase tracking-wider shadow-md cursor-pointer disabled:opacity-50"
-            >
-              {submitting ? 'Submitting Details...' : 'Finish Setup'}
-            </button>
-          )}
         </div>
-
       </motion.div>
     </div>
   )

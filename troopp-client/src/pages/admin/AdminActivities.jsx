@@ -4,6 +4,7 @@ import Spinner from '../../components/common/Spinner.jsx'
 
 /**
  * Platform Activities oversight and cancellation panel.
+ * Overhauled to match the premium dark moody theme.
  */
 const AdminActivities = () => {
   const navigate = useNavigate()
@@ -85,97 +86,206 @@ const AdminActivities = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-white">
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+          color: 'var(--text-primary)'
+        }}
+      >
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="p-6 text-white bg-stone-950 min-h-screen flex flex-col gap-5 font-sans">
+    <div 
+      style={{
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        fontFamily: 'var(--font-body)'
+      }}
+    >
       
       {/* Header title */}
-      <div className="flex justify-between items-center border-b border-white/10 pb-4">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Administrative Panel</span>
-          <h2 className="text-xl font-black mt-0.5">Platform Activities Oversight</h2>
+      <div 
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '16px'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Administrative Panel
+          </span>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '4px 0 0 0', color: '#f3f1ea' }}>
+            Platform Activities Oversight
+          </h2>
         </div>
       </div>
 
       {/* Filters row */}
-      <div className="flex gap-4">
+      <div style={{ display: 'flex', gap: '10px' }}>
         <button
           onClick={() => setStatusFilter('all')}
-          className={`h-10 px-4 rounded-xl text-xs font-bold transition-all ${
-            statusFilter === 'all' ? 'bg-primary text-white shadow' : 'bg-white/5 text-stone-400 hover:text-white'
-          }`}
+          style={{
+            height: '38px',
+            padding: '0 16px',
+            borderRadius: '100px',
+            fontSize: '13px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'all 150ms ease',
+            background: statusFilter === 'all' ? 'var(--accent-soft)' : 'var(--surface-raised)',
+            color: statusFilter === 'all' ? 'var(--accent)' : 'var(--text-secondary)',
+            border: statusFilter === 'all' ? '1px solid transparent' : '1px solid var(--border)'
+          }}
         >
           All Trips
         </button>
         <button
           onClick={() => setStatusFilter('active')}
-          className={`h-10 px-4 rounded-xl text-xs font-bold transition-all ${
-            statusFilter === 'active' ? 'bg-emerald-700 text-white shadow' : 'bg-white/5 text-stone-400 hover:text-white'
-          }`}
+          style={{
+            height: '38px',
+            padding: '0 16px',
+            borderRadius: '100px',
+            fontSize: '13px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'all 150ms ease',
+            background: statusFilter === 'active' ? 'var(--moss-soft)' : 'var(--surface-raised)',
+            color: statusFilter === 'active' ? 'var(--moss)' : 'var(--text-secondary)',
+            border: statusFilter === 'active' ? '1px solid transparent' : '1px solid var(--border)'
+          }}
         >
           Active
         </button>
         <button
           onClick={() => setStatusFilter('completed')}
-          className={`h-10 px-4 rounded-xl text-xs font-bold transition-all ${
-            statusFilter === 'completed' ? 'bg-stone-700 text-white shadow' : 'bg-white/5 text-stone-400 hover:text-white'
-          }`}
+          style={{
+            height: '38px',
+            padding: '0 16px',
+            borderRadius: '100px',
+            fontSize: '13px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'all 150ms ease',
+            background: statusFilter === 'completed' ? 'var(--surface)' : 'var(--surface-raised)',
+            color: statusFilter === 'completed' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            border: statusFilter === 'completed' ? '1px solid transparent' : '1px solid var(--border)'
+          }}
         >
           Completed
         </button>
       </div>
 
       {/* Grid details list */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-lg">
+      <div 
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '14px',
+          overflow: 'hidden',
+          boxShadow: 'var(--shadow-card)'
+        }}
+      >
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-stone-300">
-            <thead className="text-[10px] font-bold text-stone-400 uppercase border-b border-white/10 bg-white/5">
+          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <thead 
+              style={{
+                fontSize: '11px',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--text-primary)',
+                background: 'var(--surface-raised)',
+                borderBottom: '1px solid var(--border)'
+              }}
+            >
               <tr>
-                <th className="p-4">Trip Title</th>
-                <th className="p-4">Host / Creator</th>
-                <th className="p-4">City</th>
-                <th className="p-4">Type</th>
-                <th className="p-4">Members</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Actions</th>
+                <th style={{ padding: '16px' }}>Trip Title</th>
+                <th style={{ padding: '16px' }}>Host / Creator</th>
+                <th style={{ padding: '16px' }}>City</th>
+                <th style={{ padding: '16px' }}>Type</th>
+                <th style={{ padding: '16px' }}>Members</th>
+                <th style={{ padding: '16px' }}>Status</th>
+                <th style={{ padding: '16px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody style={{ divideY: '1px solid rgba(255,255,255,0.04)' }}>
               {filteredActivities.map((a) => (
-                <tr key={a.id} className="hover:bg-white/5 transition-colors">
-                  <td className="p-4 font-bold text-white">{a.title}</td>
-                  <td className="p-4">{a.creatorName}</td>
-                  <td className="p-4">{a.city}</td>
-                  <td className="p-4">{a.type}</td>
-                  <td className="p-4 font-bold">
+                <tr 
+                  key={a.id} 
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 150ms' }}
+                  className="hover:bg-white/[0.02]"
+                >
+                  <td style={{ padding: '16px', fontWeight: '700', color: '#f3f1ea' }}>{a.title}</td>
+                  <td style={{ padding: '16px' }}>{a.creatorName}</td>
+                  <td style={{ padding: '16px' }}>{a.city}</td>
+                  <td style={{ padding: '16px' }}>{a.type}</td>
+                  <td style={{ padding: '16px', fontWeight: '700', color: '#f3f1ea' }}>
                     {a.membersCount} / {a.maxMembers}
                   </td>
-                  <td className="p-4">
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                      a.status === 'active' ? 'bg-emerald-950/20 text-emerald-400 border border-emerald-500/20' :
-                      a.status === 'completed' ? 'bg-blue-950/20 text-blue-400 border border-blue-500/20' :
-                      'bg-stone-800 text-stone-400'
-                    }`}>
+                  <td style={{ padding: '16px' }}>
+                    <span 
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        padding: '3px 8px',
+                        borderRadius: '100px',
+                        textTransform: 'uppercase',
+                        background: a.status === 'active' ? 'var(--moss-soft)' : a.status === 'completed' ? 'rgba(59,130,246,0.14)' : 'var(--danger-soft)',
+                        color: a.status === 'active' ? 'var(--moss)' : a.status === 'completed' ? '#3b82f6' : 'var(--danger)'
+                      }}
+                    >
                       {a.status}
                     </span>
                   </td>
-                  <td className="p-4 text-right">
-                    <div className="flex gap-2 justify-end">
+                  <td style={{ padding: '16px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                       <button
                         onClick={() => navigate(`/trip-rooms/${a.id}`)}
-                        className="h-8 px-2.5 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-lg text-[10px] font-bold transition-all shadow-sm"
+                        style={{
+                          height: '32px',
+                          padding: '0 12px',
+                          background: 'var(--surface-raised)',
+                          border: '1px solid var(--border)',
+                          color: '#f3f1ea',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'background 150ms'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface-raised)' }}
                       >
                         Enter Room 💬
                       </button>
                       {a.status === 'active' && (
                         <button
                           onClick={() => setCancelTrip(a)}
-                          className="h-8 px-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold transition-all shadow-sm"
+                          style={{
+                            height: '32px',
+                            padding: '0 12px',
+                            background: 'var(--danger)',
+                            color: 'white',
+                            borderRadius: '8px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            border: 'none',
+                            cursor: 'pointer'
+                          }}
                         >
                           Cancel
                         </button>
@@ -191,12 +301,26 @@ const AdminActivities = () => {
 
       {/* Cancel confirm modal */}
       {cancelTrip && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-white/10 rounded-2xl p-5 w-full max-w-xs shadow-xl flex flex-col gap-4 text-center">
-            <span className="text-3xl text-rose-500 block">🛑</span>
-            <div className="flex flex-col gap-1">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-rose-500">Cancel Activity</h4>
-              <p className="text-[11px] text-stone-400">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '360px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              textAlign: 'center'
+            }}
+          >
+            <span style={{ fontSize: '36px', display: 'block', margin: '0 auto' }}>🛑</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--danger)', margin: 0, fontFamily: 'var(--font-display)' }}>Cancel Activity</h4>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>
                 Are you sure you want to cancel the activity "{cancelTrip.title}"?
               </p>
             </div>
@@ -205,16 +329,50 @@ const AdminActivities = () => {
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               placeholder="Mandatory cancellation reason..."
-              className="w-full bg-stone-950 border border-white/10 rounded-xl p-2 text-xs resize-none outline-none text-white focus:border-rose-500 text-left"
+              style={{
+                background: 'var(--surface-raised)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '10px',
+                color: '#f3f1ea',
+                resize: 'none',
+                outline: 'none',
+                fontSize: '12px',
+                textAlign: 'left'
+              }}
             />
-            <div className="flex gap-2 border-t border-white/10 pt-3">
-              <button onClick={() => setCancelTrip(null)} className="flex-1 h-10 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 transition-colors">
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <button 
+                onClick={() => setCancelTrip(null)} 
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
                 Close
               </button>
               <button
                 disabled={!cancelReason.trim()}
                 onClick={handleCancelSubmit}
-                className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 disabled:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all"
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'var(--danger)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  opacity: !cancelReason.trim() ? 0.4 : 1
+                }}
               >
                 Yes, Cancel
               </button>

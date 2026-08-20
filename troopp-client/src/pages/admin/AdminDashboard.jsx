@@ -4,6 +4,7 @@ import Spinner from '../../components/common/Spinner.jsx'
 
 /**
  * Administrative KPI and Analytics Dashboard.
+ * Overhauled to match the premium dark moody theme.
  */
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true)
@@ -17,7 +18,6 @@ const AdminDashboard = () => {
       setDashboardData({
         kpis: {
           totalUsers: 1420,
-          verifiedPct: 68.4,
           activeTrips: 45,
           pendingReports: 3,
           newSignupsToday: 18,
@@ -57,7 +57,16 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-white">
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+          color: 'var(--text-primary)'
+        }}
+      >
         <Spinner size="lg" />
       </div>
     )
@@ -66,20 +75,60 @@ const AdminDashboard = () => {
   const { kpis, signupHistory, trustScoreHistory, cityBreakdown } = dashboardData
 
   return (
-    <div className="p-6 text-white bg-stone-950 min-h-screen flex flex-col gap-6 font-sans">
-      
+    <div 
+      style={{
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+        fontFamily: 'var(--font-body)'
+      }}
+    >
       {/* Top Header */}
-      <div className="flex justify-between items-center border-b border-white/10 pb-4">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Administrative Panel</span>
-          <h2 className="text-xl font-black mt-0.5">Control Center Overview</h2>
+      <div 
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '16px'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Administrative Panel
+          </span>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '4px 0 0 0', color: '#f3f1ea' }}>
+            Control Center Overview
+          </h2>
         </div>
         <button
           onClick={() => {
             setLoading(true)
             fetchDashboardData()
           }}
-          className="h-10 px-4 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-xs font-bold transition-all shadow"
+          style={{
+            height: '40px',
+            padding: '0 16px',
+            background: 'var(--surface-raised)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            transition: 'background 150ms, border-color 150ms'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--surface)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'var(--surface-raised)'
+            e.currentTarget.style.borderColor = 'var(--border)'
+          }}
         >
           🔄 Refresh
         </button>
@@ -89,45 +138,94 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         
         {/* KPI: Total Users */}
-        <div className="glass-card bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-md">
-          <span className="text-[8px] font-bold text-stone-400 uppercase tracking-wider">Total Users</span>
-          <span className="text-2xl font-black mt-2">{kpis.totalUsers}</span>
-          <span className="text-[9px] text-emerald-400 font-bold mt-1">↑ 12% Month</span>
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Users</span>
+          <span style={{ fontSize: '26px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '8px 0 4px', color: '#f3f1ea' }}>{kpis.totalUsers}</span>
+          <span style={{ fontSize: '11px', color: 'var(--moss)', fontWeight: '600' }}>↑ 12% Month</span>
         </div>
 
-        {/* KPI: ID Verified % */}
-        <div className="glass-card bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-md">
-          <span className="text-[8px] font-bold text-stone-400 uppercase tracking-wider">KYC Verified</span>
-          <span className="text-2xl font-black mt-2">{kpis.verifiedPct}%</span>
-          <span className="text-[9px] text-emerald-400 font-bold mt-1">↑ 4.2% Week</span>
-        </div>
 
         {/* KPI: Active Trips */}
-        <div className="glass-card bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-md">
-          <span className="text-[8px] font-bold text-stone-400 uppercase tracking-wider">Active Trips</span>
-          <span className="text-2xl font-black mt-2">{kpis.activeTrips}</span>
-          <span className="text-[9px] text-emerald-400 font-bold mt-1">↑ 8% Today</span>
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Trips</span>
+          <span style={{ fontSize: '26px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '8px 0 4px', color: '#f3f1ea' }}>{kpis.activeTrips}</span>
+          <span style={{ fontSize: '11px', color: 'var(--moss)', fontWeight: '600' }}>↑ 8% Today</span>
         </div>
 
         {/* KPI: Pending Reports */}
-        <div className="glass-card bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-md">
-          <span className="text-[8px] font-bold text-stone-400 uppercase tracking-wider">Pending Reports</span>
-          <span className="text-2xl font-black mt-2 text-rose-500">{kpis.pendingReports}</span>
-          <span className="text-[9px] text-rose-400 font-bold mt-1">🚨 Needs review</span>
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Reports</span>
+          <span style={{ fontSize: '26px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '8px 0 4px', color: 'var(--danger)' }}>{kpis.pendingReports}</span>
+          <span style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: '600' }}>🚨 Needs review</span>
         </div>
 
         {/* KPI: New Signups Today */}
-        <div className="glass-card bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-md">
-          <span className="text-[8px] font-bold text-stone-400 uppercase tracking-wider">Signups Today</span>
-          <span className="text-2xl font-black mt-2">{kpis.newSignupsToday}</span>
-          <span className="text-[9px] text-emerald-400 font-bold mt-1">↑ 22% Peak</span>
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Signups Today</span>
+          <span style={{ fontSize: '26px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '8px 0 4px', color: '#f3f1ea' }}>{kpis.newSignupsToday}</span>
+          <span style={{ fontSize: '11px', color: 'var(--moss)', fontWeight: '600' }}>↑ 22% Peak</span>
         </div>
 
         {/* KPI: Average Trust Score */}
-        <div className="glass-card bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between shadow-md">
-          <span className="text-[8px] font-bold text-stone-400 uppercase tracking-wider">Avg Trust Score</span>
-          <span className="text-2xl font-black mt-2">{kpis.avgTrustScore}</span>
-          <span className="text-[9px] text-emerald-400 font-bold mt-1">✓ Stable score</span>
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Trust Score</span>
+          <span style={{ fontSize: '26px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '8px 0 4px', color: '#f3f1ea' }}>{kpis.avgTrustScore}</span>
+          <span style={{ fontSize: '11px', color: 'var(--moss)', fontWeight: '600' }}>✓ Stable score</span>
         </div>
 
       </div>
@@ -136,34 +234,50 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         
         {/* Signups Chart */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-lg">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '20px',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
             User Registration Trends (Last 30 Days)
           </h4>
-          <div className="h-64 w-full">
+          <div style={{ height: '256px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={signupHistory}>
-                <XAxis dataKey="date" stroke="#A8A29E" fontSize={10} tickLine={false} />
-                <YAxis stroke="#A8A29E" fontSize={10} tickLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: '#1C1917', border: '1px solid #444', color: '#fff' }} />
-                <Bar dataKey="count" fill="#F97316" radius={[4, 4, 0, 0]} />
+                <XAxis dataKey="date" stroke="#9ba6ad" fontSize={10} tickLine={false} />
+                <YAxis stroke="#9ba6ad" fontSize={10} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }} />
+                <Bar dataKey="count" fill="var(--accent)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Trust Score over time Chart */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-lg">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '20px',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
             Average Platform Trust Score Over Time
           </h4>
-          <div className="h-64 w-full">
+          <div style={{ height: '256px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trustScoreHistory}>
-                <XAxis dataKey="date" stroke="#A8A29E" fontSize={10} tickLine={false} />
-                <YAxis stroke="#A8A29E" fontSize={10} tickLine={false} domain={[50, 100]} />
-                <Tooltip contentStyle={{ backgroundColor: '#1C1917', border: '1px solid #444', color: '#fff' }} />
-                <Line type="monotone" dataKey="avgScore" stroke="#10B981" strokeWidth={3} dot={{ r: 4 }} />
+                <XAxis dataKey="date" stroke="#9ba6ad" fontSize={10} tickLine={false} />
+                <YAxis stroke="#9ba6ad" fontSize={10} tickLine={false} domain={[50, 100]} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }} />
+                <Line type="monotone" dataKey="avgScore" stroke="var(--moss)" strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -172,29 +286,41 @@ const AdminDashboard = () => {
       </div>
 
       {/* City Breakdown Table */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+      <div 
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '14px',
+          padding: '20px',
+          boxShadow: 'var(--shadow-card)'
+        }}
+      >
+        <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
           City breakdown breakdown metrics
         </h4>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-stone-300">
-            <thead className="text-[10px] font-bold text-stone-400 uppercase border-b border-white/10">
-              <tr>
-                <th className="pb-3">City Name</th>
-                <th className="pb-3">Total Users</th>
-                <th className="pb-3">Active Trips</th>
-                <th className="pb-3">Completed Trips</th>
-                <th className="pb-3">Reported Users Ratio</th>
+          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-primary)', fontWeight: '700' }}>
+                <th style={{ paddingBottom: '12px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>City Name</th>
+                <th style={{ paddingBottom: '12px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Users</th>
+                <th style={{ paddingBottom: '12px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Trips</th>
+                <th style={{ paddingBottom: '12px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Completed Trips</th>
+                <th style={{ paddingBottom: '12px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reported Users Ratio</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody>
               {cityBreakdown.map((row, idx) => (
-                <tr key={idx} className="hover:bg-white/5 transition-colors">
-                  <td className="py-3.5 font-bold text-white">{row.city}</td>
-                  <td className="py-3.5">{row.users}</td>
-                  <td className="py-3.5">{row.activeTrips}</td>
-                  <td className="py-3.5">{row.completedTrips}</td>
-                  <td className="py-3.5 text-rose-400 font-bold">{row.reportedUsersPct}%</td>
+                <tr 
+                  key={idx} 
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 150ms' }}
+                  className="hover:bg-white/[0.02]"
+                >
+                  <td style={{ padding: '14px 0', fontWeight: '700', color: '#f3f1ea' }}>{row.city}</td>
+                  <td style={{ padding: '14px 0' }}>{row.users}</td>
+                  <td style={{ padding: '14px 0' }}>{row.activeTrips}</td>
+                  <td style={{ padding: '14px 0' }}>{row.completedTrips}</td>
+                  <td style={{ padding: '14px 0', color: 'var(--danger)', fontWeight: '700' }}>{row.reportedUsersPct}%</td>
                 </tr>
               ))}
             </tbody>

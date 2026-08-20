@@ -18,15 +18,16 @@ const ChatTab = ({ messages = [], typingUsers = [], onSendMessage, currentUserId
     const msg = messages[index]
     if (!msg) return 60
     
+    const textLength = (msg.message_text || '').length
     if (msg.message_type === 'announcement') {
-      return 120 + Math.ceil(msg.message_text.length / 40) * 18
+      return 120 + Math.ceil(textLength / 40) * 18
     }
     if (msg.message_type === 'system') {
       return 50
     }
     
     // Default text bubble
-    return 70 + Math.ceil(msg.message_text.length / 50) * 20
+    return 70 + Math.ceil(textLength / 50) * 20
   }
 
   // Scroll to bottom when new messages arrive

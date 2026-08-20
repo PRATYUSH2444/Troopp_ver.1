@@ -88,14 +88,14 @@ router.get(
 
       // Generate Access token & Refresh token cookie
       const accessToken = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, name: profileName, trust_score: user.trust_score, is_id_verified: user.is_id_verified },
-        process.env.JWT_ACCESS_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        { id: user.id, email: user.email, role: user.role, name: profileName, trust_score: user.trust_score },
+        process.env.JWT_ACCESS_SECRET,
         { expiresIn: process.env.JWT_ACCESS_EXPIRY || '15m' }
       )
 
       const refreshToken = jwt.sign(
         { id: user.id },
-        process.env.JWT_REFRESH_SECRET || 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+        process.env.JWT_REFRESH_SECRET,
         { expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d' }
       )
 

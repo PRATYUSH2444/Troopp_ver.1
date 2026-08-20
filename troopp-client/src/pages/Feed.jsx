@@ -12,65 +12,23 @@ import { haptics } from '../utils/haptics.js'
 import RadialFAB from '../components/ui/RadialFAB.jsx'
 import RefreshIndicator from '../components/ui/RefreshIndicator.jsx'
 
-const CATEGORIES = ['All', 'Trekking', 'Camping', 'Photography', 'Road Trips', 'Cycling', 'Heritage', 'Day Trips']
+const CATEGORIES = [
+  { label: 'All', value: 'all' },
+  { label: 'Trekking', value: 'trek', emoji: '🥾' },
+  { label: 'Camping', value: 'camping', emoji: '⛺' },
+  { label: 'Photography', value: 'photography_walk', emoji: '📷' },
+  { label: 'Road Trips', value: 'road_trip', emoji: '🚗' },
+  { label: 'Cycling', value: 'cycling', emoji: '🚴' },
+  { label: 'Heritage', value: 'heritage_walk', emoji: '🏛️' },
+  { label: 'Day Trips', value: 'day_trip', emoji: '☀️' }
+]
 
-const CATEGORY_ICONS = {
-  All: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-    </svg>
-  ),
-  Trekking: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M17 18l-3.5-7 L10 18H17z M9 18l3-6 2.5 5H9z" />
-      <path d="M12 4a2 2 0 100-4 2 2 0 000 4z" />
-    </svg>
-  ),
-  Camping: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 20h16L12 6 4 20z" />
-      <path d="M12 12v8" />
-    </svg>
-  ),
-  Photography: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-      <circle cx="12" cy="13" r="4" />
-    </svg>
-  ),
-  'Road Trips': (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 001 12.5V16c0 .6.4 1 1 1h2m10 0h2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="7" cy="17" r="2" />
-      <circle cx="17" cy="17" r="2" />
-    </svg>
-  ),
-  Cycling: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="5.5" cy="17.5" r="2.5" />
-      <circle cx="18.5" cy="17.5" r="2.5" />
-      <path d="M15 6a1 1 0 100-2 1 1 0 000 2zM12 17.5l-3-6 4-2.5 3 4H20M12 11.5L9 8.5" />
-    </svg>
-  ),
-  Heritage: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 21h18M5 21V10M19 21V10M12 3L3 10h18L12 3zM9 14h2v3H9zM13 14h2v3h-2z" />
-    </svg>
-  ),
-  'Day Trips': (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M16.2 7.8l-2 5.4-5.4 2 2-5.4 5.4-2z" />
-    </svg>
-  )
-}
+const DIFFICULTIES = ['easy', 'moderate', 'hard', 'expert']
 
 const Feed = () => {
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const [newTripsList, setNewTripsList] = useState([])
   const [showPill, setShowPill] = useState(false)
@@ -78,18 +36,45 @@ const Feed = () => {
 
   const navigate = useNavigate()
 
-  // Filter States
-  const [selectedCategory, setSelectedCategory] = useState('All')
+  // Filter & Facet States
+  const [selectedCategories, setSelectedCategories] = useState([]) // Array of types
+  const [selectedDifficulties, setSelectedDifficulties] = useState([]) // Array of difficulties
   const [cities, setCities] = useState([])
   const [selectedCityId, setSelectedCityId] = useState('')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [minTrust, setMinTrust] = useState(0)
   const [maxBudget, setMaxBudget] = useState(15000)
+  
+  // Date states
+  const [datePreset, setDatePreset] = useState('') // '', 'weekend', 'next7'
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+
+  // Search input state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+
+  // Sorting & Pagination
+  const [sortBy, setSortBy] = useState('newest')
+  const [nextCursor, setNextCursor] = useState(null)
+  const [hasMore, setHasMore] = useState(true)
+
+  // Facet count indicators
+  const [facets, setFacets] = useState({ categories: [], difficulties: [], cities: [] })
 
   const { isAuthenticated } = useAuth()
   const socketRef = useRef(null)
+  const [socketConnected, setSocketConnected] = useState(false)
 
-  // 1. Initialize authenticated real-time WebSockets to update slots and occupancy limits dynamically
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim())
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // 1. Initialize real-time WebSockets with polling fallback
   useEffect(() => {
     if (!isAuthenticated) return
 
@@ -100,6 +85,14 @@ const Feed = () => {
       auth: { token }
     })
     socketRef.current = socket
+
+    socket.on('connect', () => {
+      setSocketConnected(true)
+    })
+
+    socket.on('disconnect', () => {
+      setSocketConnected(false)
+    })
 
     socket.on('activity_updated', (updatedActivity) => {
       setActivities((prev) =>
@@ -116,8 +109,40 @@ const Feed = () => {
     }
   }, [isAuthenticated])
 
+  // 2. Polling Fallback if socket layer goes offline
   useEffect(() => {
-    // Load Cities List
+    if (socketConnected) return
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const activeIds = activities.map(a => a.id)
+        if (activeIds.length === 0) return
+        
+        let query = `?limit=100`
+        if (selectedCityId) query += `&cityId=${selectedCityId}`
+
+        const res = await apiRequest(`/activities${query}`)
+        if (res.ok) {
+          const json = await res.json()
+          const freshList = json.data?.activities || json.data || []
+          
+          setActivities(prev =>
+            prev.map(act => {
+              const fresh = freshList.find(f => f.id === act.id)
+              return fresh ? { ...act, current_members: fresh.current_members, status: fresh.status } : act
+            })
+          )
+        }
+      } catch (err) {
+        console.error('Polling updates failed:', err)
+      }
+    }, 15000)
+
+    return () => clearInterval(pollInterval)
+  }, [socketConnected, activities, selectedCityId])
+
+  // 3. Load Cities List
+  useEffect(() => {
     const loadCities = async () => {
       try {
         const res = await apiRequest('/cities')
@@ -132,118 +157,170 @@ const Feed = () => {
     loadCities()
   }, [])
 
-  const fetchActivities = async () => {
-    setLoading(true)
-    try {
-      let query = '?'
-      if (selectedCityId) query += `city_id=${selectedCityId}&`
-      if (selectedCategory !== 'All') {
-        const categoryMap = {
-          'Trekking': 'trek',
-          'Camping': 'camping',
-          'Photography': 'photography_walk',
-          'Road Trips': 'road_trip',
-          'Cycling': 'cycling',
-          'Heritage': 'heritage_walk',
-          'Day Trips': 'day_trip'
-        }
-        const mappedType = categoryMap[selectedCategory] || selectedCategory.toLowerCase()
-        query += `type=${mappedType}&`
-      }
-      if (minTrust > 0) query += `min_trust=${minTrust}&`
+  // 4. Core Query Fetching pipeline
+  const fetchActivities = async (cursorVal = null, append = false) => {
+    if (cursorVal) {
+      setIsFetchingNextPage(true)
+    } else {
+      setLoading(true)
+    }
 
-      const res = await apiRequest(`/activities${query}`)
+    try {
+      let queryParams = []
+      
+      if (selectedCityId) queryParams.push(`cityId=${selectedCityId}`)
+      
+      if (selectedCategories.length > 0) {
+        queryParams.push(`type=${selectedCategories.join(',')}`)
+      }
+      
+      if (selectedDifficulties.length > 0) {
+        queryParams.push(`difficulty=${selectedDifficulties.join(',')}`)
+      }
+
+      if (minTrust > 0) queryParams.push(`min_trust=${minTrust}`)
+      if (maxBudget < 15000) queryParams.push(`maxBudget=${maxBudget}`)
+      
+      if (startDate) queryParams.push(`startDate=${startDate}`)
+      if (endDate) queryParams.push(`endDate=${endDate}`)
+      
+      if (debouncedSearchQuery) queryParams.push(`q=${encodeURIComponent(debouncedSearchQuery)}`)
+      
+      if (sortBy) queryParams.push(`sort=${sortBy}`)
+      if (cursorVal) queryParams.push(`cursor=${cursorVal}`)
+
+      const queryStr = queryParams.length > 0 ? `?${queryParams.join('&')}` : ''
+      const res = await apiRequest(`/activities${queryStr}`)
+      
       if (res.ok) {
         const json = await res.json()
-        const rawList = json.data?.activities || json.data || []
-        const filtered = rawList.filter((a) => parseFloat(a.cost_per_person || 0) <= maxBudget)
-        setActivities(filtered)
+        const fetchedData = json.data || {}
+        const rawList = fetchedData.activities || []
+        
+        if (append) {
+          setActivities((prev) => [...prev, ...rawList])
+        } else {
+          setActivities(rawList)
+        }
+
+        setNextCursor(fetchedData.nextCursor)
+        setHasMore(!!fetchedData.nextCursor)
+
+        if (fetchedData.facets) {
+          setFacets(fetchedData.facets)
+        }
       } else {
-        throw new Error('Could not retrieve feed activities.')
+        throw new Error('Could not retrieve discovery activities.')
       }
     } catch (err) {
       toast.error(err.message || 'Error fetching feed.')
     } finally {
       setLoading(false)
+      setIsFetchingNextPage(false)
     }
   }
 
+  // Reload lists on filter/search parameters change
   useEffect(() => {
-    fetchActivities()
-  }, [selectedCityId, selectedCategory, minTrust, maxBudget])
+    fetchActivities(null, false)
+  }, [selectedCityId, selectedCategories, selectedDifficulties, minTrust, maxBudget, startDate, endDate, debouncedSearchQuery, sortBy])
 
-  useEffect(() => {
-    if (loading || activities.length === 0) return
-
-    const checkNewActivities = async () => {
-      try {
-        let query = '?'
-        if (selectedCityId) query += `city_id=${selectedCityId}&`
-        if (selectedCategory !== 'All') {
-          const categoryMap = {
-            'Trekking': 'trek',
-            'Camping': 'camping',
-            'Photography': 'photography_walk',
-            'Road Trips': 'road_trip',
-            'Cycling': 'cycling',
-            'Heritage': 'heritage_walk',
-            'Day Trips': 'day_trip'
-          }
-          const mappedType = categoryMap[selectedCategory] || selectedCategory.toLowerCase()
-          query += `type=${mappedType}&`
-        }
-        if (minTrust > 0) query += `min_trust=${minTrust}&`
-
-        const res = await apiRequest(`/activities${query}`)
-        if (res.ok) {
-          const json = await res.json()
-          const rawList = json.data?.activities || json.data || []
-          const filtered = rawList.filter((a) => parseFloat(a.cost_per_person || 0) <= maxBudget)
-          
-          const currentIds = new Set(activities.map(a => a.id))
-          const newItems = filtered.filter(a => !currentIds.has(a.id))
-          
-          if (newItems.length > 0) {
-            setNewTripsList(newItems)
-            setShowPill(true)
-            setTimeout(() => {
-              setShowPill(false)
-            }, 4000)
-          }
-        }
-      } catch (err) {
-        console.error('Auto-refresh check failed:', err)
+  // 5. Scroll Prefetching at 70% depth
+  const observer = useRef()
+  const lastActivityRef = (node) => {
+    if (loading || isFetchingNextPage) return
+    if (observer.current) observer.current.disconnect()
+    
+    observer.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore && nextCursor) {
+        haptics.lightTap()
+        fetchActivities(nextCursor, true)
       }
+    }, {
+      rootMargin: '250px' // triggers load before reaching the bottom
+    })
+    
+    if (node) observer.current.observe(node)
+  }
+
+  // Handle category chip selects
+  const toggleCategory = (categoryVal) => {
+    haptics.lightTap()
+    if (categoryVal === 'all') {
+      setSelectedCategories([])
+      return
     }
 
-    const interval = setInterval(checkNewActivities, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [activities, selectedCityId, selectedCategory, minTrust, maxBudget, loading])
+    setSelectedCategories((prev) => {
+      if (prev.includes(categoryVal)) {
+        return prev.filter((c) => c !== categoryVal)
+      } else {
+        return [...prev, categoryVal]
+      }
+    })
+  }
 
-  const handlePillClick = () => {
-    haptics.tabSwitch()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-    setActivities((prev) => [...newTripsList, ...prev])
-    setHighlightedIds(newTripsList.map(a => a.id))
-    setNewTripsList([])
-    setShowPill(false)
-    setTimeout(() => {
-      setHighlightedIds([])
-    }, 2500)
+  // Handle difficulty checkboxes
+  const toggleDifficulty = (level) => {
+    haptics.lightTap()
+    setSelectedDifficulties((prev) => {
+      if (prev.includes(level)) {
+        return prev.filter((d) => d !== level)
+      } else {
+        return [...prev, level]
+      }
+    })
+  }
+
+  // Handle dynamic date range smart presets
+  const applyDatePreset = (preset) => {
+    haptics.lightTap()
+    setDatePreset(preset)
+    if (preset === 'weekend') {
+      const today = new Date()
+      const sat = new Date(today)
+      sat.setDate(today.getDate() + (6 - today.getDay()))
+      sat.setHours(0,0,0,0)
+      const sun = new Date(sat)
+      sun.setDate(sat.getDate() + 1)
+      sun.setHours(23,59,59,999)
+      setStartDate(sat.toISOString())
+      setEndDate(sun.toISOString())
+    } else if (preset === 'next7') {
+      const today = new Date()
+      const next7 = new Date(today)
+      next7.setDate(today.getDate() + 7)
+      next7.setHours(23,59,59,999)
+      setStartDate(today.toISOString())
+      setEndDate(next7.toISOString())
+    } else {
+      setStartDate('')
+      setEndDate('')
+    }
+  }
+
+  // Get facet counts
+  const getCategoryCount = (val) => {
+    if (val === 'all') return activities.length
+    const match = facets.categories?.find(c => c.type === val)
+    return match ? match.count : 0
+  }
+
+  const getDifficultyCount = (val) => {
+    const match = facets.difficulties?.find(d => d.difficulty === val)
+    return match ? match.count : 0
   }
 
   return (
-    <PullToRefresh onRefresh={fetchActivities}>
+    <PullToRefresh onRefresh={() => fetchActivities(null, false)}>
       <div className="min-h-screen pb-20 relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
-        {/* Ambient Decorative Blurs */}
+        {/* Ambient Blurs */}
         <div className="absolute top-1/4 left-[-10%] w-[500px] h-[500px] bg-orange-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
         <div className="absolute top-2/3 right-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[140px] pointer-events-none z-0" />
 
-        <RefreshIndicator count={newTripsList.length} onRefresh={handlePillClick} />
-
         <div className="w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex flex-col gap-6 select-none relative z-10">
           
-          {/* HERO BANNER SECTION */}
+          {/* HERO BANNER */}
           <div className="hero-banner">
             <div className="hero-content">
               <span className="hero-eyebrow">
@@ -253,9 +330,7 @@ const Feed = () => {
                 </svg>
                 Weekend Adventures
               </span>
-              <h1 className="hero-h1">
-                Where to next?
-              </h1>
+              <h1 className="hero-h1">Where to next?</h1>
               <p className="hero-p">
                 Your friends are busy. Your weekend isn't. Meet verified co-travelers and hit the trails.
               </p>
@@ -265,18 +340,42 @@ const Feed = () => {
                   navigate('/activities/create')
                 }}
                 className="hero-cta"
-                style={{
-                  background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)'
-                }}
+                style={{ background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)' }}
               >
                 Host a Trip +
               </button>
             </div>
           </div>
 
-          {/* FILTER/CONTROL BAR */}
+          {/* DYNAMIC SEARCH BAR */}
+          <div style={{ position: 'relative', width: '100%' }}>
+            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#6b757c', display: 'flex', alignItems: 'center' }}>
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search by keyword, destination or activity title..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                height: '48px',
+                padding: '0 20px 0 46px',
+                background: '#1a2129',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '12px',
+                fontSize: '14px',
+                color: '#f3f1ea',
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          {/* CONTROL BAR */}
           <div className="filter-bar">
-            {/* City select pill */}
+            {/* City selector */}
             <div className="city-pill-select">
               <svg className="w-4 h-4 text-primary shrink-0 mr-1 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -297,12 +396,33 @@ const Feed = () => {
                   </option>
                 ))}
               </select>
-              <span style={{ fontSize: '9px', color: '#6b757c', marginLeft: '2px', pointerEvents: 'none' }}>
-                ▼
-              </span>
+              <span style={{ fontSize: '9px', color: '#6b757c', marginLeft: '2px', pointerEvents: 'none' }}>▼</span>
             </div>
 
-            {/* Filters toggle button */}
+            {/* Sorting pill */}
+            <div className="city-pill-select" style={{ minWidth: '150px' }}>
+              <svg className="w-4 h-4 text-primary shrink-0 mr-1 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+              </svg>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  haptics.lightTap()
+                  setSortBy(e.target.value)
+                }}
+                className="city-select"
+              >
+                <option value="newest">Sort: Chronological</option>
+                <option value="personalized">Sort: Personalized</option>
+                <option value="price_asc">Sort: Price (Low to High)</option>
+                <option value="price_desc">Sort: Price (High to Low)</option>
+                <option value="popularity">Sort: Popularity</option>
+                <option value="trust">Sort: Host Trust Rating</option>
+              </select>
+              <span style={{ fontSize: '9px', color: '#6b757c', marginLeft: '2px', pointerEvents: 'none' }}>▼</span>
+            </div>
+
+            {/* Filter Toggle */}
             <button
               onClick={() => {
                 haptics.lightTap()
@@ -313,28 +433,13 @@ const Feed = () => {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
               </svg>
-              <span>Filters</span>
+              <span>More Filters</span>
             </button>
 
-            {/* Spacer */}
             <div style={{ flex: 1 }} />
-
-            {/* New Activity button */}
-            <button
-              onClick={() => {
-                haptics.lightTap()
-                navigate('/activities/create')
-              }}
-              className="btn-host-trip"
-              style={{
-                background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)'
-              }}
-            >
-              Host a Trip +
-            </button>
           </div>
 
-          {/* Sliding Filters Panel */}
+          {/* DYNAMIC FILTER DRAWER */}
           <AnimatePresence>
             {isFilterOpen && (
               <motion.div
@@ -347,21 +452,87 @@ const Feed = () => {
                   border: '1px solid var(--border)',
                   borderRadius: '14px',
                   padding: '20px',
-                  marginBottom: '20px',
+                  marginBottom: '10px',
                   boxShadow: 'var(--shadow-card)',
                   overflow: 'hidden'
                 }}
               >
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px' }}>
                   
-                  {/* Trust score slide */}
+                  {/* Difficulty Filters */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
+                      Difficulty Level
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {DIFFICULTIES.map((diff) => {
+                        const active = selectedDifficulties.includes(diff)
+                        const count = getDifficultyCount(diff)
+                        return (
+                          <label key={diff} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13.5px', color: '#9ba6ad' }}>
+                            <input
+                              type="checkbox"
+                              checked={active}
+                              onChange={() => toggleDifficulty(diff)}
+                              style={{ accentColor: '#ff6a2c' }}
+                            />
+                            <span style={{ textTransform: 'capitalize' }}>{diff}</span>
+                            <span style={{ fontSize: '11px', color: '#6b757c' }}>({count})</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Smart Date Presets */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
+                      Date Ranges
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => applyDatePreset(datePreset === 'weekend' ? '' : 'weekend')}
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          border: datePreset === 'weekend' ? '1px solid #ff6a2c' : '1px solid rgba(255,255,255,0.08)',
+                          background: datePreset === 'weekend' ? 'rgba(255,106,44,0.12)' : '#1a2129',
+                          color: datePreset === 'weekend' ? '#ff6a2c' : '#9ba6ad',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        📅 This Weekend
+                      </button>
+                      <button
+                        onClick={() => applyDatePreset(datePreset === 'next7' ? '' : 'next7')}
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          border: datePreset === 'next7' ? '1px solid #ff6a2c' : '1px solid rgba(255,255,255,0.08)',
+                          background: datePreset === 'next7' ? 'rgba(255,106,44,0.12)' : '#1a2129',
+                          color: datePreset === 'next7' ? '#ff6a2c' : '#9ba6ad',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🚀 Next 7 Days
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Trust Score Sliders */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
-                        Min Host Trust Score
+                      <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
+                        Min Host Trust
                       </span>
-                      <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
-                        {minTrust} pts
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#2dd4bf', fontFamily: 'var(--font-mono)' }}>
+                        {minTrust}%
                       </span>
                     </div>
                     <input
@@ -371,17 +542,17 @@ const Feed = () => {
                       step="10"
                       value={minTrust}
                       onChange={(e) => setMinTrust(parseInt(e.target.value))}
-                      style={{ width: '100%', height: '4px', background: 'var(--surface-raised)', borderRadius: '2px', cursor: 'pointer', accentColor: 'var(--accent)' }}
+                      style={{ width: '100%', height: '4px', background: 'var(--surface-raised)', borderRadius: '2px', cursor: 'pointer', accentColor: '#2dd4bf' }}
                     />
                   </div>
 
-                  {/* Budget slide */}
+                  {/* Price Sliders */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
-                        Max Cost Estimate
+                      <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
+                        Max Budget
                       </span>
-                      <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#ff6a2c', fontFamily: 'var(--font-mono)' }}>
                         ₹{maxBudget}
                       </span>
                     </div>
@@ -392,7 +563,7 @@ const Feed = () => {
                       step="500"
                       value={maxBudget}
                       onChange={(e) => setMaxBudget(parseInt(e.target.value))}
-                      style={{ width: '100%', height: '4px', background: 'var(--surface-raised)', borderRadius: '2px', cursor: 'pointer', accentColor: 'var(--accent)' }}
+                      style={{ width: '100%', height: '4px', background: 'var(--surface-raised)', borderRadius: '2px', cursor: 'pointer', accentColor: '#ff6a2c' }}
                     />
                   </div>
 
@@ -401,28 +572,25 @@ const Feed = () => {
             )}
           </AnimatePresence>
 
-          {/* Premium Category Tags Horizontal Scroll list */}
-          <div className="relative w-full overflow-hidden select-none" style={{ marginBottom: '24px' }}>
-            <div 
-              className="flex gap-2.5 overflow-x-auto scrollbar-none py-1" 
-              style={{ scrollbarWidth: 'none' }}
-            >
+          {/* MULTI-SELECT CATEGORY CHIPS */}
+          <div className="relative w-full overflow-hidden select-none" style={{ marginBottom: '14px' }}>
+            <div className="flex gap-2.5 overflow-x-auto scrollbar-none py-1" style={{ scrollbarWidth: 'none' }}>
               {CATEGORIES.map((cat) => {
-                const active = selectedCategory === cat
+                const isAll = cat.value === 'all'
+                const active = isAll ? selectedCategories.length === 0 : selectedCategories.includes(cat.value)
+                const count = getCategoryCount(cat.value)
+                
                 return (
                   <button
-                    key={cat}
-                    onClick={() => {
-                      haptics.lightTap()
-                      setSelectedCategory(cat)
-                    }}
+                    key={cat.value}
+                    onClick={() => toggleCategory(cat.value)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '7px',
                       padding: '9px 16px',
                       borderRadius: '100px',
-                      fontSize: '13.5px',
+                      fontSize: '13px',
                       fontWeight: active ? '600' : '500',
                       border: active ? '1px solid transparent' : '1px solid rgba(255,255,255,0.08)',
                       color: active ? '#ff6a2c' : '#9ba6ad',
@@ -432,46 +600,241 @@ const Feed = () => {
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    <span style={{ display: 'flex', alignItems: 'center' }}>
-                      {CATEGORY_ICONS[cat] || CATEGORY_ICONS.All}
-                    </span>
-                    {cat}
+                    <span>{cat.emoji || '🌐'}</span>
+                    <span>{cat.label}</span>
+                    {count > 0 && <span style={{ fontSize: '10px', opacity: 0.6 }}>({count})</span>}
                   </button>
                 )
               })}
             </div>
           </div>
 
-          {/* Activities Listing Feed */}
+          {/* ACTIVE FILTER CHIPS & COUNT */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px', color: '#9ba6ad', fontWeight: '500' }}>
+                  {loading ? 'Finding trips...' : `${activities.length} ${activities.length === 1 ? 'trip' : 'trips'} matching filters`}
+                </span>
+                {loading && (
+                  <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#ff6a2c', animation: 'pulse 1s infinite' }} />
+                )}
+              </div>
+              {selectedCategories.length > 0 || selectedDifficulties.length > 0 || selectedCityId || maxBudget < 15000 || startDate || endDate ? (
+                <button
+                  onClick={() => {
+                    haptics.lightTap()
+                    setSelectedCategories([])
+                    setSelectedDifficulties([])
+                    setSelectedCityId('')
+                    setMinTrust(0)
+                    setMaxBudget(15000)
+                    setSearchQuery('')
+                    setStartDate('')
+                    setEndDate('')
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ff6a2c',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  Clear all
+                </button>
+              ) : null}
+            </div>
+
+            {/* CHIPS LIST */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {selectedCategories.map(catVal => {
+                const catObj = CATEGORIES.find(c => c.value === catVal)
+                if (!catObj) return null
+                return (
+                  <div
+                    key={`chip-cat-${catVal}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: '#1a2129',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      padding: '5px 12px',
+                      borderRadius: '100px',
+                      fontSize: '12.5px',
+                      color: '#f3f1ea'
+                    }}
+                  >
+                    <span>{catObj.emoji} {catObj.label}</span>
+                    <button
+                      onClick={() => {
+                        haptics.lightTap()
+                        setSelectedCategories(prev => prev.filter(c => c !== catVal))
+                      }}
+                      style={{ background: 'transparent', border: 'none', color: '#6b757c', cursor: 'pointer', padding: '0 2px', fontSize: '11px', display: 'flex', alignItems: 'center' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )
+              })}
+
+              {selectedDifficulties.map(diff => (
+                <div
+                  key={`chip-diff-${diff}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#1a2129',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    padding: '5px 12px',
+                    borderRadius: '100px',
+                    fontSize: '12.5px',
+                    color: '#f3f1ea',
+                    textTransform: 'capitalize'
+                  }}
+                >
+                  <span>⚡ {diff}</span>
+                  <button
+                    onClick={() => {
+                      haptics.lightTap()
+                      setSelectedDifficulties(prev => prev.filter(d => d !== diff))
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: '#6b757c', cursor: 'pointer', padding: '0 2px', fontSize: '11px', display: 'flex', alignItems: 'center' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+
+              {selectedCityId && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#1a2129',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    padding: '5px 12px',
+                    borderRadius: '100px',
+                    fontSize: '12.5px',
+                    color: '#f3f1ea'
+                  }}
+                >
+                  <span>📍 {cities.find(c => c.id === selectedCityId)?.city_name || 'Selected City'}</span>
+                  <button
+                    onClick={() => {
+                      haptics.lightTap()
+                      setSelectedCityId('')
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: '#6b757c', cursor: 'pointer', padding: '0 2px', fontSize: '11px', display: 'flex', alignItems: 'center' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {maxBudget < 15000 && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#1a2129',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    padding: '5px 12px',
+                    borderRadius: '100px',
+                    fontSize: '12.5px',
+                    color: '#f3f1ea'
+                  }}
+                >
+                  <span>💰 Under ₹{maxBudget}</span>
+                  <button
+                    onClick={() => {
+                      haptics.lightTap()
+                      setMaxBudget(15000)
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: '#6b757c', cursor: 'pointer', padding: '0 2px', fontSize: '11px', display: 'flex', alignItems: 'center' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {(startDate || endDate) && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#1a2129',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    padding: '5px 12px',
+                    borderRadius: '100px',
+                    fontSize: '12.5px',
+                    color: '#f3f1ea'
+                  }}
+                >
+                  <span>📅 {startDate || '*'} to {endDate || '*'}</span>
+                  <button
+                    onClick={() => {
+                      haptics.lightTap()
+                      setStartDate('')
+                      setEndDate('')
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: '#6b757c', cursor: 'pointer', padding: '0 2px', fontSize: '11px', display: 'flex', alignItems: 'center' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RESULTS GRID / SKELETON */}
           <div>
             {loading ? (
               <FeedSkeleton />
             ) : activities.length > 0 ? (
-              <div 
-                className="cards-grid"
-              >
-                {activities.map((act, index) => {
-                  const isHighlighted = highlightedIds.includes(act.id)
-                  return (
-                    <motion.div
-                      key={act.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, amount: 0.1 }}
-                      transition={{
-                        delay: Math.min(index * 0.05, 0.3),
-                        duration: 0.4,
-                        ease: 'easeOut'
-                      }}
-                      className={`rounded-2xl transition-all duration-1000 ${
-                        isHighlighted ? 'bg-orange-50/50 border border-orange-200 p-0.5 animate-pulse' : ''
-                      }`}
-                    >
-                      <ActivityCard activity={act} index={index} />
-                    </motion.div>
-                  )
-                })}
-              </div>
+              <>
+                <div className="cards-grid">
+                  {activities.map((act, index) => {
+                    const isHighlighted = highlightedIds.includes(act.id)
+                    const isLastElement = index === activities.length - 1
+                    
+                    return (
+                      <motion.div
+                        key={act.id}
+                        ref={isLastElement ? lastActivityRef : null}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.1 }}
+                        transition={{
+                          delay: Math.min(index * 0.04, 0.24),
+                          duration: 0.35,
+                          ease: 'easeOut'
+                        }}
+                        className={`rounded-2xl transition-all duration-1000 ${
+                          isHighlighted ? 'bg-orange-50/50 border border-orange-200 p-0.5 animate-pulse' : ''
+                        }`}
+                      >
+                        <ActivityCard activity={act} index={index} />
+                      </motion.div>
+                    )
+                  })}
+                </div>
+
+                {/* Infinite Scroll Prefetching shimmers */}
+                {isFetchingNextPage && (
+                  <div style={{ marginTop: '24px' }}>
+                    <FeedSkeleton />
+                  </div>
+                )}
+              </>
             ) : (
               <div
                 style={{
@@ -491,15 +854,21 @@ const Feed = () => {
               >
                 <div style={{ fontSize: '64px', marginBottom: '8px' }}>🏕️</div>
                 <h4 style={{ fontFamily: 'Space Grotesk', fontSize: '22px', fontWeight: '700', color: '#f3f1ea', margin: 0 }}>
-                  No trips in this city yet
+                  No matching trips found
                 </h4>
                 <p style={{ fontSize: '15px', color: '#9ba6ad', margin: 0, lineHeight: 1.4 }}>
-                  Be the first explorer to host one and gather your group!
+                  Try adjusting your search criteria, widening your radius or clearing selected filters.
                 </p>
                 <button
                   onClick={() => {
                     haptics.lightTap()
-                    navigate('/activities/create')
+                    setSelectedCategories([])
+                    setSelectedDifficulties([])
+                    setMinTrust(0)
+                    setMaxBudget(15000)
+                    setSearchQuery('')
+                    setStartDate('')
+                    setEndDate('')
                   }}
                   style={{
                     display: 'inline-flex',
@@ -514,19 +883,10 @@ const Feed = () => {
                     border: 'none',
                     cursor: 'pointer',
                     boxShadow: '0 8px 20px rgba(255,106,44,0.28)',
-                    marginTop: '8px',
-                    transition: 'transform 150ms ease, box-shadow 150ms ease'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-1px)'
-                    e.currentTarget.style.boxShadow = '0 10px 24px rgba(255,106,44,0.38)'
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(255,106,44,0.28)'
+                    marginTop: '8px'
                   }}
                 >
-                  Post a Trip +
+                  Clear All Filters
                 </button>
               </div>
             )}

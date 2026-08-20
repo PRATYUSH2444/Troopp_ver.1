@@ -56,7 +56,7 @@ const NewJoinerOnboarding = ({
     rules.push({ rule: 'Mute chat notifications after 11 PM to prevent spam', type: 'Recommended', color: '#4fbe8e' })
     rules.push({ rule: 'Coordinate waypoints check-ins with host commands', type: 'Required', color: '#ff5470' })
   }
-  rules.push({ rule: 'Maintain evolutionarily verified safety guidelines', type: 'Required', color: '#ff5470' })
+  rules.push({ rule: 'Maintain community safety guidelines', type: 'Required', color: '#ff5470' })
   rules.push({ rule: 'Zero tolerance for any safety or harassment violations', type: 'Enforced', color: '#ff6a2c' })
 
   return (

@@ -6,6 +6,7 @@ import { apiRequest } from '../utils/api.js'
 import { haptics } from '../utils/haptics.js'
 import OTPInput from '../components/common/OTPInput.jsx'
 import SignupStepIndicator from '../components/auth/SignupStepIndicator.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 
 /**
  * Signup Step 4: Phone OTP verification.
@@ -17,15 +18,16 @@ const VerifyPhoneCheck = () => {
   const [submitting, setSubmitting] = useState(false)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const email = searchParams.get('email')
+  const { user, isAuthenticated } = useAuth()
+  const email = searchParams.get('email') || user?.email
   const phone = searchParams.get('phone')
 
   useEffect(() => {
-    if (!email || !phone) {
+    if ((!email || !phone) && !isAuthenticated) {
       toast.error('Missing verification details.')
       navigate('/signup')
     }
-  }, [email, phone, navigate])
+  }, [email, phone, isAuthenticated, navigate])
 
   const handleVerifySMS = async (otpCode) => {
     const activeCode = otpCode || code
@@ -37,7 +39,8 @@ const VerifyPhoneCheck = () => {
     setHasError(false)
     haptics.lightTap()
     try {
-      const res = await apiRequest('/auth/verify-phone/check', {
+      const endpoint = isAuthenticated ? '/profiles/verify-phone/check' : '/auth/verify-phone/check'
+      const res = await apiRequest(endpoint, {
         method: 'POST',
         body: JSON.stringify({ phone, code: activeCode })
       })
@@ -49,7 +52,11 @@ const VerifyPhoneCheck = () => {
 
       haptics.success()
       toast.success('Mobile number successfully verified!')
-      navigate(`/signup/complete?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`)
+      if (isAuthenticated) {
+        navigate('/profile/me/settings')
+      } else {
+        navigate(`/signup/complete?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`)
+      }
     } catch (err) {
       setHasError(true)
       haptics.error()
@@ -125,9 +132,31 @@ const VerifyPhoneCheck = () => {
           }}>T</div>
 
           {/* Step Indicator */}
-          <div style={{ marginBottom: '14px', width: '100%' }}>
-            <SignupStepIndicator currentStep={4} />
-          </div>
+          {!isAuthenticated && (
+            <div style={{ marginBottom: '14px', width: '100%' }}>
+              <SignupStepIndicator currentStep={4} />
+            </div>
+          )}
+
+          {isAuthenticated && (
+            <button
+              onClick={() => navigate('/profile/me/verify-phone')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#9ba6ad',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              ← Back
+            </button>
+          )}
 
           <h2 style={{
             fontFamily: 'Space Grotesk',

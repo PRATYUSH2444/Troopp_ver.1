@@ -34,6 +34,15 @@ import IPBlock from './IPBlock.js'
 import ActivityReport from './ActivityReport.js'
 import UserTOSAcceptance from './UserTOSAcceptance.js'
 import BlockedUser from './BlockedUser.js'
+import Board from './Board.js'
+import BoardMember from './BoardMember.js'
+import Post from './Post.js'
+import Comment from './Comment.js'
+import Vote from './Vote.js'
+import PollVote from './PollVote.js'
+import SavedItem from './SavedItem.js'
+import CommunityReport from './CommunityReport.js'
+import ModAction from './ModAction.js'
 
 // ==============================================================================
 // DEFINE ALL 35 MODEL ASSOCIATIONS
@@ -44,7 +53,8 @@ User.hasOne(Profile, { foreignKey: 'user_id', onDelete: 'CASCADE' })
 Profile.belongsTo(User, { foreignKey: 'user_id' })
 
 // 2. User & EmergencyContact
-User.hasOne(EmergencyContact, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+User.hasMany(EmergencyContact, { foreignKey: 'user_id', as: 'EmergencyContacts', onDelete: 'CASCADE' })
+User.hasOne(EmergencyContact, { foreignKey: 'user_id', as: 'EmergencyContact', onDelete: 'CASCADE' })
 EmergencyContact.belongsTo(User, { foreignKey: 'user_id' })
 
 // 3. User & NotificationPreference
@@ -60,6 +70,7 @@ Activity.belongsTo(City, { foreignKey: 'city_id' })
 
 User.hasMany(Activity, { foreignKey: 'creator_id', as: 'CreatedActivities' })
 Activity.belongsTo(User, { foreignKey: 'creator_id', as: 'Creator' })
+Activity.belongsTo(User, { foreignKey: 'host_id', as: 'Host' })
 
 // 5. Activity & ActivityMember
 Activity.hasMany(ActivityMember, { foreignKey: 'activity_id', onDelete: 'CASCADE' })
@@ -85,7 +96,7 @@ Expense.belongsTo(Activity, { foreignKey: 'activity_id' })
 User.hasMany(Expense, { foreignKey: 'payer_id' })
 Expense.belongsTo(User, { foreignKey: 'payer_id', as: 'Payer' })
 
-Expense.hasMany(ExpenseSplit, { foreignKey: 'expense_id', onDelete: 'CASCADE' })
+Expense.hasMany(ExpenseSplit, { foreignKey: 'expense_id', as: 'Splits', onDelete: 'CASCADE' })
 ExpenseSplit.belongsTo(Expense, { foreignKey: 'expense_id' })
 
 User.hasMany(ExpenseSplit, { foreignKey: 'user_id', onDelete: 'CASCADE' })
@@ -238,6 +249,60 @@ User.hasMany(BlockedUser, { foreignKey: 'blocked_id', as: 'BlockedList', onDelet
 BlockedUser.belongsTo(User, { foreignKey: 'blocked_id', as: 'BlockedUser' })
 
 // ==============================================================================
+// TRAVEL BOARDS / REDDIT COMMUNITY ASSOCIATIONS
+// ==============================================================================
+
+// 1. Board & Creator
+User.hasMany(Board, { foreignKey: 'creator_id', as: 'CreatedBoards' })
+Board.belongsTo(User, { foreignKey: 'creator_id', as: 'Creator' })
+
+// 2. Board & BoardMember & User
+Board.hasMany(BoardMember, { foreignKey: 'board_id', onDelete: 'CASCADE' })
+BoardMember.belongsTo(Board, { foreignKey: 'board_id' })
+User.hasMany(BoardMember, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+BoardMember.belongsTo(User, { foreignKey: 'user_id' })
+
+// 3. Board & Post & User
+Board.hasMany(Post, { foreignKey: 'board_id', onDelete: 'CASCADE' })
+Post.belongsTo(Board, { foreignKey: 'board_id' })
+User.hasMany(Post, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+Post.belongsTo(User, { foreignKey: 'user_id' })
+
+// 4. Post & Comment & User
+Post.hasMany(Comment, { foreignKey: 'post_id', onDelete: 'CASCADE' })
+Comment.belongsTo(Post, { foreignKey: 'post_id' })
+User.hasMany(Comment, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+Comment.belongsTo(User, { foreignKey: 'user_id' })
+
+// 5. Nested Comments (Replies)
+Comment.hasMany(Comment, { foreignKey: 'parent_id', as: 'Replies', onDelete: 'CASCADE' })
+Comment.belongsTo(Comment, { foreignKey: 'parent_id', as: 'Parent' })
+
+// 6. User & Vote
+User.hasMany(Vote, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+Vote.belongsTo(User, { foreignKey: 'user_id' })
+
+// 7. PollVote
+Post.hasMany(PollVote, { foreignKey: 'post_id', onDelete: 'CASCADE' })
+PollVote.belongsTo(Post, { foreignKey: 'post_id' })
+User.hasMany(PollVote, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+PollVote.belongsTo(User, { foreignKey: 'user_id' })
+
+// 8. SavedItem
+User.hasMany(SavedItem, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+SavedItem.belongsTo(User, { foreignKey: 'user_id' })
+
+// 9. CommunityReport
+User.hasMany(CommunityReport, { foreignKey: 'reporter_id', as: 'FiledCommunityReports', onDelete: 'CASCADE' })
+CommunityReport.belongsTo(User, { foreignKey: 'reporter_id', as: 'Reporter' })
+
+// 10. ModAction
+Board.hasMany(ModAction, { foreignKey: 'board_id', onDelete: 'CASCADE' })
+ModAction.belongsTo(Board, { foreignKey: 'board_id' })
+User.hasMany(ModAction, { foreignKey: 'moderator_id', onDelete: 'CASCADE' })
+ModAction.belongsTo(User, { foreignKey: 'moderator_id', as: 'Moderator' })
+
+// ==============================================================================
 // EXPORT ALL MODELS
 // ==============================================================================
 export {
@@ -276,5 +341,14 @@ export {
   IPBlock,
   ActivityReport,
   UserTOSAcceptance,
-  BlockedUser
+  BlockedUser,
+  Board,
+  BoardMember,
+  Post,
+  Comment,
+  Vote,
+  PollVote,
+  SavedItem,
+  CommunityReport,
+  ModAction
 }

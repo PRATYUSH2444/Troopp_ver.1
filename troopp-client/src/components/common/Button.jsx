@@ -32,7 +32,9 @@ const Button = ({
   fullWidth = false,
   onClick,
   type = 'button',
-  ariaLabel
+  ariaLabel,
+  className = '',
+  style: customStyle = {}
 }) => {
   const isButtonDisabled = disabled || loading
 
@@ -58,7 +60,8 @@ const Button = ({
     sizeClasses[size],
     variantClasses[variant],
     fullWidth && 'w-full',
-    isButtonDisabled && 'opacity-50 cursor-not-allowed pointer-events-none shadow-none!'
+    isButtonDisabled && 'opacity-50 cursor-not-allowed pointer-events-none shadow-none!',
+    className
   )
 
   // Configure tap and hover animations based on variant
@@ -88,7 +91,8 @@ const Button = ({
     }),
     ...(variant === 'danger' && {
       background: 'var(--color-danger-bg, var(--color-danger-light, #FEE2E2))'
-    })
+    }),
+    ...customStyle
   }
 
   return (

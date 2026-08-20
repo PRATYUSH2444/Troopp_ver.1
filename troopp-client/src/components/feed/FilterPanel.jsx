@@ -246,7 +246,7 @@ const FilterPanel = ({ isOpen, onClose, filters, onApply, onReset }) => {
                     🔒 Women-Only Trips
                   </span>
                   <span className="text-[10px] text-text-secondary">
-                    Only show trips created for verified female members
+                    Only show trips created for female members
                   </span>
                 </div>
                 <button

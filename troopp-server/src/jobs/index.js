@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 import { Op } from 'sequelize'
 import User from '../models/User.js'
+import TokenBlacklist from '../models/TokenBlacklist.js'
 import cloudinary from '../config/cloudinary.js'
 import logger from '../config/logger.js'
 
@@ -72,45 +73,22 @@ export const initCronJobs = () => {
     }
   })
 
-  // 7. Cloudinary ID Document Deletion Job: Runs daily at 2 AM
-  cron.schedule('0 2 * * *', async () => {
-    logger.info('Running cron job: Deleting old verified ID documents...')
+
+
+  // 8. Token Blacklist Pruning: Runs hourly
+  cron.schedule('0 * * * *', async () => {
+    logger.info('Running cron job: Pruning expired blacklisted tokens...')
     try {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      
-      const usersToClean = await User.findAll({
+      const deletedCount = await TokenBlacklist.destroy({
         where: {
-          is_id_verified: true,
-          id_document_url: {
-            [Op.ne]: null
-          },
-          updated_at: {
-            [Op.lt]: thirtyDaysAgo
+          expires_at: {
+            [Op.lt]: new Date()
           }
         }
       })
-
-      logger.info(`Found ${usersToClean.length} verified ID documents older than 30 days to clean.`)
-
-      for (const user of usersToClean) {
-        const url = user.id_document_url
-        const match = url.match(/\/v\d+\/([^\s]+)\.[a-z0-9]+$/i)
-        const publicId = match ? match[1] : null
-
-        if (publicId && !publicId.startsWith('mock')) {
-          try {
-            await cloudinary.uploader.destroy(publicId)
-            logger.info(`Deleted private Cloudinary document: ${publicId} for user ID: ${user.id}`)
-          } catch (cloudErr) {
-            logger.error(`Failed to destroy Cloudinary file: ${publicId}`, cloudErr)
-          }
-        }
-
-        user.id_document_url = null
-        await user.save()
-      }
-    } catch (error) {
-      logger.error('Error running ID Document Deletion cron job:', error)
+      logger.info(`Pruned ${deletedCount} expired tokens from blacklist.`)
+    } catch (err) {
+      logger.error('Unhandled error in Token Blacklist Pruning cron:', err)
     }
   })
 

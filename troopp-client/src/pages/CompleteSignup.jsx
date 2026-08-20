@@ -72,11 +72,24 @@ const CompleteSignup = () => {
     )
   }
 
+  const validatePassword = (pw) => {
+    if (pw.length < 8) return 'Password must be at least 8 characters long.'
+    if (!/(?=.*[a-z])/.test(pw)) return 'Password must contain at least one lowercase letter.'
+    if (!/(?=.*[A-Z])/.test(pw)) return 'Password must contain at least one uppercase letter.'
+    if (!/(?=.*\d)/.test(pw)) return 'Password must contain at least one number.'
+    if (!/(?=.*[@$!%*?&])/.test(pw)) return 'Password must contain at least one special character (@$!%*?&).'
+    return null
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!name.trim()) return toast.error('Name is required.')
     if (!password) return toast.error('Password is required.')
+    
+    const passwordError = validatePassword(password)
+    if (passwordError) return toast.error(passwordError)
+
     if (!dob) return toast.error('Date of birth is required for age check.')
     if (!tosAccepted) return toast.error('You must accept the Terms of Service.')
 
@@ -192,6 +205,10 @@ const CompleteSignup = () => {
           background-size: 16px;
           padding-right: 40px;
         }
+        select.signup-input option {
+          background-color: #212b33;
+          color: #f3f1ea;
+        }
         input[type="date"].signup-input::-webkit-calendar-picker-indicator {
           filter: invert(0.7);
           cursor: pointer;
@@ -286,11 +303,12 @@ const CompleteSignup = () => {
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                   className="signup-input"
+                  style={{ color: '#f3f1ea', background: '#212b33' }}
                 >
-                  <option value="male" style={{ background: '#1a2129' }}>Male</option>
-                  <option value="female" style={{ background: '#1a2129' }}>Female</option>
-                  <option value="other" style={{ background: '#1a2129' }}>Other</option>
-                  <option value="prefer_not_to_say" style={{ background: '#1a2129' }}>Prefer not to say</option>
+                  <option value="male" style={{ background: '#212b33', color: '#f3f1ea' }}>Male</option>
+                  <option value="female" style={{ background: '#212b33', color: '#f3f1ea' }}>Female</option>
+                  <option value="other" style={{ background: '#212b33', color: '#f3f1ea' }}>Other</option>
+                  <option value="prefer_not_to_say" style={{ background: '#212b33', color: '#f3f1ea' }}>Prefer not to say</option>
                 </select>
               </div>
 
@@ -301,11 +319,12 @@ const CompleteSignup = () => {
                   value={cityId}
                   onChange={(e) => setCityId(e.target.value)}
                   className="signup-input"
+                  style={{ color: '#f3f1ea', background: '#212b33' }}
                   required
                 >
                   {cities.map((city) => (
-                    <option key={city.id} value={city.id} style={{ background: '#1a2129' }}>
-                      {city.name}
+                    <option key={city.id} value={city.id} style={{ background: '#212b33', color: '#f3f1ea' }}>
+                      {city.city_name || city.name}
                     </option>
                   ))}
                 </select>
@@ -323,6 +342,52 @@ const CompleteSignup = () => {
                 className="signup-input"
                 required
               />
+              {password.length > 0 && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '12px 16px',
+                  background: '#212b33',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  {[
+                    { label: 'At least 8 characters', met: password.length >= 8 },
+                    { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
+                    { label: 'One lowercase letter', met: /[a-z]/.test(password) },
+                    { label: 'One number', met: /\d/.test(password) },
+                    { label: 'One special character (@$!%*?&)', met: /[@$!%*?&]/.test(password) }
+                  ].map((req, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '12px',
+                      color: req.met ? '#10b981' : '#9ba6ad',
+                      transition: 'color 150ms ease'
+                    }}>
+                      <span style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%',
+                        background: req.met ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)',
+                        color: req.met ? '#10b981' : '#6b757c',
+                        fontSize: '9px',
+                        fontWeight: 'bold',
+                        border: req.met ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255,255,255,0.08)'
+                      }}>
+                        {req.met ? '✓' : '•'}
+                      </span>
+                      {req.label}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Interest vibe tags */}

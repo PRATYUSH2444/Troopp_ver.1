@@ -1,7 +1,5 @@
 import React from 'react'
 import clsx from 'clsx'
-import { motion } from 'framer-motion'
-import Badge from './Badge.jsx'
 import { getTransformedImageUrl, CLOUDINARY_TRANSFORMS } from '../../utils/cloudinary.js'
 
 /**
@@ -26,7 +24,10 @@ const Avatar = ({
   showBadge = false,
   score = 50,
   isOnline = false,
-  className
+  showStatusRing = false,
+  borderColor,
+  className,
+  style
 }) => {
   // Sizing styles mapping
   const sizeClasses = {
@@ -49,14 +50,11 @@ const Avatar = ({
 
   const getGradientForName = (fullName) => {
     const gradients = [
-      'linear-gradient(135deg, #F97316 0%, #EA6C0A 100%)',
-      'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-      'linear-gradient(135deg, #10B981 0%, #047857 100%)',
-      'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
-      'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
-      'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)',
-      'linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)',
-      'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+      'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)', // terracotta
+      'linear-gradient(135deg, #4fbe8e 0%, #369b70 100%)', // moss green
+      'linear-gradient(135deg, #ffc94d 0%, #d99f26 100%)', // amber
+      'linear-gradient(135deg, #212b33 0%, #1a2129 100%)', // raised surface dark
+      'linear-gradient(135deg, #2a3b47 0%, #212b33 100%)'  // navy raised dark
     ]
     let hash = 0
     for (let i = 0; i < fullName.length; i++) {
@@ -81,8 +79,33 @@ const Avatar = ({
 
   const transformedSrc = src ? getTransformedImageUrl(src, getTransformForSize(size)) : null
 
+  const getStatusColor = (s) => {
+    if (s === undefined || s === null) return null
+    if (s >= 75) return 'var(--moss)' // Trusted Legend green
+    return 'var(--accent)'            // Terracotta accent
+  }
+
+  const statusColor = showStatusRing ? getStatusColor(score) : null
+
+  const customStyle = {
+    ...style,
+    borderColor: borderColor || (statusColor ? 'var(--color-surface)' : 'rgba(255,255,255,0.08)')
+  }
+
+  if (statusColor) {
+    customStyle.outline = `2px solid ${statusColor}`
+    customStyle.outlineOffset = '2.5px'
+  }
+
   return (
-    <div className={clsx('relative inline-flex flex-shrink-0 select-none rounded-full border-2 border-white shadow-sm bg-stone-100', sizeClasses[size], className)}>
+    <div 
+      className={clsx(
+        'relative inline-flex flex-shrink-0 select-none rounded-full border-2 shadow-md bg-[#212b33]', 
+        sizeClasses[size], 
+        className
+      )}
+      style={customStyle}
+    >
       {/* Avatar Image or Initial Fallback */}
       {transformedSrc ? (
         <img
@@ -110,22 +133,11 @@ const Avatar = ({
       {/* Online indicator dot */}
       {isOnline && (
         <span
-          className="absolute bottom-0 right-0 w-[10px] h-[10px] bg-[#22C55E] border-2 border-white rounded-full shadow-sm"
+          className="absolute bottom-0 right-0 w-[10px] h-[10px] bg-[#22C55E] border-2 border-[var(--color-surface)] rounded-full shadow-sm"
           title="Online"
         />
       )}
 
-      {/* Trust Badge overlay (lg size and above only for visual spacing) */}
-      {showBadge && (size === 'lg' || size === 'xl' || size === 'xxl') && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: [0, 1.2, 1] }}
-          transition={{ type: 'spring', stiffness: 350, damping: 18, delay: 0.15 }}
-          className="absolute -bottom-1 -right-2 z-10"
-        >
-          <Badge type="trust" score={score} size="sm" className="shadow-md" />
-        </motion.div>
-      )}
     </div>
   )
 }

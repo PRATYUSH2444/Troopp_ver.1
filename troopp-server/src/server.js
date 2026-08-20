@@ -35,11 +35,37 @@ global.io = io
 // 3. Register Socket.io Authentication Middleware
 io.use(socketAuthMiddleware)
 
-// 4. Register Trip Room socket events connection listeners
+// 4. Register Trip Room & Community socket events connection listeners
 io.on('connection', (socket) => {
   logger.info(`Socket connection established: ${socket.id} (User: ${socket.user?.id})`)
   registerTripRoomHandlers(io, socket)
+
+  // Community Room Subscriptions
+  socket.on('community:join_post', (postId) => {
+    socket.join(`post:${postId}`)
+    logger.debug(`Socket ${socket.id} joined room post:${postId}`)
+  })
+
+  socket.on('community:leave_post', (postId) => {
+    socket.leave(`post:${postId}`)
+    logger.debug(`Socket ${socket.id} left room post:${postId}`)
+  })
 })
+
+// Validate critical environment variables in production
+if (process.env.NODE_ENV === 'production') {
+  const defaultAccess = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+  const defaultRefresh = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789'
+
+  if (!process.env.JWT_ACCESS_SECRET || process.env.JWT_ACCESS_SECRET === defaultAccess) {
+    logger.error('FATAL CONFIG ERROR: JWT_ACCESS_SECRET is missing or matches the insecure default fallback in production mode!')
+    process.exit(1)
+  }
+  if (!process.env.JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET === defaultRefresh) {
+    logger.error('FATAL CONFIG ERROR: JWT_REFRESH_SECRET is missing or matches the insecure default fallback in production mode!')
+    process.exit(1)
+  }
+}
 
 // 5. Initialize background cron jobs
 initCronJobs()

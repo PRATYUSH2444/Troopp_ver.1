@@ -93,7 +93,8 @@ const UserProfile = () => {
         <div
           style={{
             height: '160px',
-            background: 'linear-gradient(160deg, #1c2a2a 0%, #1a2129 100%)',
+            background: 'linear-gradient(160deg, #10151a 0%, #161d24 100%)',
+            backgroundImage: 'repeating-radial-gradient(circle at 82% 20%, transparent 0, transparent 18px, rgba(79,190,142,0.06) 19px, transparent 20px), repeating-radial-gradient(circle at 82% 20%, transparent 0, transparent 42px, rgba(79,190,142,0.04) 43px, transparent 44px), linear-gradient(160deg, #161d24 0%, #10151a 100%)',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
             margin: '0 -24px',
             borderRadius: '0 0 24px 24px',
@@ -213,44 +214,71 @@ const UserProfile = () => {
 
         {/* Profile avatar metadata row */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '-64px', position: 'relative', zIndex: 10, textAlign: 'center', gap: '6px', padding: '0 16px', userSelect: 'none' }}>
-          <Avatar src={profileData.avatarUrl} name={profileData.name} size="lg" score={profileData.trustScore} />
+          <Avatar src={profileData.avatarUrl} name={profileData.name} size="lg" score={profileData.trustScore} showStatusRing={true} />
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '700', color: '#f3f1ea', margin: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+            <span 
+              style={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: profileData.trustScore >= 75 ? 'var(--moss)' : 'var(--accent)',
+                background: profileData.trustScore >= 75 ? 'var(--moss-soft)' : 'var(--accent-soft)',
+                padding: '4px 10px',
+                borderRadius: '100px'
+              }}
+            >
+              {profileData.trustScore >= 75 ? '👑 TRUSTED TRAVELER' : '🛡️ EXPLORER'}
+            </span>
+
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: '700', color: 'var(--text-primary)', margin: '4px 0 0' }}>
               {profileData.name}
-            </h3>
-            {profileData.idVerified ? (
+            </h1>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
               <span 
                 style={{ 
                   fontSize: '11px', 
-                  color: profileData.trustScore >= 75 ? '#4fbe8e' : '#3b82f6', 
+                  color: (profileData.reliabilityBreakdown?.completedTrips || 0) === 0 ? 'var(--amber)' : profileData.trustScore >= 75 ? 'var(--moss)' : 'var(--accent)', 
                   fontWeight: '700', 
-                  padding: '2px 8px', 
-                  background: profileData.trustScore >= 75 ? 'rgba(79, 190, 142, 0.14)' : 'rgba(59, 130, 246, 0.14)', 
-                  borderRadius: '100px' 
+                  padding: '3px 10px', 
+                  background: (profileData.reliabilityBreakdown?.completedTrips || 0) === 0 ? 'var(--amber-soft)' : profileData.trustScore >= 75 ? 'var(--moss-soft)' : 'var(--accent-soft)', 
+                  borderRadius: '100px',
+                  border: '1px solid rgba(255,255,255,0.04)'
                 }} 
-                title={profileData.trustScore >= 75 ? 'Trusted Legend' : 'Verified Explorer'}
               >
-                {profileData.trustScore >= 75 ? '👑 Trusted' : '🛡️ Verified'}
+                {(profileData.reliabilityBreakdown?.completedTrips || 0) === 0 ? '🌱 Basecamp Newbie' : profileData.trustScore >= 75 ? '👑 Trusted' : '🛡️ Explorer'}
               </span>
-            ) : (
-              <span 
-                style={{ 
-                  fontSize: '11px', 
-                  color: '#6b757c', 
-                  fontWeight: '700', 
-                  padding: '2px 8px', 
-                  background: 'rgba(107, 117, 124, 0.14)', 
-                  borderRadius: '100px' 
-                }}
-                title="New Seed"
-              >
-                🌱 New Seed
-              </span>
-            )}
+
+              {profileData.gender && profileData.gender !== 'prefer_not_to_say' && (
+                <span 
+                  style={{ 
+                    fontSize: '11px', 
+                    color: 'var(--text-secondary)', 
+                    fontWeight: '600', 
+                    padding: '3px 10px', 
+                    background: 'var(--surface-raised)', 
+                    borderRadius: '100px',
+                    border: '1px solid var(--border)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }} 
+                >
+                  {profileData.gender.toLowerCase() === 'male' ? '👨 Male' : 
+                   profileData.gender.toLowerCase() === 'female' ? '👩 Female' : 
+                   profileData.gender.toLowerCase() === 'non-binary' ? '🧑 Non-Binary' : 
+                   `🧑 ${profileData.gender}`}
+                </span>
+              )}
+            </div>
           </div>
 
-          <p style={{ fontSize: '14px', color: '#9ba6ad', leadingHeight: '1.5', maxWidth: '360px', margin: '4px 0 0', fontStyle: 'italic' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5', maxWidth: '360px', margin: '8px 0 0', fontStyle: 'italic' }}>
             "{profileData.bio}"
           </p>
 
@@ -260,73 +288,153 @@ const UserProfile = () => {
           </div>
         </div>
 
-        {/* Stats counter rows */}
+        {/* Stats card */}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-            padding: '16px 0',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px',
+            padding: '16px',
             textAlign: 'center',
             marginTop: '8px',
+            boxShadow: 'var(--shadow-card)',
             userSelect: 'none'
           }}
         >
           <Link to={`/profile/${userId}/followers`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textDecoration: 'none' }}>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Followers</span>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: '700', color: '#f3f1ea', marginTop: '2px' }}>{profileData.followersCount}</span>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Followers</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', marginTop: '4px' }}>{profileData.followersCount}</span>
           </Link>
-          <Link to={`/profile/${userId}/following`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', borderLeft: '1px solid rgba(255,255,255,0.06)', borderRight: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none' }}>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Following</span>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: '700', color: '#f3f1ea', marginTop: '2px' }}>{profileData.followingCount}</span>
+          <Link to={`/profile/${userId}/following`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', textDecoration: 'none' }}>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Following</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', marginTop: '4px' }}>{profileData.followingCount}</span>
           </Link>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Trips Completed</span>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: '700', color: '#f3f1ea', marginTop: '2px' }}>{profileData.tripsCompleted}</span>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Trips Completed</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', marginTop: '4px' }}>{profileData.tripsCompleted}</span>
           </div>
         </div>
 
-        {/* Safety Score Snapshot Card */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', userSelect: 'none' }}>
-          <span style={{ fontSize: '11px', fontWeight: '700', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Safety Trust Score Card
+        {/* Safety & Reliability Summary Block */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', userSelect: 'none' }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            🛡️ Safety & Reliability Summary
           </span>
-          <div
-            style={{
-              padding: '20px',
-              background: '#1a2129',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: 'var(--shadow-card)'
-            }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>Trust Level Badge</span>
-              <span style={{ fontSize: '12px', color: '#9ba6ad', lineHeight: '1.4', maxWidth: '340px' }}>
-                Calculated based on past trip reports, attendance verification, and ratings.
-              </span>
+          <div style={{ padding: '20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', boxShadow: 'var(--shadow-card)', display: 'flex', gap: '16px', justifyContent: 'space-between' }}>
+            {/* Peer Trust Index */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  border: '2px solid var(--moss)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--moss-soft)',
+                  flexShrink: 0
+                }}
+              >
+                <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--moss)', fontFamily: 'var(--font-mono)' }}>{profileData.trustScore}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>Peer Trust Index</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Community reputation</span>
+              </div>
             </div>
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                border: '2px solid #4fbe8e',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#1a2129',
-                flexShrink: 0
-              }}
-            >
-              <span style={{ fontSize: '8px', fontWeight: '700', color: '#6b757c', leadingHeight: 1, textTransform: 'uppercase' }}>score</span>
-              <span style={{ fontSize: '14px', fontWeight: '700', color: '#4fbe8e', fontFamily: 'var(--font-mono)' }}>{profileData.trustScore}</span>
+
+            {/* Reliability Score */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  border: '2px solid var(--moss)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--moss-soft)',
+                  flexShrink: 0
+                }}
+              >
+                <span style={{ fontSize: (profileData.reliabilityBreakdown?.completedTrips || 0) === 0 ? '9px' : '14px', fontWeight: '700', color: 'var(--moss)', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
+                  {(profileData.reliabilityBreakdown?.completedTrips || 0) === 0 ? 'New' : `${profileData.reliabilityScore}%`}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>Reliability</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                  {(profileData.reliabilityBreakdown?.completedTrips || 0) === 0 ? 'No N8 trips yet' : 'Attendance commitment'}
+                </span>
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Attendance History Block */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', userSelect: 'none' }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            📅 Attendance History
+          </span>
+          <div style={{ padding: '20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', boxShadow: 'var(--shadow-card)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', textAlign: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Attended</span>
+                <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--moss)' }}>{profileData.reliabilityBreakdown?.completedTrips || 0}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Cancellations</span>
+                <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--danger)' }}>{profileData.reliabilityBreakdown?.lateCancellations || 0}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>No-shows</span>
+                <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--danger)' }}>{profileData.reliabilityBreakdown?.noShows || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Emergency Contacts Block */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', userSelect: 'none' }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            🛡️ Emergency Contacts
+          </span>
+          <div style={{ padding: '20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', boxShadow: 'var(--shadow-card)' }}>
+            {profileData.isAuthorizedForEmergency ? (
+              profileData.emergencyContacts && profileData.emergencyContacts.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {profileData.emergencyContacts.map((contact) => (
+                    <div key={contact.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{contact.name}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>Relationship: {contact.relationship || 'Secondary'}</span>
+                      </div>
+                      <a href={`tel:${contact.phone}`} style={{ textDecoration: 'none', fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--accent-soft)', padding: '6px 12px', borderRadius: '100px', border: '1px solid rgba(255,106,44,0.15)', fontSize: '12px' }}>
+                        📞 {contact.phone}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '8px 0', textAlign: 'center' }}>
+                  No emergency contacts listed by this traveler.
+                </div>
+              )
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '14px' }}>🔒</span>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Access Restricted</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '12px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
+                  For traveler safety and privacy, emergency contacts are only visible to confirmed co-travelers sharing an active trip.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

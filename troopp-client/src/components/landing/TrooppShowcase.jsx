@@ -103,7 +103,7 @@ export const TrooppShowcase = () => {
             <div className="sos-badge">LIVE GPS</div>
             <div>
               <div className="float-title-sm" style={{ color: '#ff5470' }}>Safety Check-in</div>
-              <div className="float-desc-sm">All waypoints verified safe</div>
+              <div className="float-desc-sm">All waypoints logged</div>
             </div>
           </div>
         </FloatingCard>
@@ -308,7 +308,7 @@ const VerificationScreen = () => {
         className="screen-success-pill"
       >
         <span className="success-badge-icon">✓</span>
-        <span className="success-badge-text">ID VERIFIED (+30 SCORE)</span>
+        <span className="success-badge-text">PROFILE COMPLETED</span>
       </motion.div>
     </div>
   )

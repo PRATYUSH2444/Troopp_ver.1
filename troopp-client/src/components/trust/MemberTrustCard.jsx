@@ -5,7 +5,7 @@ import ScoreBar from '../common/ScoreBar.jsx'
 import TrustCircle from './TrustCircle.jsx'
 
 /**
- * Novelty Trust Card Modal showing full behavioral reputation metrics.
+ * Premium Trust Card Modal showing full behavioral reputation metrics.
  */
 const MemberTrustCard = ({
   isOpen,
@@ -22,18 +22,19 @@ const MemberTrustCard = ({
     avatar_url,
     trust_score = 50,
     reliability_score = 100,
-    is_id_verified = false,
-    is_face_verified = false,
-    trips_completed = 5,
-    positive_rating_pct = 95,
-    tenure_months = 3,
+    trips_completed = 0,
+    positive_rating_pct = 100,
+    tenure_months = 1,
     has_valid_reports = false,
-    last_traveled_date = '12 May 2026',
-    mutual_connections = ['Amit Patel', 'Priya Sharma']
+    last_traveled_date = 'N/A',
+    mutual_connections = []
   } = userData
 
   const [currentTrust, setCurrentTrust] = useState(trust_score)
   const [currentReliability, setCurrentReliability] = useState(reliability_score)
+  const [isCloseHovered, setIsCloseHovered] = useState(false)
+  const [isDeclineHovered, setIsDeclineHovered] = useState(false)
+  const [isAcceptHovered, setIsAcceptHovered] = useState(false)
 
   useEffect(() => {
     setCurrentTrust(trust_score)
@@ -41,145 +42,251 @@ const MemberTrustCard = ({
   }, [userData, trust_score, reliability_score])
 
   return (
-    <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-md z-50 flex items-center justify-center p-0 sm:p-4">
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(10, 13, 16, 0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
       <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="w-full h-full sm:h-auto sm:max-w-md bg-surface border border-border sm:rounded-2xl p-6 shadow-2xl flex flex-col justify-between overflow-y-auto"
+        initial={{ scale: 0.96, opacity: 0, y: 15 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.96, opacity: 0, y: 15 }}
+        transition={{ type: 'spring', duration: 0.4, bounce: 0.15 }}
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '24px',
+          padding: '24px',
+          boxShadow: 'var(--shadow-card), 0 24px 60px rgba(0,0,0,0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          position: 'relative'
+        }}
       >
-        {/* Header close trigger */}
-        <div className="flex justify-between items-center border-b border-border pb-3 mb-2.5">
-          <span className="text-[10px] font-extrabold text-text-secondary uppercase tracking-widest">
-            Member behavioral Profile
+        
+        {/* Header Close Control */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '14px' }}>
+          <span style={{ fontSize: '10px', fontWeight: '850', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>
+            Member Behavioral Profile
           </span>
-          <button onClick={onClose} className="w-8 h-8 rounded-full border border-border hover:bg-stone-50 flex items-center justify-center font-bold text-xs">
+          <button
+            onClick={onClose}
+            onMouseEnter={() => setIsCloseHovered(true)}
+            onMouseLeave={() => setIsCloseHovered(false)}
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: isCloseHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
+              border: '1px solid var(--border)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              transition: 'all 150ms ease'
+            }}
+          >
             ✕
           </button>
         </div>
 
-        <div className="flex flex-col gap-5 py-2">
-          {/* Avatar and Verification badges */}
-          <div className="flex items-center gap-4">
-            <Avatar src={avatar_url} name={name} size="lg" score={currentTrust} />
-            <div className="flex flex-col">
-              <h3 className="text-base font-extrabold text-text-primary flex items-center gap-1.5">
-                {name}
-                {is_id_verified && (
-                  <span className="text-xs" title="Government ID Verified">
-                    🪪
-                  </span>
-                )}
-                {is_face_verified && (
-                  <span className="text-xs" title="Facial Recognition Verified">
-                    📷
-                  </span>
-                )}
-              </h3>
-              <span className="text-[10px] text-text-secondary mt-0.5">
-                Troopp member since {tenure_months} months ago
-              </span>
-            </div>
-          </div>
-
-          {/* Scores Panel (Trust Conic Circle + Reliability bar) */}
-          <div className="grid grid-cols-2 gap-4 items-center bg-stone-50/50 border border-border/60 p-3.5 rounded-xl">
-            {/* Circular Conic-gradient Trust score */}
-            <div className="flex flex-col items-center gap-1.5 border-r border-border/80">
-              <TrustCircle score={currentTrust} />
-              <span className="text-[10px] font-bold text-text-secondary uppercase mt-1">
-                Trust Score
-              </span>
-            </div>
-
-            {/* ScoreBar Reliability score */}
-            <div className="flex flex-col gap-1.5 px-1">
-              <span className="text-[10px] font-bold text-text-secondary uppercase">
-                Reliability: {currentReliability}%
-              </span>
-              <ScoreBar score={currentReliability} />
-              <span className="text-[9px] text-text-secondary leading-snug">
-                Based on showing up to confirmed trips.
-              </span>
-            </div>
-          </div>
-
-          {/* Mock Test Toolbar */}
-          <div className="flex justify-between items-center gap-2 bg-stone-100/50 p-2 rounded-xl border border-stone-200/50">
-            <span className="text-[9px] font-black uppercase text-stone-500 tracking-wider pl-1">Simulator:</span>
-            <div className="flex gap-1.5">
-              <button
-                type="button"
-                onClick={() => setCurrentTrust((prev) => Math.min(100, prev + 25))}
-                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-lg border border-emerald-200 cursor-pointer select-none"
-              >
-                +25 Trust
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentReliability((prev) => Math.max(0, prev - 15))}
-                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-black rounded-lg border border-rose-200 cursor-pointer select-none"
-              >
-                -15 Reliability
-              </button>
-            </div>
-          </div>
-
-          {/* Core Stats list */}
-          <div className="flex flex-col gap-2.5">
-            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-              Engagement stats
+        {/* Profile Card Info */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Avatar src={avatar_url} name={name} size="lg" score={currentTrust} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
+              {name}
+            </h3>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+              Troopp member since {tenure_months} month{tenure_months > 1 ? 's' : ''} ago
             </span>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-stone-50 border border-border/40 p-2.5 rounded-xl">
-                <span className="block text-sm font-extrabold text-text-primary">{trips_completed}</span>
-                <span className="text-[9px] text-text-secondary">Trips Done</span>
-              </div>
-              <div className="bg-stone-50 border border-border/40 p-2.5 rounded-xl">
-                <span className="block text-sm font-extrabold text-text-primary">{positive_rating_pct}%</span>
-                <span className="text-[9px] text-text-secondary">Positive Rate</span>
-              </div>
-              <div className="bg-stone-50 border border-border/40 p-2.5 rounded-xl">
-                <span className="block text-xs font-bold text-emerald-700 mt-1 leading-tight">
-                  {has_valid_reports ? '🚨 Flagged' : '✅ Clear'}
-                </span>
-                <span className="text-[9px] text-text-secondary mt-0.5 block">Report History</span>
-              </div>
-            </div>
           </div>
-
-          {/* Mutual connections overlay */}
-          {mutual_connections.length > 0 && (
-            <div className="flex flex-col gap-1 text-[10px] text-text-secondary leading-normal border-t border-border/60 pt-3">
-              <span className="font-bold text-text-primary uppercase tracking-wide">
-                Mutual Connections
-              </span>
-              <span>
-                You and {name} both follow {mutual_connections.join(' and ')}
-              </span>
-            </div>
-          )}
-
-          {last_traveled_date && (
-            <span className="text-[9px] text-text-secondary">
-              🕒 Last active on a trip: {last_traveled_date}
-            </span>
-          )}
         </div>
 
+        {/* Reputation Score Metrics Panel */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1.1fr 0.9fr',
+          gap: '16px',
+          alignItems: 'center',
+          background: 'var(--surface-raised)',
+          border: '1px solid var(--border)',
+          padding: '18px',
+          borderRadius: '16px'
+        }}>
+          {/* Trust Circle component dial */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: '1px solid var(--border)', paddingRight: '8px' }}>
+            <TrustCircle score={currentTrust} size={90} />
+            <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '6px' }}>
+              Trust Score
+            </span>
+          </div>
+
+          {/* Reliability Score Panel */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Reliability: <span style={{ color: 'var(--moss)', fontWeight: '950' }}>{currentReliability}%</span>
+            </span>
+            <ScoreBar score={currentReliability} />
+            <span style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              Based on showing up to confirmed trips.
+            </span>
+          </div>
+        </div>
+
+        {/* Simulator Panel (Darkened & Sleek) */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '12px',
+          background: '#10151a',
+          padding: '10px 14px',
+          borderRadius: '14px',
+          border: '1px solid rgba(255,255,255,0.04)'
+        }}>
+          <span style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Simulator:</span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setCurrentTrust((prev) => Math.min(100, prev + 25))}
+              style={{
+                padding: '4px 10px',
+                background: 'rgba(79,190,142,0.08)',
+                border: '1px solid rgba(79,190,142,0.2)',
+                color: 'var(--moss)',
+                borderRadius: '8px',
+                fontSize: '10px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 150ms ease'
+              }}
+            >
+              +25 Trust
+            </button>
+            <button
+              onClick={() => setCurrentReliability((prev) => Math.max(0, prev - 15))}
+              style={{
+                padding: '4px 10px',
+                background: 'rgba(239,83,80,0.08)',
+                border: '1px solid rgba(239,83,80,0.2)',
+                color: '#ef5350',
+                borderRadius: '8px',
+                fontSize: '10px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 150ms ease'
+              }}
+            >
+              -15 Reliability
+            </button>
+          </div>
+        </div>
+
+        {/* Engagement Stats Grid */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Engagement Stats
+          </span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', padding: '12px 6px', borderRadius: '14px', textAlign: 'center' }}>
+              <span style={{ display: 'block', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>{trips_completed}</span>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)' }}>Trips Done</span>
+            </div>
+            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', padding: '12px 6px', borderRadius: '14px', textAlign: 'center' }}>
+              <span style={{ display: 'block', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>{positive_rating_pct}%</span>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)' }}>Positive Rate</span>
+            </div>
+            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', padding: '12px 6px', borderRadius: '14px', textAlign: 'center' }}>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: '800',
+                color: has_valid_reports ? '#ef5350' : 'var(--moss)',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {has_valid_reports ? '🚨 Flagged' : '✅ Clear'}
+              </span>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)' }}>Report History</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Mutual Connections Overlay */}
+        {mutual_connections && mutual_connections.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+            <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Mutual Connections
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              You and {name} both follow {mutual_connections.join(' and ')}
+            </span>
+          </div>
+        )}
+
+        {/* Trip details footer */}
+        {last_traveled_date && last_traveled_date !== 'N/A' && (
+          <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', borderTop: '1px solid var(--border)', paddingTop: '14px' }}>
+            🕒 Last active on a trip: {last_traveled_date}
+          </div>
+        )}
+
         {/* Action Panel */}
-        <div className="border-t border-border pt-4 mt-4 flex gap-3">
+        <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '18px', marginTop: '4px' }}>
           {viewMode === 'host' ? (
             <>
               <button
                 onClick={onDecline}
-                className="flex-1 h-11 border border-rose-200 text-rose-600 bg-rose-50/20 hover:bg-rose-50 rounded-xl text-xs font-bold transition-colors"
+                onMouseEnter={() => setIsDeclineHovered(true)}
+                onMouseLeave={() => setIsDeclineHovered(false)}
+                style={{
+                  flex: 1,
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: isDeclineHovered ? 'rgba(239,83,80,0.14)' : 'rgba(239,83,80,0.06)',
+                  border: '1px solid rgba(239,83,80,0.2)',
+                  color: '#ef5350',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease'
+                }}
               >
                 Decline Join
               </button>
               <button
                 onClick={onAccept}
-                className="flex-[2] h-11 bg-primary text-white hover:bg-primary-dark rounded-xl text-xs font-bold shadow-md transition-colors"
+                onMouseEnter={() => setIsAcceptHovered(true)}
+                onMouseLeave={() => setIsAcceptHovered(false)}
+                style={{
+                  flex: 2,
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: isAcceptHovered ? 'rgba(79,190,142,0.9)' : 'var(--moss)',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
+                  boxShadow: '0 4px 14px rgba(79,190,142,0.3)'
+                }}
               >
                 Approve & Confirm
               </button>
@@ -187,7 +294,18 @@ const MemberTrustCard = ({
           ) : (
             <button
               onClick={onClose}
-              className="w-full h-11 bg-stone-850 hover:bg-stone-900 text-white rounded-xl text-xs font-bold transition-colors"
+              style={{
+                width: '100%',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 150ms ease'
+              }}
             >
               Close Profile
             </button>

@@ -8,9 +8,6 @@ import { Link } from 'react-router-dom'
 const PreJoinCheckGate = ({ isOpen, onClose, user, activity, onConfirm }) => {
   if (!isOpen) return null
 
-  // Evaluate individual check flags
-  const hasIdVerified = user?.id_verified === true
-  
   // Simulated checks or mapped user stats
   const hasEmergencyContact = user?.has_emergency_contact === true || true // Assume true or set mock
   const trustPasses = (user?.trust_score || 50) >= (activity?.min_trust_score || 0)
@@ -19,16 +16,9 @@ const PreJoinCheckGate = ({ isOpen, onClose, user, activity, onConfirm }) => {
   // Gender rule check
   const genderPasses = !activity?.is_women_only || user?.gender === 'female'
 
-  const allPass = hasIdVerified && hasEmergencyContact && trustPasses && reliabilityPasses && genderPasses
+  const allPass = hasEmergencyContact && trustPasses && reliabilityPasses && genderPasses
 
   const checklist = [
-    {
-      label: 'ID Verification',
-      status: hasIdVerified,
-      errorMsg: 'Government identity verification is required.',
-      actionLink: '/profile/me/verify-id',
-      actionText: 'Verify your ID →'
-    },
     {
       label: 'Emergency Contact Configured',
       status: hasEmergencyContact,

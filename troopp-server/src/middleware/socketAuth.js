@@ -18,7 +18,7 @@ const socketAuthMiddleware = async (socket, next) => {
       return next(new Error('UNAUTHORIZED'))
     }
 
-    const secret = process.env.JWT_ACCESS_SECRET || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+    const secret = process.env.JWT_ACCESS_SECRET
     let decoded
     try {
       decoded = jwt.verify(token, secret)

@@ -3,6 +3,7 @@ import Spinner from '../../components/common/Spinner.jsx'
 
 /**
  * Administrative Push Broadcast Center. Sends targeted push alerts.
+ * Overhauled to match the premium dark moody theme.
  */
 const AdminBroadcast = () => {
   const [loading, setLoading] = useState(true)
@@ -25,7 +26,7 @@ const AdminBroadcast = () => {
       setHistory([
         {
           id: 'bc-1',
-          title: '🌧️ Monsoon Trek Safety Advisory',
+          title: 'Monsoon Trek Safety Advisory',
           target: 'All Users',
           recipientsCount: 1420,
           sentBy: 'Admin Priya',
@@ -33,7 +34,7 @@ const AdminBroadcast = () => {
         },
         {
           id: 'bc-2',
-          title: '🚨 Mumbai Central Track Disruptions Warning',
+          title: 'Mumbai Central Track Disruptions Warning',
           target: 'Mumbai City Only',
           recipientsCount: 620,
           sentBy: 'Admin Raj',
@@ -68,20 +69,51 @@ const AdminBroadcast = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-white">
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+          color: 'var(--text-primary)'
+        }}
+      >
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="p-6 text-white bg-stone-950 min-h-screen flex flex-col gap-6 font-sans">
+    <div 
+      style={{
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+        fontFamily: 'var(--font-body)'
+      }}
+    >
       
       {/* Header title */}
-      <div className="flex justify-between items-center border-b border-white/10 pb-4">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Administrative Panel</span>
-          <h2 className="text-xl font-black mt-0.5">Push Notification Broadcast Center</h2>
+      <div 
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '16px'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Administrative Panel
+          </span>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '4px 0 0 0', color: '#f3f1ea' }}>
+            Push Notification Broadcast Center
+          </h2>
         </div>
       </div>
 
@@ -89,16 +121,27 @@ const AdminBroadcast = () => {
         
         {/* Left Columns: Broadcast Form & Live Preview */}
         <div className="lg:col-span-2 flex flex-col gap-5">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 pb-2 border-b border-white/5">
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: 'var(--shadow-card)'
+            }}
+          >
+            <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '8px', fontFamily: 'var(--font-display)' }}>
               Draft Message Campaign
             </h4>
 
             {/* Campaign title */}
-            <div className="flex flex-col gap-1.5 text-xs">
-              <div className="flex justify-between font-bold text-stone-300">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600', color: 'var(--text-secondary)' }}>
                 <span>Notification Title</span>
-                <span className="text-stone-500">{title.length} / 100</span>
+                <span style={{ color: 'var(--text-tertiary)' }}>{title.length} / 100</span>
               </div>
               <input
                 type="text"
@@ -106,15 +149,24 @@ const AdminBroadcast = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Monsoon trail heavy rain alert..."
-                className="h-10 bg-stone-900 border border-white/10 rounded-xl px-3 outline-none text-white focus:border-primary"
+                style={{
+                  height: '42px',
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '100px',
+                  padding: '0 18px',
+                  fontSize: '13px',
+                  color: '#f3f1ea',
+                  outline: 'none'
+                }}
               />
             </div>
 
             {/* Campaign description */}
-            <div className="flex flex-col gap-1.5 text-xs">
-              <div className="flex justify-between font-bold text-stone-300">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600', color: 'var(--text-secondary)' }}>
                 <span>Notification Body Description</span>
-                <span className="text-stone-500">{body.length} / 500</span>
+                <span style={{ color: 'var(--text-tertiary)' }}>{body.length} / 500</span>
               </div>
               <textarea
                 rows={4}
@@ -122,31 +174,40 @@ const AdminBroadcast = () => {
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Alert text details..."
-                className="bg-stone-900 border border-white/10 rounded-xl p-3 resize-none outline-none text-white focus:border-primary"
+                style={{
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  fontSize: '13px',
+                  color: '#f3f1ea',
+                  outline: 'none',
+                  resize: 'none'
+                }}
               />
             </div>
 
             {/* Target Audience radio options */}
-            <div className="flex flex-col gap-2 text-xs">
-              <span className="font-bold text-stone-300">Target Audience Scope</span>
-              <div className="flex gap-4 mt-1">
-                <label className="flex items-center gap-2 cursor-pointer font-medium">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Target Audience Scope</span>
+              <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '500', color: '#f3f1ea' }}>
                   <input
                     type="radio"
                     name="target"
                     checked={target === 'all'}
                     onChange={() => setTarget('all')}
-                    className="accent-primary"
+                    style={{ accentColor: '#ff6a2c' }}
                   />
                   <span>All Registered Users</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer font-medium">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '500', color: '#f3f1ea' }}>
                   <input
                     type="radio"
                     name="target"
                     checked={target === 'city'}
                     onChange={() => setTarget('city')}
-                    className="accent-primary"
+                    style={{ accentColor: '#ff6a2c' }}
                   />
                   <span>Specific City Target</span>
                 </label>
@@ -156,11 +217,24 @@ const AdminBroadcast = () => {
                 <select
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
-                  className="mt-2 h-10 bg-stone-900 border border-white/10 rounded-xl px-2 outline-none text-white focus:border-primary w-full max-w-xs"
+                  style={{
+                    marginTop: '8px',
+                    height: '42px',
+                    background: 'var(--surface-raised)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '0 12px',
+                    fontSize: '13px',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    maxWidth: '320px'
+                  }}
                 >
-                  <option value="">Select Target City</option>
-                  <option value="city-1">Mumbai</option>
-                  <option value="city-2">Pune</option>
+                  <option value="" style={{ background: '#1a2129', color: '#f3f1ea' }}>Select Target City</option>
+                  <option value="city-1" style={{ background: '#1a2129', color: '#f3f1ea' }}>Mumbai</option>
+                  <option value="city-2" style={{ background: '#1a2129', color: '#f3f1ea' }}>Pune</option>
                 </select>
               )}
             </div>
@@ -168,7 +242,21 @@ const AdminBroadcast = () => {
             <button
               disabled={!title.trim() || !body.trim() || (target === 'city' && !selectedCity)}
               onClick={() => setConfirmOpen(true)}
-              className="mt-3 h-11 bg-primary hover:bg-primary-dark disabled:bg-stone-850 text-white font-bold rounded-xl text-xs shadow-md transition-all"
+              style={{
+                marginTop: '12px',
+                height: '46px',
+                background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
+                color: '#1a0e08',
+                fontFamily: 'var(--font-display)',
+                fontWeight: '700',
+                borderRadius: '100px',
+                fontSize: '14px',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(255,106,44,0.20)',
+                opacity: (!title.trim() || !body.trim() || (target === 'city' && !selectedCity)) ? 0.4 : 1,
+                transition: 'opacity 150ms'
+              }}
             >
               📣 Schedule Broadcast push Alert
             </button>
@@ -176,21 +264,58 @@ const AdminBroadcast = () => {
         </div>
 
         {/* Right Column: Live Mock Preview screen */}
-        <div className="flex flex-col gap-5">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 pb-1 border-b border-white/5">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '20px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}
+          >
+            <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '8px', fontFamily: 'var(--font-display)' }}>
               Live Mock Preview
             </h4>
             
             {/* Phone Shell mock */}
-            <div className="border border-white/10 bg-stone-900 rounded-3xl p-4 flex flex-col gap-3 max-w-[240px] mx-auto shadow-inner text-xs">
-              <span className="text-[8px] text-stone-500 font-bold block text-center uppercase tracking-widest">Smartphone Notification</span>
+            <div 
+              style={{
+                border: '1px solid var(--border)',
+                background: 'var(--bg-alt)',
+                borderRadius: '24px',
+                padding: '24px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                width: '100%',
+                maxWidth: '240px',
+                margin: '0 auto',
+                boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)'
+              }}
+            >
+              <span style={{ fontSize: '8px', color: 'var(--text-tertiary)', fontWeight: '700', display: 'block', textAlign: 'center', uppercase: 'true', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Smartphone Notification</span>
               
-              <div className="bg-stone-950 border border-white/5 p-3 rounded-2xl flex gap-2.5 items-start">
-                <span className="text-lg">⛺</span>
-                <div className="flex flex-col gap-0.5 truncate">
-                  <span className="font-extrabold text-white text-[10px] truncate">{title || 'Monsoon rain alerts'}</span>
-                  <p className="text-[8px] text-stone-400 leading-snug break-words">
+              <div 
+                style={{
+                  background: 'var(--surface-raised)',
+                  border: '1px solid rgba(255,255,255,0.04)',
+                  padding: '12px',
+                  borderRadius: '14px',
+                  display: 'flex',
+                  gap: '10px',
+                  alignItems: 'flex-start'
+                }}
+              >
+                <span style={{ fontSize: '18px' }}>⛺</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
+                  <span style={{ fontWeight: '700', color: '#f3f1ea', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {title || 'Monsoon rain alerts'}
+                  </span>
+                  <p style={{ fontSize: '9px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.3', wordBreak: 'break-words' }}>
                     {body || 'Description details will be rendered here for user previews.'}
                   </p>
                 </div>
@@ -202,31 +327,53 @@ const AdminBroadcast = () => {
       </div>
 
       {/* Campaign Broadcast logs */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+      <div 
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '14px',
+          padding: '20px',
+          boxShadow: 'var(--shadow-card)'
+        }}
+      >
+        <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
           Campaign Broadcast Dispatch Logs
         </h4>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-stone-300">
-            <thead className="text-[10px] font-bold text-stone-400 uppercase border-b border-white/10">
+          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <thead 
+              style={{
+                fontSize: '11px',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--text-primary)',
+                background: 'var(--surface-raised)',
+                borderBottom: '1px solid var(--border)'
+              }}
+            >
               <tr>
-                <th className="pb-3">Send Date</th>
-                <th className="pb-3">Campaign Title</th>
-                <th className="pb-3">Audience Target</th>
-                <th className="pb-3">Recipients Count</th>
-                <th className="pb-3">Sent By</th>
+                <th style={{ padding: '12px 16px' }}>Send Date</th>
+                <th style={{ padding: '12px 16px' }}>Campaign Title</th>
+                <th style={{ padding: '12px 16px' }}>Audience Target</th>
+                <th style={{ padding: '12px 16px' }}>Recipients Count</th>
+                <th style={{ padding: '12px 16px' }}>Sent By</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody style={{ divideY: '1px solid rgba(255,255,255,0.04)' }}>
               {history.map((h) => (
-                <tr key={h.id} className="hover:bg-white/5 transition-colors">
-                  <td className="py-3.5">
+                <tr 
+                  key={h.id} 
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 150ms' }}
+                  className="hover:bg-white/[0.02]"
+                >
+                  <td style={{ padding: '14px 16px' }}>
                     {new Date(h.sentAt).toLocaleDateString([], { day: '2-digit', month: 'short' })}
                   </td>
-                  <td className="py-3.5 font-bold text-white">{h.title}</td>
-                  <td className="py-3.5 font-bold">{h.target}</td>
-                  <td className="py-3.5 font-extrabold text-primary">{h.recipientsCount} Users</td>
-                  <td className="py-3.5 text-stone-400">{h.sentBy}</td>
+                  <td style={{ padding: '14px 16px', fontWeight: '700', color: '#f3f1ea' }}>{h.title}</td>
+                  <td style={{ padding: '14px 16px', fontWeight: '700', color: '#f3f1ea' }}>{h.target}</td>
+                  <td style={{ padding: '14px 16px', fontWeight: '800', color: 'var(--accent)' }}>{h.recipientsCount} Users</td>
+                  <td style={{ padding: '14px 16px' }}>{h.sentBy}</td>
                 </tr>
               ))}
             </tbody>
@@ -236,22 +383,59 @@ const AdminBroadcast = () => {
 
       {/* Confirmation modal */}
       {confirmOpen && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-white/10 rounded-2xl p-5 w-full max-w-xs shadow-xl flex flex-col gap-4 text-center">
-            <span className="text-3xl text-primary block">📣</span>
-            <div className="flex flex-col gap-1">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white">Dispatch Broadcast Alert</h4>
-              <p className="text-[11px] text-stone-400 leading-relaxed">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '360px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              textAlign: 'center'
+            }}
+          >
+            <span style={{ fontSize: '36px', display: 'block', margin: '0 auto' }}>📣</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#f3f1ea', margin: 0, fontFamily: 'var(--font-display)' }}>Dispatch Broadcast Alert</h4>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>
                 Are you sure you want to send this push notification broadcast to the selected audience? This dispatch cannot be cancelled.
               </p>
             </div>
-            <div className="flex gap-2 border-t border-white/10 pt-3">
-              <button onClick={() => setConfirmOpen(false)} className="flex-1 h-10 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 transition-colors">
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <button 
+                onClick={() => setConfirmOpen(false)} 
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
                 Cancel
               </button>
               <button
                 onClick={handleSendBroadcast}
-                className="flex-1 h-10 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold transition-all"
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'var(--accent)',
+                  color: '#1a0e08',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}
               >
                 Yes, Send
               </button>

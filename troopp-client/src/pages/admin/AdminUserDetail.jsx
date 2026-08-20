@@ -7,6 +7,7 @@ import Avatar from '../../components/common/Avatar.jsx'
 /**
  * Detailed administration view for specific traveler profiles.
  * Executes bans, suspensions, and manual trust override inputs.
+ * Overhauled to match the premium dark moody theme.
  */
 const AdminUserDetail = () => {
   const { id: userId } = useParams()
@@ -43,7 +44,6 @@ const AdminUserDetail = () => {
           trustScore: 80,
           reliabilityScore: 98,
           account_status: 'active',
-          is_id_verified: true,
           bio: 'Avid monsoon trekker and campfire enthusiast.'
         },
         scoreHistory: [
@@ -53,7 +53,7 @@ const AdminUserDetail = () => {
           { date: '07/01', score: 80 }
         ],
         trustLogs: [
-          { id: '1', reason: 'id_verified', delta: 30, createdAt: '2026-06-10T10:00:00Z' },
+          { id: '1', reason: 'profile_completed', delta: 15, createdAt: '2026-06-10T10:00:00Z' },
           { id: '2', reason: 'rating_positive', delta: 3, createdAt: '2026-06-20T18:00:00Z' },
           { id: '3', reason: 'rating_positive', delta: 3, createdAt: '2026-07-01T15:30:00Z' }
         ],
@@ -115,7 +115,16 @@ const AdminUserDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-white">
+      <div 
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+          color: 'var(--text-primary)'
+        }}
+      >
         <Spinner size="lg" />
       </div>
     )
@@ -124,58 +133,160 @@ const AdminUserDetail = () => {
   const { user, scoreHistory, trustLogs, trips, reportsReceived } = userData
 
   return (
-    <div className="p-6 text-white bg-stone-950 min-h-screen flex flex-col gap-6 font-sans">
+    <div 
+      style={{
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+        fontFamily: 'var(--font-body)'
+      }}
+    >
       
       {/* Header back navigation */}
-      <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+      <div 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '16px'
+        }}
+      >
         <button
           onClick={() => navigate('/admin/users')}
-          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center text-white text-xs font-bold transition-all"
+          style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '12px',
+            background: 'var(--surface-raised)',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#f3f1ea',
+            fontSize: '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'background 150ms'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface-raised)' }}
         >
           ←
         </button>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Administrative Panel</span>
-          <h2 className="text-xl font-black mt-0.5">Traveler Profile Oversight</h2>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Administrative Panel
+          </span>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '4px 0 0 0', color: '#f3f1ea' }}>
+            Traveler Profile Oversight
+          </h2>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Column: Profile Card & Action Commands */}
-        <div className="flex flex-col gap-5">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-lg items-center text-center">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              alignItems: 'center',
+              textAlign: 'center',
+              boxShadow: 'var(--shadow-card)'
+            }}
+          >
             <Avatar size="lg" name={user.name} score={user.trustScore} />
-            <div className="flex flex-col mt-2">
-              <h3 className="text-sm font-black text-white">{user.name}</h3>
-              <span className="text-[10px] text-stone-400 mt-0.5">{user.email}</span>
-              <span className="text-[10px] text-stone-400 mt-0.5">{user.phone}</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#f3f1ea', margin: 0, fontFamily: 'var(--font-display)' }}>{user.name}</h3>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>{user.email}</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{user.phone}</span>
             </div>
             
-            <p className="text-[10px] text-stone-300 leading-relaxed font-medium bg-white/5 p-3 rounded-xl w-full">
+            <p 
+              style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.5',
+                background: 'var(--surface-raised)',
+                border: '1px solid var(--border)',
+                padding: '12px',
+                borderRadius: '10px',
+                width: '100%',
+                margin: 0
+              }}
+            >
               "{user.bio || 'No traveler bio written yet.'}"
             </p>
 
-            <div className="w-full flex justify-between items-center border-t border-white/10 pt-4 text-xs">
-              <span className="text-stone-400">Account status</span>
-              <span className="font-extrabold uppercase text-emerald-400">{user.account_status}</span>
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '14px', fontSize: '13px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Account status</span>
+              <span style={{ fontWeight: '800', textTransform: 'uppercase', color: 'var(--moss)' }}>{user.account_status}</span>
             </div>
           </div>
 
           {/* Action triggers */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-2.5 shadow-lg">
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-stone-400 pb-2 border-b border-white/5">
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              boxShadow: 'var(--shadow-card)'
+            }}
+          >
+            <h4 style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '0 0 6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '8px' }}>
               Moderation Commands
             </h4>
             <button
               onClick={() => setSuspendOpen(true)}
-              className="h-10 w-full bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow"
+              style={{
+                height: '42px',
+                width: '100%',
+                background: 'var(--amber)',
+                color: '#1a0e08',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: '700',
+                fontFamily: 'var(--font-display)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'opacity 150ms'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
             >
               ⚠️ Temporarily Suspend User
             </button>
             <button
               onClick={() => setBanOpen(true)}
-              className="h-10 w-full bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow"
+              style={{
+                height: '42px',
+                width: '100%',
+                background: 'var(--danger)',
+                color: 'white',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: '700',
+                fontFamily: 'var(--font-display)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'opacity 150ms'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
             >
               🚫 Permanently Ban Account
             </button>
@@ -184,7 +295,20 @@ const AdminUserDetail = () => {
                 setOverrideScore(user.trustScore.toString())
                 setOverrideOpen(true)
               }}
-              className="h-10 w-full bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-xl text-xs font-bold transition-all"
+              style={{
+                height: '42px',
+                width: '100%',
+                background: 'var(--surface-raised)',
+                border: '1px solid var(--border)',
+                color: '#f3f1ea',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'background 150ms'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface-raised)' }}
             >
               🛠️ Override Trust Score
             </button>
@@ -193,37 +317,65 @@ const AdminUserDetail = () => {
 
         {/* Center Column: Recharts Line plot and score history timeline */}
         <div className="lg:col-span-2 flex flex-col gap-5">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '20px',
+              boxShadow: 'var(--shadow-card)'
+            }}
+          >
+            <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
               Trust Score History Progress (Last 30 Days)
             </h4>
-            <div className="h-48 w-full">
+            <div style={{ height: '192px', width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={scoreHistory}>
-                  <XAxis dataKey="date" stroke="#A8A29E" fontSize={10} tickLine={false} />
-                  <YAxis stroke="#A8A29E" fontSize={10} tickLine={false} domain={[0, 100]} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1C1917', border: '1px solid #444', color: '#fff' }} />
-                  <Line type="monotone" dataKey="score" stroke="#F97316" strokeWidth={3} dot={{ r: 4 }} />
+                  <XAxis dataKey="date" stroke="#9ba6ad" fontSize={10} tickLine={false} />
+                  <YAxis stroke="#9ba6ad" fontSize={10} tickLine={false} domain={[0, 100]} />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }} />
+                  <Line type="monotone" dataKey="score" stroke="var(--accent)" strokeWidth={3} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Timeline of score log items */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '20px',
+              boxShadow: 'var(--shadow-card)'
+            }}
+          >
+            <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
               Score Adjustment Logs (Timeline)
             </h4>
-            <div className="flex flex-col gap-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {trustLogs.map((log) => (
-                <div key={log.id} className="bg-white/5 p-3 rounded-xl flex items-center justify-between text-xs border border-white/5">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-bold text-white capitalize">{log.reason.replace(/_/g, ' ')}</span>
-                    <span className="text-[9px] text-stone-400">
+                <div 
+                  key={log.id} 
+                  style={{
+                    background: 'var(--surface-raised)',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: '13px',
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontWeight: '700', color: '#f3f1ea', textTransform: 'capitalize' }}>{log.reason.replace(/_/g, ' ')}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
                       {new Date(log.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <span className={`font-extrabold text-xs ${log.delta >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                  <span style={{ fontWeight: '800', color: log.delta >= 0 ? 'var(--moss)' : 'var(--danger)' }}>
                     {log.delta >= 0 ? `+${log.delta}` : log.delta}
                   </span>
                 </div>
@@ -235,35 +387,77 @@ const AdminUserDetail = () => {
       </div>
 
       {/* Trips list section & reports received */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-2">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '20px',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
             Registered Trips ({trips.length})
           </h4>
-          <div className="flex flex-col gap-2.5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {trips.map((t) => (
-              <div key={t.id} className="bg-white/5 p-3 rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                <div className="flex flex-col">
-                  <span className="font-bold text-white">{t.title}</span>
-                  <span className="text-[9px] text-stone-400 mt-0.5 capitalize">Role: {t.role} · Status: {t.status}</span>
+              <div 
+                key={t.id} 
+                style={{
+                  background: 'var(--surface-raised)',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: '13px'
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontWeight: '700', color: '#f3f1ea' }}>{t.title}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px', textTransform: 'capitalize' }}>
+                    Role: {t.role} · Status: {t.status}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+        <div 
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '20px',
+            boxShadow: 'var(--shadow-card)'
+          }}
+        >
+          <h4 style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: '0 0 16px 0', fontFamily: 'var(--font-display)' }}>
             Grievance Reports Filed Against User ({reportsReceived.length})
           </h4>
-          <div className="flex flex-col gap-2.5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {reportsReceived.map((r) => (
-              <div key={r.id} className="bg-rose-950/10 border border-rose-900/30 p-3.5 rounded-xl flex flex-col gap-1.5 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="font-extrabold text-rose-400">Reason: {r.reason}</span>
-                  <span className="text-[9px] text-stone-400">Filed by {r.reporterName}</span>
+              <div 
+                key={r.id} 
+                style={{
+                  background: 'var(--danger-soft)',
+                  border: '1px solid rgba(255,84,112,0.2)',
+                  padding: '14px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  fontSize: '13px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: '800', color: 'var(--danger)' }}>Reason: {r.reason}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Filed by {r.reporterName}</span>
                 </div>
-                <p className="text-[10px] text-stone-300 leading-snug">{r.details}</p>
+                <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{r.details}</p>
               </div>
             ))}
           </div>
@@ -272,38 +466,96 @@ const AdminUserDetail = () => {
 
       {/* Suspend Modal Dialog */}
       {suspendOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-white/10 rounded-2xl p-5 w-full max-w-xs shadow-xl flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-500">Suspend Account</h4>
-            <div className="flex flex-col gap-3 text-xs">
-              <span className="font-bold text-stone-300">Select Suspension Duration</span>
-              <select
-                value={suspendDays}
-                onChange={(e) => setSuspendDays(e.target.value)}
-                className="w-full h-10 bg-stone-950 border border-white/10 rounded-xl px-2 outline-none text-white"
-              >
-                <option value="7">7 Days</option>
-                <option value="30">30 Days</option>
-                <option value="90">90 Days</option>
-              </select>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '360px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <h4 style={{ fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--amber)', margin: 0, fontFamily: 'var(--font-display)' }}>Suspend Account</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Select Duration</span>
+                <select
+                  value={suspendDays}
+                  onChange={(e) => setSuspendDays(e.target.value)}
+                  style={{
+                    height: '38px',
+                    background: 'var(--surface-raised)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '0 8px',
+                    color: '#f3f1ea',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="7" style={{ background: '#1a2129', color: '#f3f1ea' }}>7 Days</option>
+                  <option value="30" style={{ background: '#1a2129', color: '#f3f1ea' }}>30 Days</option>
+                  <option value="90" style={{ background: '#1a2129', color: '#f3f1ea' }}>90 Days</option>
+                </select>
+              </div>
 
-              <span className="font-bold text-stone-300 mt-2">Reason for Suspension</span>
-              <textarea
-                rows={3}
-                value={suspendReason}
-                onChange={(e) => setSuspendReason(e.target.value)}
-                placeholder="Guidelines violation details..."
-                className="w-full bg-stone-950 border border-white/10 rounded-xl p-2.5 resize-none outline-none text-white focus:border-amber-500"
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Reason for Suspension</span>
+                <textarea
+                  rows={3}
+                  value={suspendReason}
+                  onChange={(e) => setSuspendReason(e.target.value)}
+                  placeholder="Guidelines violation details..."
+                  style={{
+                    background: 'var(--surface-raised)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    color: '#f3f1ea',
+                    resize: 'none',
+                    outline: 'none'
+                  }}
+                />
+              </div>
             </div>
-            <div className="flex gap-2 border-t border-white/10 pt-4">
-              <button onClick={() => setSuspendOpen(false)} className="flex-1 h-10 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 transition-colors">
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <button 
+                onClick={() => setSuspendOpen(false)} 
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
                 Cancel
               </button>
               <button
                 disabled={!suspendReason.trim()}
                 onClick={handleSuspendSubmit}
-                className="flex-1 h-10 bg-amber-600 hover:bg-amber-700 disabled:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all"
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'var(--amber)',
+                  color: '#1a0e08',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  opacity: !suspendReason.trim() ? 0.4 : 1
+                }}
               >
                 Suspend
               </button>
@@ -314,12 +566,26 @@ const AdminUserDetail = () => {
 
       {/* Ban Modal Dialog */}
       {banOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-white/10 rounded-2xl p-5 w-full max-w-xs shadow-xl flex flex-col gap-4 text-center">
-            <span className="text-4xl text-rose-500 block">🚫</span>
-            <div className="flex flex-col gap-1">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-rose-500">Permanent Ban</h4>
-              <p className="text-[11px] text-stone-400">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '360px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              textAlign: 'center'
+            }}
+          >
+            <span style={{ fontSize: '36px', display: 'block', margin: '0 auto' }}>🚫</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--danger)', margin: 0, fontFamily: 'var(--font-display)' }}>Permanent Ban</h4>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>
                 Are you sure you want to permanently ban {user.name}? This cannot be undone.
               </p>
             </div>
@@ -328,16 +594,50 @@ const AdminUserDetail = () => {
               value={banReason}
               onChange={(e) => setBanReason(e.target.value)}
               placeholder="Mandatory reason for ban..."
-              className="w-full bg-stone-950 border border-white/10 rounded-xl p-2 text-xs resize-none outline-none text-white focus:border-rose-500 text-left"
+              style={{
+                background: 'var(--surface-raised)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '10px',
+                color: '#f3f1ea',
+                resize: 'none',
+                outline: 'none',
+                fontSize: '12px',
+                textAlign: 'left'
+              }}
             />
-            <div className="flex gap-2 border-t border-white/10 pt-3">
-              <button onClick={() => setBanOpen(false)} className="flex-1 h-10 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 transition-colors">
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <button 
+                onClick={() => setBanOpen(false)} 
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
                 Cancel
               </button>
               <button
                 disabled={!banReason.trim()}
                 onClick={handleBanSubmit}
-                className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 disabled:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all"
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'var(--danger)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  opacity: !banReason.trim() ? 0.4 : 1
+                }}
               >
                 Yes, Ban
               </button>
@@ -348,37 +648,94 @@ const AdminUserDetail = () => {
 
       {/* Trust Score Override Modal Dialog */}
       {overrideOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-white/10 rounded-2xl p-5 w-full max-w-xs shadow-xl flex flex-col gap-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Override Trust Score</h4>
-            <div className="flex flex-col gap-3 text-xs">
-              <span className="font-bold text-stone-300">Target Score (0-100)</span>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={overrideScore}
-                onChange={(e) => setOverrideScore(e.target.value)}
-                className="w-full h-10 bg-stone-950 border border-white/10 rounded-xl px-2 outline-none text-white"
-              />
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '360px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <h4 style={{ fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#f3f1ea', margin: 0, fontFamily: 'var(--font-display)' }}>Override Trust Score</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Target Score (0-100)</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={overrideScore}
+                  onChange={(e) => setOverrideScore(e.target.value)}
+                  style={{
+                    height: '38px',
+                    background: 'var(--surface-raised)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '0 8px',
+                    color: '#f3f1ea',
+                    outline: 'none'
+                  }}
+                />
+              </div>
 
-              <span className="font-bold text-stone-300 mt-2">Justification for override</span>
-              <textarea
-                rows={3}
-                value={overrideReason}
-                onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="Mandatory auditor note..."
-                className="w-full bg-stone-950 border border-white/10 rounded-xl p-2.5 resize-none outline-none text-white focus:border-primary"
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Justification for override</span>
+                <textarea
+                  rows={3}
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="Mandatory auditor note..."
+                  style={{
+                    background: 'var(--surface-raised)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    color: '#f3f1ea',
+                    resize: 'none',
+                    outline: 'none'
+                  }}
+                />
+              </div>
             </div>
-            <div className="flex gap-2 border-t border-white/10 pt-4">
-              <button onClick={() => setOverrideOpen(false)} className="flex-1 h-10 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 transition-colors">
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <button 
+                onClick={() => setOverrideOpen(false)} 
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
                 Cancel
               </button>
               <button
                 disabled={!overrideReason.trim()}
                 onClick={handleOverrideSubmit}
-                className="flex-1 h-10 bg-primary hover:bg-primary-dark disabled:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all"
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'var(--accent)',
+                  color: '#1a0e08',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  opacity: !overrideReason.trim() ? 0.4 : 1
+                }}
               >
                 Override Score
               </button>

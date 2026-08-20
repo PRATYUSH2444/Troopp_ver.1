@@ -3,6 +3,7 @@ import { messaging } from '../firebase.js'
 import { getToken, onMessage } from 'firebase/messaging'
 import toast, { Toaster } from 'react-hot-toast'
 import { useAuth } from './AuthContext.jsx'
+import { apiRequest } from '../utils/api.js'
 
 const NotificationContext = createContext(null)
 
@@ -115,10 +116,51 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [isAuthenticated])
 
+  const fetchNotifications = async () => {
+    if (!isAuthenticated) return
+    try {
+      const res = await apiRequest('/community/notifications')
+      if (res && res.ok) {
+        const json = await res.json()
+        if (json.status === 'success') {
+          const list = json.data.notifications || []
+          setNotificationList(list)
+          const unread = list.filter((n) => !n.is_read).length
+          setUnreadCount(unread)
+        }
+      }
+    } catch (err) {
+      console.error('Failed fetching notifications:', err)
+    }
+  }
+
+  const markAsRead = async (id) => {
+    try {
+      await apiRequest(`/community/notifications/${id}/read`, { method: 'PATCH' })
+      setNotificationList((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n))
+      setUnreadCount((prev) => Math.max(0, prev - 1))
+    } catch (err) {
+      console.error('Failed marking notification as read:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchNotifications()
+    } else {
+      setNotificationList([])
+      setUnreadCount(0)
+    }
+  }, [isAuthenticated])
+
   // Mark all as read action
   const markAllAsRead = async () => {
     try {
-      // Dispatch: axios.put('/api/v1/notifications/read-all')
+      // For fallback and compliance, mark each locally and via API calls in batch if unread
+      const unreadList = notificationList.filter((n) => !n.is_read)
+      await Promise.all(
+        unreadList.map((n) => apiRequest(`/community/notifications/${n.id}/read`, { method: 'PATCH' }))
+      )
       setUnreadCount(0)
       setNotificationList((prev) => prev.map((n) => ({ ...n, is_read: true })))
     } catch (err) {
@@ -135,6 +177,8 @@ export const NotificationProvider = ({ children }) => {
         isPermissionGranted,
         requestPermission,
         markAllAsRead,
+        markAsRead,
+        fetchNotifications,
         setNotificationList,
         setUnreadCount
       }}

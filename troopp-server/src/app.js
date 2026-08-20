@@ -1,5 +1,8 @@
 import express from 'express'
 import cors from 'cors'
+import fs from 'fs'
+import path from 'path'
+import { Post, Board } from './models/index.js'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import compression from 'compression'
@@ -132,6 +135,68 @@ app.use('/api/', generalLimiter)
 
 // 12. Mount API Routes under /api/v1/
 app.use('/api/v1', apiRouter)
+
+// 12.5. SEO Pre-render Handler for Community Routes
+app.get(['/community/posts/:postId', '/community/boards/:boardName', '/community'], async (req, res, next) => {
+  try {
+    let indexHtmlPath = path.resolve('../troopp-client/dist/index.html')
+    if (!fs.existsSync(indexHtmlPath)) {
+      indexHtmlPath = path.resolve('../troopp-client/index.html')
+    }
+    if (!fs.existsSync(indexHtmlPath)) {
+      return next() // fallback to 404
+    }
+
+    let html = fs.readFileSync(indexHtmlPath, 'utf8')
+    let title = 'Troopp | Community Discussions'
+    let description = 'Join discussion groups on Troopp.'
+    let preRenderedContent = ''
+
+    if (req.params.postId) {
+      const post = await Post.findByPk(req.params.postId, {
+        include: [{ model: Board, attributes: ['display_name'] }]
+      })
+      if (post) {
+        title = `${post.title} | b/${post.Board?.display_name || 'community'}`
+        description = post.content ? post.content.substring(0, 150) : 'View post on Troopp.'
+        preRenderedContent = `
+          <article>
+            <h1>${post.title}</h1>
+            <p>${post.content || ''}</p>
+          </article>
+        `
+      }
+    } else if (req.params.boardName) {
+      const board = await Board.findOne({ where: { name: req.params.boardName } })
+      if (board) {
+        title = `${board.display_name} - Troopp Community`
+        description = board.description || 'Welcome to the community board.'
+        preRenderedContent = `
+          <div>
+            <h1>${board.display_name}</h1>
+            <p>${board.description || ''}</p>
+          </div>
+        `
+      }
+    }
+
+    // Replace title and inject meta tags
+    html = html.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
+    html = html.replace('</head>', `
+      <meta name="description" content="${description}" />
+      <meta property="og:title" content="${title}" />
+      <meta property="og:description" content="${description}" />
+      </head>
+    `)
+
+    // Inject pre-rendered content for crawlers inside the root div
+    html = html.replace('<div id="root"></div>', `<div id="root">${preRenderedContent}</div>`)
+
+    res.status(200).send(html)
+  } catch (err) {
+    next(err)
+  }
+})
 
 // 13. Catch 404 and forward to error handler
 app.use((req, res, next) => {

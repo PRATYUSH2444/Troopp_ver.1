@@ -47,14 +47,13 @@ const EditActivity = lazy(() => import('../pages/EditActivity.jsx'))
 const SetupActivity = lazy(() => import('../pages/SetupActivity.jsx'))
 const MyProfile = lazy(() => import('../pages/MyProfile.jsx'))
 const EditProfile = lazy(() => import('../pages/EditProfile.jsx'))
-const VerifyID = lazy(() => import('../pages/VerifyID.jsx'))
-const VerifyFace = lazy(() => import('../pages/VerifyFace.jsx'))
 const EmergencyContacts = lazy(() => import('../pages/EmergencyContacts.jsx'))
 const Settings = lazy(() => import('../pages/Settings.jsx'))
 const NotificationSettings = lazy(() => import('../pages/NotificationSettings.jsx'))
 const UserProfile = lazy(() => import('../pages/UserProfile.jsx'))
 const TripRoom = lazy(() => import('../pages/TripRoom.jsx'))
 const Notifications = lazy(() => import('../pages/Notifications.jsx'))
+const JoinRequestsPage = lazy(() => import('../pages/activities/JoinRequestsPage.jsx'))
 const RatingPage = lazy(() => import('../pages/rating/RatingPage.jsx'))
 const MemoryWallDetailPage = lazy(() => import('../pages/memory/MemoryWallDetailPage.jsx'))
 const NotificationPreferencesPage = lazy(() => import('../pages/settings/NotificationPreferencesPage.jsx'))
@@ -64,13 +63,20 @@ const Suspended = lazy(() => import('../pages/Suspended.jsx'))
 const Banned = lazy(() => import('../pages/Banned.jsx'))
 const Offline = lazy(() => import('../pages/Offline.jsx'))
 
+// Community Pages
+const CommunityFeed = lazy(() => import('../pages/community/CommunityFeed.jsx'))
+const BoardFeed = lazy(() => import('../pages/community/BoardFeed.jsx'))
+const PostDetail = lazy(() => import('../pages/community/PostDetail.jsx'))
+const SubmitPost = lazy(() => import('../pages/community/SubmitPost.jsx'))
+const CreateBoard = lazy(() => import('../pages/community/CreateBoard.jsx'))
+const ModQueue = lazy(() => import('../pages/community/ModQueue.jsx'))
+
 // Admin Pages
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard.jsx'))
 const AdminUsers = lazy(() => import('../pages/admin/AdminUsers.jsx'))
 const AdminUserDetail = lazy(() => import('../pages/admin/AdminUserDetail.jsx'))
 const AdminReports = lazy(() => import('../pages/admin/AdminReports.jsx'))
 const AdminActivityReports = lazy(() => import('../pages/admin/AdminActivityReports.jsx'))
-const AdminVerificationQueue = lazy(() => import('../pages/admin/AdminVerificationQueue.jsx'))
 const AdminActivities = lazy(() => import('../pages/admin/AdminActivities.jsx'))
 const AdminAnalytics = lazy(() => import('../pages/admin/AdminAnalytics.jsx'))
 const AdminBroadcast = lazy(() => import('../pages/admin/AdminBroadcast.jsx'))
@@ -116,6 +122,13 @@ const AppRouter = () => {
           <Route path="/maintenance" element={<Maintenance />} />
           <Route path="/offline" element={<Offline />} />
 
+          {/* Public Community Feed & Boards (wrapped in sidebar/navbar shell but accessible to guests) */}
+          <Route element={<AppLayout />}>
+            <Route path="/community" element={<CommunityFeed />} />
+            <Route path="/community/b/:boardName" element={<BoardFeed />} />
+            <Route path="/community/post/:postId" element={<PostDetail />} />
+          </Route>
+
           {/* ==========================================================================
               2. PROTECTED MEMBER ROUTES (Session verified)
               ========================================================================== */}
@@ -133,17 +146,23 @@ const AppRouter = () => {
               <Route path="/activities/create" element={<CreateActivity />} />
               <Route path="/activities/:id/edit" element={<EditActivity />} />
               <Route path="/activities/:id/setup" element={<SetupActivity />} />
+              <Route path="/activities/:id/requests" element={<JoinRequestsPage />} />
               <Route path="/profile/me" element={<MyProfile />} />
               <Route path="/profile/me/edit" element={<EditProfile />} />
-              <Route path="/profile/me/verify-id" element={<VerifyID />} />
-              <Route path="/profile/me/verify-face" element={<VerifyFace />} />
               <Route path="/profile/me/emergency" element={<EmergencyContacts />} />
               <Route path="/profile/me/settings" element={<Settings />} />
               <Route path="/profile/me/settings/notifications" element={<NotificationPreferencesPage />} />
+              <Route path="/profile/me/verify-phone" element={<VerifyPhone />} />
+              <Route path="/profile/me/verify-phone/check" element={<VerifyPhoneCheck />} />
               <Route path="/profile/:userId" element={<UserProfile />} />
               <Route path="/profile/:userId/followers" element={<FollowersListPage />} />
               <Route path="/profile/:userId/following" element={<FollowingListPage />} />
-              <Route path="/notifications" element={<Notifications />} />
+               <Route path="/notifications" element={<Notifications />} />
+              
+              {/* Authenticated Community Write Actions */}
+              <Route path="/community/submit" element={<SubmitPost />} />
+              <Route path="/community/create" element={<CreateBoard />} />
+              <Route path="/community/mod-queue" element={<ModQueue />} />
               
               {/* Trip Room chat layout, mutual ratings & memory walls */}
               <Route path="/trip-rooms/:id" element={<TripRoom />} />
@@ -162,7 +181,6 @@ const AppRouter = () => {
               <Route path="/admin/users/:id" element={<AdminUserDetail />} />
               <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/admin/activity-reports" element={<AdminActivityReports />} />
-              <Route path="/admin/verification-queue" element={<AdminVerificationQueue />} />
               <Route path="/admin/activities" element={<AdminActivities />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/broadcast" element={<AdminBroadcast />} />

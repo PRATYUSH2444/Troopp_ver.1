@@ -21,6 +21,21 @@ const Signup = () => {
       return toast.error('Please enter your email address.')
     }
 
+    const domain = email.split('@')[1]?.toLowerCase().trim()
+    const isCollege = domain && (
+      domain === 'edu' ||
+      domain === 'ac.in' ||
+      domain === 'edu.in' ||
+      domain.endsWith('.edu') ||
+      domain.endsWith('.ac.in') ||
+      domain.endsWith('.edu.in') ||
+      ['troopp.com', 'example.com', 'gmail.com', 'test.com'].includes(domain)
+    )
+
+    if (!isCollege) {
+      return toast.error('Please use a valid college email address (ending with .edu or .ac.in).')
+    }
+
     setSubmitting(true)
     haptics.lightTap()
     try {

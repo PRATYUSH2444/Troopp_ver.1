@@ -1,18 +1,47 @@
 import User from '../../models/User.js'
 import TrustScoreLog from '../../models/TrustScoreLog.js'
 import { sendNotification } from '../../services/notification.service.js'
+import { cacheGet, cacheSet, cacheInvalidatePattern } from '../../utils/cache.js'
 import logger from '../../config/logger.js'
 
 // Map scoring reasons to human-readable labels
 const REASON_MAPPINGS = {
   id_verified: 'Identity verified (+30)',
   face_verified: 'Face match verified (+15)',
+  phone_verified: 'Phone number verified (+20)',
   trip_completed: 'Trip completed successfully (+5)',
   positive_rating: 'Positive rating received (+3)',
   emergency_contact: 'Emergency contact added (+10)',
   account_tenure: 'Active member bonus (+1)',
   report_filed: 'Report filed against you (-20)',
   report_valid: 'Report confirmed valid (-40)'
+}
+
+/**
+ * Fetch cached trust score with fallback database re-computation.
+ */
+export const getCachedTrustScore = async (userId) => {
+  const cacheKey = `user:trust:${userId}`
+  try {
+    const cached = await cacheGet(cacheKey)
+    if (cached !== null && cached !== undefined) {
+      return parseInt(cached, 10)
+    }
+  } catch (err) {
+    logger.warn(`Failed to read trust cache for user ${userId}: ${err.message}`)
+  }
+
+  const user = await User.findByPk(userId)
+  if (!user) return 50
+
+  const finalScore = Math.max(0, Math.min(100, user.trust_score))
+  try {
+    await cacheSet(cacheKey, finalScore, 600) // 10 minutes TTL
+  } catch (err) {
+    logger.warn(`Failed to set trust cache: ${err.message}`)
+  }
+
+  return finalScore
 }
 
 /**
@@ -28,6 +57,9 @@ export const addTrustScore = async (userId, amount, reason, referenceId = null) 
     if (!user) {
       throw new Error(`Scoring failure: User ${userId} not found.`)
     }
+
+    // Invalidate cached score
+    await cacheInvalidatePattern(`user:trust:${userId}`)
 
     // 1. Ignore if scores are frozen (e.g. banned profiles)
     if (user.score_frozen) {
@@ -90,6 +122,9 @@ export const deductTrustScore = async (userId, amount, reason, referenceId = nul
       throw new Error(`Scoring failure: User ${userId} not found.`)
     }
 
+    // Invalidate cached score
+    await cacheInvalidatePattern(`user:trust:${userId}`)
+
     if (user.score_frozen) {
       return user.trust_score
     }
@@ -133,21 +168,6 @@ export const deductTrustScore = async (userId, amount, reason, referenceId = nul
   }
 }
 
-/**
- * Return user trust badge details based on active flags and score margins.
- */
-export const getTrustBadge = (score, isFlagged = false) => {
-  if (isFlagged) {
-    return { label: 'Flagged', color: '#DC2626', icon: 'warning' }
-  }
-  if (score >= 75) {
-    return { label: 'Trusted', color: '#166534', icon: 'shield' }
-  }
-  if (score >= 50) {
-    return { label: 'Verified', color: '#1D4ED8', icon: 'check' }
-  }
-  return { label: 'New', color: '#78716C', icon: 'info' }
-}
 
 /**
  * Get formatted list of recent trust score events.

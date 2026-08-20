@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { haptics } from '../../utils/haptics.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import BottomNav from '../navigation/BottomNav.jsx'
-import BadgeUpgrade from '../celebration/BadgeUpgrade.jsx'
+import { useNotifications } from '../../context/NotificationContext.jsx'
 
 /**
  * AppLayout — Main application shell.
@@ -12,9 +12,9 @@ import BadgeUpgrade from '../celebration/BadgeUpgrade.jsx'
  */
 const AppLayout = () => {
   const { user, logout } = useAuth()
+  const { unreadCount } = useNotifications()
   const navigate = useNavigate()
   const location = useLocation()
-  const [celebrationMilestone, setCelebrationMilestone] = useState(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -28,28 +28,7 @@ const AppLayout = () => {
     }
   }, [isMobileMenuOpen])
 
-  useEffect(() => {
-    if (!user) return
-    const score = user.trustScore || user.trust_score || 0
-    if (score >= 50 && score < 75) {
-      const celebrated50 = localStorage.getItem('troopp_celebrated_trust_50')
-      if (!celebrated50) setCelebrationMilestone(50)
-    } else if (score >= 75) {
-      const celebrated75 = localStorage.getItem('troopp_celebrated_trust_75')
-      if (!celebrated75) setCelebrationMilestone(75)
-    }
-  }, [user])
 
-  const handleDismissCelebration = () => {
-    haptics.lightTap()
-    if (celebrationMilestone === 50) {
-      localStorage.setItem('troopp_celebrated_trust_50', 'true')
-    } else if (celebrationMilestone === 75) {
-      localStorage.setItem('troopp_celebrated_trust_75', 'true')
-      localStorage.setItem('troopp_celebrated_trust_50', 'true')
-    }
-    setCelebrationMilestone(null)
-  }
 
   const handleLogout = async () => {
     haptics.lightTap()
@@ -73,6 +52,15 @@ const AppLayout = () => {
       icon: (
         <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      )
+    },
+    {
+      path: '/community',
+      label: 'Community Boards',
+      icon: (
+        <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       )
     },
@@ -129,12 +117,11 @@ const AppLayout = () => {
   }
 
   const trustScore = user?.trust_score ?? user?.trustScore ?? 0
-  const isIdVerified = user?.is_id_verified ?? user?.idVerified ?? false
   const userName = user?.name || 'Explorer'
 
   const getRingColor = () => {
-    if (isIdVerified && trustScore >= 75) return '#4fbe8e'
-    if (isIdVerified && trustScore >= 50) return '#3b82f6'
+    if (trustScore >= 75) return '#4fbe8e'
+    if (trustScore >= 50) return '#3b82f6'
     return '#6b757c'
   }
   const ringColor = getRingColor()
@@ -250,7 +237,22 @@ const AppLayout = () => {
                         })}
                       >
                         {item.icon}
-                        <span>{item.label}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <span>{item.label}</span>
+                          {item.path === '/notifications' && unreadCount > 0 && (
+                            <span style={{
+                              background: '#ef4444',
+                              color: '#fff',
+                              borderRadius: '9999px',
+                              padding: '2px 8px',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              marginLeft: '8px'
+                            }}>
+                              {unreadCount}
+                            </span>
+                          )}
+                        </span>
                       </NavLink>
                     ))}
                   </nav>
@@ -296,8 +298,8 @@ const AppLayout = () => {
                       textOverflow: 'ellipsis',
                       color: '#f3f1ea'
                     }}>{userName}</div>
-                    <div style={{ fontSize: '11px', color: '#6b757c' }}>
-                      Trust score
+                    <div style={{ fontSize: '11px', color: '#6b757c', whiteSpace: 'nowrap' }}>
+                      Peer Trust Index
                     </div>
                   </div>
                 </div>
@@ -386,7 +388,22 @@ const AppLayout = () => {
               })}
             >
               {item.icon}
-              <span className="nav-label">{item.label}</span>
+              <span className="nav-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <span>{item.label}</span>
+                {item.path === '/notifications' && unreadCount > 0 && (
+                  <span style={{
+                    background: '#ef4444',
+                    color: '#fff',
+                    borderRadius: '9999px',
+                    padding: '2px 8px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    marginLeft: '8px'
+                  }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </span>
             </NavLink>
           ))}
         </nav>
@@ -430,8 +447,8 @@ const AppLayout = () => {
               textOverflow: 'ellipsis',
               color: '#f3f1ea'
             }}>{userName}</div>
-            <div style={{ fontSize: '12px', color: '#6b757c' }}>
-              Trust score
+            <div style={{ fontSize: '12px', color: '#6b757c', whiteSpace: 'nowrap' }}>
+              Peer Trust Index
             </div>
           </div>
           <button
@@ -470,12 +487,7 @@ const AppLayout = () => {
         <BottomNav isMobileMenuOpen={isMobileMenuOpen} />
       </div>
 
-      {/* Celebration badge popup */}
-      <BadgeUpgrade
-        isOpen={!!celebrationMilestone}
-        level={celebrationMilestone === 75 ? 'trusted' : 'verified'}
-        onClose={handleDismissCelebration}
-      />
+
     </div>
   )
 }

@@ -26,6 +26,7 @@ const CreateActivity = () => {
   const [isBackHovered, setIsBackHovered] = useState(false)
   const [isPrevHovered, setIsPrevHovered] = useState(false)
   const [isCtaHovered, setIsCtaHovered] = useState(false)
+  const [isDraftHovered, setIsDraftHovered] = useState(false)
   const [hoveredCategory, setHoveredCategory] = useState(null)
 
   // Form State
@@ -45,10 +46,24 @@ const CreateActivity = () => {
     no_smoking: false,
     pets_allowed: false,
     alcohol_allowed: false,
-    music_allowed: false
+    music_allowed: false,
+    
+    // Upgraded trust context fields
+    hosting_reason: '',
+    location_rationale: '',
+    host_role: 'creator_is_host',
+    host_id: '',
+    host_name: '',
+    media: []
   })
 
-  // Load draft & cities
+  // User search autocomplete state
+  const [memberQuery, setMemberQuery] = useState('')
+  const [memberResults, setMemberResults] = useState([])
+  const [searchingMembers, setSearchingMembers] = useState(false)
+  const [uploadingMedia, setUploadingMedia] = useState(false)
+
+  // Load cache & cities
   useEffect(() => {
     const saved = localStorage.getItem(CACHE_KEY)
     let loadedData = {}
@@ -91,10 +106,35 @@ const CreateActivity = () => {
     loadCities()
   }, [])
 
-  // Auto cache
+  // Auto cache locally
   useEffect(() => {
     localStorage.setItem(CACHE_KEY, JSON.stringify(formData))
   }, [formData])
+
+  // Autocomplete search members
+  useEffect(() => {
+    if (!memberQuery || memberQuery.trim().length < 2) {
+      setMemberResults([])
+      return
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      setSearchingMembers(true)
+      try {
+        const res = await apiRequest(`/profiles/search/members?q=${encodeURIComponent(memberQuery)}`)
+        if (res.ok) {
+          const json = await res.json()
+          setMemberResults(json.data || [])
+        }
+      } catch (err) {
+        console.error('Failed to search members:', err)
+      } finally {
+        setSearchingMembers(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(delayDebounce)
+  }, [memberQuery])
 
   const handleTextChange = (e) => {
     const { name, value } = e.target
@@ -106,7 +146,111 @@ const CreateActivity = () => {
     setFormData((prev) => ({ ...prev, [name]: checked }))
   }
 
-  const handlePublish = async () => {
+  // Cloudinary media file uploader
+  const handleMediaUpload = async (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
+
+    if (formData.media.length + files.length > 10) {
+      return toast.error('You can upload a maximum of 10 images.')
+    }
+
+    setUploadingMedia(true)
+    try {
+      const { getAccessToken, BASE_URL } = await import('../utils/api.js')
+      const token = getAccessToken()
+
+      const uploadedUrls = []
+
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast.error(`${file.name} exceeds the 10MB limit.`)
+          continue
+        }
+
+        // 1. Get Cloudinary presign signature
+        const presignRes = await fetch(`${BASE_URL}/community/media/presign`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            file_name: file.name,
+            file_type: file.type,
+            file_size: file.size
+          })
+        })
+
+        if (!presignRes.ok) {
+          const errData = await presignRes.json()
+          throw new Error(errData.error?.message || 'Failed to acquire upload signature.')
+        }
+
+        const presignJson = await presignRes.json()
+        const { upload_url, fields } = presignJson.data
+
+        // 2. Direct upload to Cloudinary using presigned fields
+        const cloudData = new FormData()
+        Object.entries(fields).forEach(([k, v]) => {
+          cloudData.append(k, v)
+        })
+        cloudData.append('file', file)
+
+        const uploadRes = await fetch(upload_url, {
+          method: 'POST',
+          body: cloudData
+        })
+
+        if (!uploadRes.ok) {
+          throw new Error('Failed to upload file to Cloudinary.')
+        }
+
+        const uploadJson = await uploadRes.json()
+        const mediaUrl = uploadJson.secure_url
+
+        // 3. Register uploaded URL in media register completes
+        const completeRes = await fetch(`${BASE_URL}/community/media/complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            media_url: mediaUrl,
+            file_type: file.type
+          })
+        })
+
+        if (!completeRes.ok) {
+          throw new Error('Failed to register uploaded resource.')
+        }
+
+        uploadedUrls.push(mediaUrl)
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        media: [...prev.media, ...uploadedUrls]
+      }))
+      toast.success('Images uploaded successfully!')
+    } catch (err) {
+      console.error(err)
+      toast.error(err.message)
+    } finally {
+      setUploadingMedia(false)
+    }
+  }
+
+  const removeMediaImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      media: prev.media.filter((_, idx) => idx !== index)
+    }))
+  }
+
+  // Handle Publish Submit
+  const handlePublishSubmit = async (isDraft = false) => {
     if (!formData.title.trim() || !formData.description.trim()) {
       return toast.error('Please fill in title and description details.')
     }
@@ -115,6 +259,19 @@ const CreateActivity = () => {
     }
     if (!formData.city_id) {
       return toast.error('Please select a hosting city.')
+    }
+
+    // Required check ONLY if publishing
+    if (!isDraft) {
+      if (!formData.hosting_reason.trim() || formData.hosting_reason.trim().length < 10) {
+        return toast.error('Please write a hosting reason (minimum 10 characters).')
+      }
+      if (!formData.location_rationale.trim() || formData.location_rationale.trim().length < 10) {
+        return toast.error('Please write a location rationale (minimum 10 characters).')
+      }
+      if (formData.host_role === 'creator_assigns_host' && !formData.host_id) {
+        return toast.error('Please select a member to host this trip.')
+      }
     }
 
     const categoryToType = {
@@ -136,7 +293,7 @@ const CreateActivity = () => {
           title: formData.title.trim(),
           type: categoryToType[formData.category] || 'trek',
           description: formData.description.trim(),
-          date_time: new Date(formData.date_time).toISOString(),
+          date_time: formData.date_time ? new Date(formData.date_time).toISOString() : new Date(Date.now() + 86400000).toISOString(),
           meeting_point_lat: parseFloat(formData.meeting_point_lat) || 19.6175,
           meeting_point_lng: parseFloat(formData.meeting_point_lng) || 73.7845,
           meeting_point_label: formData.meeting_point_label.trim(),
@@ -149,18 +306,30 @@ const CreateActivity = () => {
           is_women_only: false,
           min_trust_score: 0,
           min_reliability_score: 50,
-          packing_checklist: []
+          packing_checklist: [],
+          
+          // Upgraded fields
+          status: isDraft ? 'draft' : 'open',
+          hosting_reason: formData.hosting_reason.trim() || null,
+          location_rationale: formData.location_rationale.trim() || null,
+          host_role: formData.host_role,
+          host_id: formData.host_role === 'creator_assigns_host' ? formData.host_id : null,
+          media: formData.media
         })
       })
 
       const json = await res.json()
       if (res.ok) {
         haptics.success()
-        toast.success('Activity created successfully!')
+        toast.success(isDraft ? 'Draft saved successfully!' : 'Activity published successfully!')
         localStorage.removeItem(CACHE_KEY)
-        navigate(`/activities/${json.data.activity.id}/setup`)
+        if (isDraft) {
+          navigate('/feed')
+        } else {
+          navigate(`/activities/${json.data.activity.id}/setup`)
+        }
       } else {
-        throw new Error(json.error?.message || 'Failed to create trip.')
+        throw new Error(json.error?.message || 'Failed to process request.')
       }
     } catch (err) {
       haptics.error()
@@ -248,335 +417,262 @@ const CreateActivity = () => {
                 letterSpacing: '-0.015em'
               }}
             >
-              Create a Trip
+              Host a Trip
             </h1>
             <p style={{ fontSize: '13px', color: '#9ba6ad', margin: '2px 0 0' }}>
-              {step === 1 && 'Tell us the basics'}
-              {step === 2 && 'Set timings and destination'}
-              {step === 3 && 'Choose group safety guidelines'}
-              {step === 4 && 'Review and publish'}
+              Create an exciting travel meetup in your area.
             </p>
           </div>
         </div>
 
-        {/* Step progress segments */}
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', userSelect: 'none', marginBottom: '4px' }}>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {[1, 2, 3, 4].map((s) => {
-              const isCompleted = s < step
-              const isActive = s === step
-              return (
-                <div
-                  key={s}
-                  style={{
-                    flex: 1,
-                    height: '4px',
-                    borderRadius: '100px',
-                    background: (isCompleted || isActive) ? '#ff6a2c' : '#212b33',
-                    transition: 'background 300ms ease'
-                  }}
-                />
-              )
-            })}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', fontSize: '10px', fontWeight: '700', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'center' }}>
-            <span style={step >= 1 ? { color: '#ff6a2c' } : {}}>Details</span>
-            <span style={step >= 2 ? { color: '#ff6a2c' } : {}}>Location</span>
-            <span style={step >= 3 ? { color: '#ff6a2c' } : {}}>Rules</span>
-            <span style={step >= 4 ? { color: '#ff6a2c' } : {}}>Review</span>
-          </div>
-        </div>
-
-        {/* Form Card container */}
+        {/* Multi-step Container */}
         <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -10 }}
-          transition={{ duration: 0.2 }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
           style={{
-            width: '100%',
             background: '#1a2129',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '16px',
-            padding: '20px',
-            boxShadow: 'var(--shadow-card)',
+            borderRadius: '20px',
+            border: '1px solid rgba(255,255,255,0.05)',
+            padding: '24px',
             display: 'flex',
             flexDirection: 'column',
             gap: '20px'
           }}
         >
+          {/* Progress Banner indicator */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '700', color: '#ff6a2c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span>Step {step} of 5</span>
+              <span>
+                {step === 1 && 'Tell us the basics'}
+                {step === 2 && 'Set timings and destination'}
+                {step === 3 && 'Choose group safety guidelines'}
+                {step === 4 && 'Host, Trust & Media'}
+                {step === 5 && 'Review and publish'}
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', overflow: 'hidden' }}>
+              <div style={{ width: `${(step / 5) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #ff6a2c 0%, #ff952c 100%)', borderRadius: '10px', transition: 'width 200ms ease' }} />
+            </div>
+          </div>
+
           {/* Step 1 Form */}
           {step === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#9ba6ad' }}>
-                  Trip title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleTextChange}
-                  placeholder="Day Hike at sunset trail..."
-                  style={{
-                    width: '100%',
-                    height: '46px',
-                    padding: '0 16px',
-                    background: '#212b33',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '100px',
-                    fontSize: '14px',
-                    color: '#f3f1ea',
-                    outline: 'none'
-                  }}
-                  required
-                />
-              </div>
-
-              {/* Grid of category selector cards */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#9ba6ad' }}>
-                  Category vibe
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  {CATEGORY_CARDS.map((item) => {
-                    const isSelected = formData.category === item.name
-                    const isHovered = hoveredCategory === item.name
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              
+              {/* Category Cards grid selector */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Select Category</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                  {CATEGORY_CARDS.map((cat) => {
+                    const isSelected = formData.category === cat.name
+                    const isHovered = hoveredCategory === cat.name
                     return (
                       <div
-                        key={item.name}
+                        key={cat.name}
                         onClick={() => {
                           haptics.lightTap()
-                          setFormData((prev) => ({ ...prev, category: item.name }))
+                          setFormData(prev => ({ ...prev, category: cat.name }))
                         }}
-                        onMouseEnter={() => setHoveredCategory(item.name)}
+                        onMouseEnter={() => setHoveredCategory(cat.name)}
                         onMouseLeave={() => setHoveredCategory(null)}
                         style={{
-                          background: '#212b33',
-                          border: '1px solid',
-                          borderColor: isSelected ? '#ff6a2c' : 'rgba(255,255,255,0.08)',
+                          background: isSelected ? 'rgba(255,106,44,0.12)' : isHovered ? 'rgba(255,255,255,0.04)' : '#212b33',
+                          border: isSelected ? '1px solid #ff6a2c' : '1px solid rgba(255,255,255,0.06)',
                           borderRadius: '12px',
-                          padding: '12px',
+                          padding: '12px 6px',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
                           gap: '6px',
                           cursor: 'pointer',
-                          transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+                          textAlign: 'center',
                           transition: 'all 150ms ease'
                         }}
                       >
-                        <span style={{ fontSize: '24px' }}>
-                          {item.emoji}
-                        </span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#f3f1ea' }}>
-                          {item.name}
-                        </span>
+                        <span style={{ fontSize: '20px' }}>{cat.emoji}</span>
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: isSelected ? '#ff6a2c' : '#f3f1ea' }}>{cat.name}</span>
                       </div>
                     )
                   })}
                 </div>
               </div>
 
-              {/* Cost input with currency marker */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#9ba6ad' }}>
-                  Cost estimate per head
-                </label>
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: '16px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      fontSize: '14px',
-                      fontWeight: '700',
-                      color: '#6b757c',
-                      pointerEvents: 'none'
-                    }}
-                  >
-                    ₹
-                  </span>
-                  <input
-                    type="number"
-                    name="cost_estimate"
-                    value={formData.cost_estimate}
-                    onChange={handleTextChange}
-                    placeholder="1500"
-                    style={{
-                      width: '100%',
-                      height: '46px',
-                      padding: '0 16px 0 32px',
-                      background: '#212b33',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '100px',
-                      fontSize: '14px',
-                      color: '#f3f1ea',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-                {Number(formData.cost_estimate || 0) === 0 && (
-                  <span style={{ fontSize: '11px', color: '#4fbe8e', fontWeight: '600', paddingLeft: '4px' }}>
-                    This trip is FREE
-                  </span>
-                )}
-              </div>
-
-              {/* Description box */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#9ba6ad' }}>
-                  Trip description
-                </label>
-                <textarea
-                  name="description"
-                  rows={4}
-                  value={formData.description}
+              {/* Title Input */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Trip Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
                   onChange={handleTextChange}
-                  placeholder="Tell others what you plan to do, route guidelines, what to bring..."
+                  placeholder="e.g. Bhandardara Lakeside Camping"
                   style={{
-                    width: '100%',
                     background: '#212b33',
                     border: '1px solid rgba(255,255,255,0.08)',
                     borderRadius: '12px',
                     padding: '12px 16px',
                     color: '#f3f1ea',
-                    outline: 'none',
-                    minHeight: '100px',
-                    resize: 'none',
-                    lineHeight: '1.5',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    outline: 'none'
                   }}
-                  required
                 />
               </div>
+
+              {/* Description textarea */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleTextChange}
+                  placeholder="Describe your plan, what to bring, and expectations..."
+                  rows={4}
+                  style={{
+                    background: '#212b33',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    color: '#f3f1ea',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    resize: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Numerical controls Group */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Max capacity (people)</label>
+                  <input
+                    type="number"
+                    name="max_capacity"
+                    value={formData.max_capacity}
+                    onChange={handleTextChange}
+                    min={2}
+                    max={100}
+                    style={{
+                      background: '#212b33',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '12px',
+                      padding: '12px 16px',
+                      color: '#f3f1ea',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Cost estimate (₹)</label>
+                  <input
+                    type="number"
+                    name="cost_estimate"
+                    value={formData.cost_estimate}
+                    onChange={handleTextChange}
+                    min={0}
+                    style={{
+                      background: '#212b33',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '12px',
+                      padding: '12px 16px',
+                      color: '#f3f1ea',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+
             </div>
           )}
 
           {/* Step 2 Form */}
           {step === 2 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#9ba6ad' }}>
-                  Max slots capacity
-                </label>
-                <input
-                  type="number"
-                  name="max_capacity"
-                  value={formData.max_capacity}
-                  onChange={handleTextChange}
-                  style={{
-                    width: '100%',
-                    height: '46px',
-                    padding: '0 16px',
-                    background: '#212b33',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '100px',
-                    fontSize: '14px',
-                    color: '#f3f1ea',
-                    outline: 'none'
-                  }}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#9ba6ad' }}>
-                  Destination Location name
-                </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              
+              {/* Destination */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Destination Location</label>
                 <input
                   type="text"
                   name="destination"
                   value={formData.destination}
                   onChange={handleTextChange}
-                  placeholder="e.g. Kalsubai Peak Summit"
+                  placeholder="e.g. Bhandardara Lake, Maharashtra"
                   style={{
-                    width: '100%',
-                    height: '46px',
-                    padding: '0 16px',
                     background: '#212b33',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '100px',
-                    fontSize: '14px',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
                     color: '#f3f1ea',
+                    fontSize: '14px',
                     outline: 'none'
                   }}
-                  required
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#9ba6ad' }}>
-                  Meeting point address
-                </label>
+              {/* Meeting Point Label */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Meeting Point Address</label>
                 <input
                   type="text"
                   name="meeting_point_label"
                   value={formData.meeting_point_label}
                   onChange={handleTextChange}
-                  placeholder="e.g. Bari Village Base camp"
+                  placeholder="e.g. Thane Station East Bus Stop"
                   style={{
-                    width: '100%',
-                    height: '46px',
-                    padding: '0 16px',
                     background: '#212b33',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '100px',
-                    fontSize: '14px',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
                     color: '#f3f1ea',
+                    fontSize: '14px',
                     outline: 'none'
                   }}
-                  required
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#9ba6ad' }}>
-                  Trip start date & time
-                </label>
+              {/* Timings inputs */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Start Date & Time</label>
                 <input
                   type="datetime-local"
                   name="date_time"
                   value={formData.date_time}
                   onChange={handleTextChange}
                   style={{
-                    width: '100%',
-                    height: '46px',
-                    padding: '0 16px',
                     background: '#212b33',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '100px',
-                    fontSize: '14px',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
                     color: '#f3f1ea',
+                    fontSize: '14px',
                     outline: 'none'
                   }}
-                  required
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#9ba6ad' }}>
-                  Hosting city
-                </label>
+              {/* City Selection */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Hosting City</label>
                 <select
                   name="city_id"
                   value={formData.city_id}
                   onChange={handleTextChange}
                   style={{
-                    width: '100%',
-                    height: '46px',
-                    padding: '0 16px',
                     background: '#212b33',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '100px',
-                    fontSize: '14px',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
                     color: '#f3f1ea',
+                    fontSize: '14px',
                     outline: 'none',
                     cursor: 'pointer'
                   }}
-                  required
                 >
                   {cities.map((city) => (
                     <option key={city.id} value={city.id} style={{ background: '#1a2129', color: '#f3f1ea' }}>
@@ -709,8 +805,286 @@ const CreateActivity = () => {
             </div>
           )}
 
-          {/* Step 4 Form */}
+          {/* Step 4 Form: Host, Trust & Media Upload */}
           {step === 4 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              
+              {/* Trust Context 1: Hosting Reason */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Why are you hosting this trip?</label>
+                <textarea
+                  name="hosting_reason"
+                  value={formData.hosting_reason}
+                  onChange={handleTextChange}
+                  placeholder="e.g. Passionate about stargazing and want to meet fellow campers from Troopp."
+                  rows={3}
+                  style={{
+                    background: '#212b33',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    color: '#f3f1ea',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    resize: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Trust Context 2: Location Rationale */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Why choose this destination?</label>
+                <textarea
+                  name="location_rationale"
+                  value={formData.location_rationale}
+                  onChange={handleTextChange}
+                  placeholder="e.g. Visited this lakeside spot three times; it is less crowded and has clean toilets nearby."
+                  rows={3}
+                  style={{
+                    background: '#212b33',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    color: '#f3f1ea',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    resize: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Host Role selection */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Hosting Role assignment</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      haptics.lightTap()
+                      setFormData(prev => ({ ...prev, host_role: 'creator_is_host', host_id: '', host_name: '' }))
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: '10px',
+                      background: formData.host_role === 'creator_is_host' ? 'rgba(255,106,44,0.12)' : '#212b33',
+                      border: formData.host_role === 'creator_is_host' ? '1px solid #ff6a2c' : '1px solid rgba(255,255,255,0.06)',
+                      color: '#f3f1ea',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      transition: 'all 150ms ease'
+                    }}
+                  >
+                    🙋 I will host
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      haptics.lightTap()
+                      setFormData(prev => ({ ...prev, host_role: 'creator_assigns_host' }))
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: '10px',
+                      background: formData.host_role === 'creator_assigns_host' ? 'rgba(255,106,44,0.12)' : '#212b33',
+                      border: formData.host_role === 'creator_assigns_host' ? '1px solid #ff6a2c' : '1px solid rgba(255,255,255,0.06)',
+                      color: '#f3f1ea',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      transition: 'all 150ms ease'
+                    }}
+                  >
+                    🤝 Assign Co-Host
+                  </button>
+                </div>
+              </div>
+
+              {/* Autocomplete Member Search Dropdown */}
+              {formData.host_role === 'creator_assigns_host' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Search and select Co-Host</label>
+                  <input
+                    type="text"
+                    value={formData.host_name || memberQuery}
+                    onChange={(e) => {
+                      setMemberQuery(e.target.value)
+                      if (formData.host_name) {
+                        setFormData(prev => ({ ...prev, host_name: '', host_id: '' }))
+                      }
+                    }}
+                    placeholder="Type to search members..."
+                    style={{
+                      background: '#212b33',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '12px',
+                      padding: '12px 16px',
+                      color: '#f3f1ea',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                  />
+                  {searchingMembers && (
+                    <span style={{ fontSize: '11px', color: '#ff6a2c', marginTop: '4px' }}>Searching...</span>
+                  )}
+                  {memberResults.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '72px',
+                        left: 0,
+                        right: 0,
+                        background: '#1a2129',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '12px',
+                        zIndex: 100,
+                        maxHeight: '180px',
+                        overflowY: 'auto',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
+                      }}
+                    >
+                      {memberResults.map((u) => (
+                        <div
+                          key={u.id}
+                          onClick={() => {
+                            haptics.lightTap()
+                            setFormData(prev => ({ ...prev, host_id: u.id, host_name: u.name }))
+                            setMemberResults([])
+                            setMemberQuery('')
+                          }}
+                          style={{
+                            padding: '12px 16px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid rgba(255,255,255,0.04)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            fontSize: '13px',
+                            color: '#f3f1ea'
+                          }}
+                        >
+                          {u.avatar_url ? (
+                            <img src={u.avatar_url} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#ff6a2c', color: '#1a0e08', display: 'flex', alignItems: 'center', justifyContext: 'center', fontWeight: '700', fontSize: '12px' }}>{u.name[0]}</div>
+                          )}
+                          <span>{u.name} (Trust Score: {u.trust_score})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Gallery Multi-Image upload */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Upload Photos (Up to 10)</label>
+                
+                {/* Thumbnails grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                  {formData.media.map((imgUrl, idx) => (
+                    <div
+                      key={imgUrl}
+                      style={{
+                        width: '100%',
+                        paddingTop: '100%',
+                        position: 'relative',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        border: '1px solid rgba(255,255,255,0.06)'
+                      }}
+                    >
+                      <img
+                        src={imgUrl}
+                        alt=""
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeMediaImage(idx)}
+                        style={{
+                          position: 'absolute',
+                          top: '4px',
+                          right: '4px',
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          background: 'rgba(0,0,0,0.6)',
+                          color: '#fff',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px'
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {formData.media.length < 10 && (
+                    <label
+                      style={{
+                        width: '100%',
+                        paddingTop: '100%',
+                        position: 'relative',
+                        borderRadius: '8px',
+                        border: '2px dashed rgba(255,255,255,0.1)',
+                        cursor: uploadingMedia ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleMediaUpload}
+                        disabled={uploadingMedia}
+                        style={{ display: 'none' }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#9ba6ad'
+                        }}
+                      >
+                        <span style={{ fontSize: '20px', fontWeight: '300' }}>{uploadingMedia ? '⏳' : '+'}</span>
+                        <span style={{ fontSize: '9px', marginTop: '2px' }}>{uploadingMedia ? 'Uploading' : 'Add Photo'}</span>
+                      </div>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* Step 5 Form */}
+          {step === 5 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div
                 style={{
@@ -731,6 +1105,8 @@ const CreateActivity = () => {
                 <div>💰 <strong>Estimated Cost:</strong> <span style={{ color: '#f3f1ea', fontWeight: '500', marginLeft: '6px' }}>₹{formData.cost_estimate}</span></div>
                 <div>👥 <strong>Capacity limit:</strong> <span style={{ color: '#f3f1ea', fontWeight: '500', marginLeft: '6px' }}>{formData.max_capacity} travelers</span></div>
                 <div>📅 <strong>Starts:</strong> <span style={{ color: '#f3f1ea', fontWeight: '500', marginLeft: '6px' }}>{formData.date_time ? new Date(formData.date_time).toLocaleString() : 'N/A'}</span></div>
+                <div>🤝 <strong>Host settings:</strong> <span style={{ color: '#f3f1ea', fontWeight: '500', marginLeft: '6px' }}>{formData.host_role === 'creator_assigns_host' ? `Co-host Assigned (${formData.host_name})` : 'Self Hosted'}</span></div>
+                <div>📷 <strong>Photos attached:</strong> <span style={{ color: '#f3f1ea', fontWeight: '500', marginLeft: '6px' }}>{formData.media.length} images</span></div>
               </div>
             </div>
           )}
@@ -758,14 +1134,35 @@ const CreateActivity = () => {
                 Previous
               </button>
             )}
+
+            {/* Save Draft Button (accessible anytime) */}
+            <button
+              onClick={() => handlePublishSubmit(true)}
+              onMouseEnter={() => setIsDraftHovered(true)}
+              onMouseLeave={() => setIsDraftHovered(false)}
+              style={{
+                flex: 1,
+                height: '46px',
+                background: isDraftHovered ? 'rgba(255,255,255,0.08)' : '#212b33',
+                border: '1px solid rgba(255,255,255,0.14)',
+                borderRadius: '100px',
+                fontSize: '13px',
+                fontWeight: '700',
+                color: '#ff6a2c',
+                cursor: 'pointer',
+                transition: 'all 150ms ease'
+              }}
+            >
+              Save Draft
+            </button>
             
-            {step < 4 ? (
+            {step < 5 ? (
               <button
                 onClick={handleContinue}
                 onMouseEnter={() => setIsCtaHovered(true)}
                 onMouseLeave={() => setIsCtaHovered(false)}
                 style={{
-                  flex: step > 1 ? 2 : 1,
+                  flex: 2,
                   height: '46px',
                   background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
                   color: '#1a0e08',
@@ -788,11 +1185,11 @@ const CreateActivity = () => {
               </button>
             ) : (
               <button
-                onClick={handlePublish}
+                onClick={() => handlePublishSubmit(false)}
                 onMouseEnter={() => setIsCtaHovered(true)}
                 onMouseLeave={() => setIsCtaHovered(false)}
                 style={{
-                  flex: step > 1 ? 2 : 1,
+                  flex: 2,
                   height: '46px',
                   background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
                   color: '#1a0e08',
