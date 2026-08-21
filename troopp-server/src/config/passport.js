@@ -6,32 +6,10 @@ import logger from './logger.js'
 
 const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL } = process.env
 
-const isValidCollegeEmail = (email) => {
+const isValidEmail = (email) => {
   if (!email) return false
-  const domain = email.split('@')[1]?.toLowerCase().trim()
-  if (!domain) return false
-
-  // Standard college domains
-  if (
-    domain === 'edu' ||
-    domain === 'ac.in' ||
-    domain === 'edu.in' ||
-    domain.endsWith('.edu') ||
-    domain.endsWith('.ac.in') ||
-    domain.endsWith('.edu.in')
-  ) {
-    return true
-  }
-
-  // Development bypass list
-  if (process.env.NODE_ENV !== 'production') {
-    const devDomains = ['troopp.com', 'example.com', 'gmail.com', 'test.com']
-    if (devDomains.includes(domain)) {
-      return true
-    }
-  }
-
-  return false
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email.trim())
 }
 
 const initPassport = () => {
@@ -57,8 +35,8 @@ const initPassport = () => {
             return done(new Error('Google profile did not return an email address.'), null)
           }
 
-          if (!isValidCollegeEmail(email)) {
-            return done(new Error('Please login with an approved college email address ending with .edu or .ac.in.'), null)
+          if (!isValidEmail(email)) {
+            return done(new Error('Google profile returned an invalid email address.'), null)
           }
 
           // 1. Search by Google ID

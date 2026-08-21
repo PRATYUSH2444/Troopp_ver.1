@@ -19,32 +19,10 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET
 const RESET_SECRET = process.env.JWT_RESET_SECRET || 'password_reset_token_secret_key_123456'
 const DUMMY_HASH = process.env.BCRYPT_DUMMY_HASH || '$2b$12$LRY.L9zZ4CWhGz5hS9d/QeO2X9vYc4h84.s2f.H/K9O0zZ9zZ9zZ.'
 
-const isValidCollegeEmail = (email) => {
+const isValidEmail = (email) => {
   if (!email) return false
-  const domain = email.split('@')[1]?.toLowerCase().trim()
-  if (!domain) return false
-
-  // Standard college domains
-  if (
-    domain === 'edu' ||
-    domain === 'ac.in' ||
-    domain === 'edu.in' ||
-    domain.endsWith('.edu') ||
-    domain.endsWith('.ac.in') ||
-    domain.endsWith('.edu.in')
-  ) {
-    return true
-  }
-
-  // Development bypass list
-  if (process.env.NODE_ENV !== 'production') {
-    const devDomains = ['troopp.com', 'example.com', 'gmail.com', 'test.com']
-    if (devDomains.includes(domain)) {
-      return true
-    }
-  }
-
-  return false
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email.trim())
 }
 
 // Cookie settings for refresh token
@@ -91,9 +69,9 @@ export const signup = async (req, res, next) => {
       return next(new AppError('An account is already registered with this email address.', 409, 'EMAIL_TAKEN'))
     }
 
-    // Verify email belongs to an approved college domain
-    if (!isValidCollegeEmail(email)) {
-      return next(new AppError('Please use a valid college email address (ending with .edu or .ac.in).', 400, 'INVALID_COLLEGE_EMAIL'))
+    // Verify email format
+    if (!isValidEmail(email)) {
+      return next(new AppError('Please enter a valid email address.', 400, 'INVALID_EMAIL'))
     }
 
     // Send/Cache Email OTP
