@@ -295,8 +295,8 @@ const VerificationScreen = () => {
         </div>
 
         <div className="progress-text-block">
-          <div className="progress-title-text">KYC Verification</div>
-          <div className="progress-desc-text">Digio biometric check matching...</div>
+          <div className="progress-title-text">Peer Trust Index</div>
+          <div className="progress-desc-text">Reputation score calculating...</div>
         </div>
       </div>
 

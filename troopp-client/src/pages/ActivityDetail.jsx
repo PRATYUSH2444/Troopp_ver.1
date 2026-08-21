@@ -122,18 +122,16 @@ const ActivityDetail = () => {
   const maxCapacity = activity.max_group_size || activity.max_capacity || 5
   const spotsLeft = Math.max(0, maxCapacity - spotsTaken)
 
-  const isHostVerified = activity.Creator?.is_id_verified ?? activity.Creator?.isIdVerified ?? false
   const hostScore = activity.Creator?.trust_score ?? activity.Creator?.trustScore ?? 0
 
   const getHostBadge = () => {
-    if (isHostVerified && hostScore >= 75) return { label: '👑 Trusted Host', color: '#4fbe8e' }
-    if (isHostVerified && hostScore >= 50) return { label: '🛡️ Verified Host', color: '#3b82f6' }
+    if (hostScore >= 75) return { label: '👑 Trusted Host', color: '#4fbe8e' }
+    if (hostScore >= 50) return { label: '🛡️ Verified Host', color: '#3b82f6' }
     return { label: '🌱 New Host', color: '#6b757c' }
   }
   const hostBadge = getHostBadge()
 
   // Safety checks for traveler
-  const isKycIncomplete = !user?.idVerified
   const isReliabilityTooLow = user?.reliabilityScore !== undefined && user.reliabilityScore < 70
 
   const fallbackCovers = {
@@ -420,10 +418,9 @@ const ActivityDetail = () => {
               {confirmedMembers?.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                   {confirmedMembers.map((member) => {
-                    const isMemberVerified = member.User?.is_id_verified ?? member.User?.idVerified ?? false
-                    const memberScore = member.User?.trust_score ?? member.User?.trustScore ?? 10
-                    const memberColor = isMemberVerified && memberScore >= 75 ? '#4fbe8e' : isMemberVerified && memberScore >= 50 ? '#3b82f6' : '#6b757c'
-                    const memberLabel = isMemberVerified && memberScore >= 75 ? '👑 Trusted' : isMemberVerified && memberScore >= 50 ? '🛡️ Verified' : '🌱 New'
+                    const memberScore = member.User?.trust_score ?? member.User?.trustScore ?? 50
+                    const memberColor = memberScore >= 75 ? '#4fbe8e' : memberScore >= 50 ? '#3b82f6' : '#6b757c'
+                    const memberLabel = memberScore >= 75 ? '👑 Trusted' : memberScore >= 50 ? '🛡️ Member' : '🌱 New'
 
                     return (
                       <Link
@@ -677,19 +674,7 @@ const ActivityDetail = () => {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
-                  {isKycIncomplete ? (
-                    <div style={{ background: 'rgba(255,201,77,0.16)', border: '1px solid rgba(255,201,77,0.25)', padding: '12px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <p style={{ fontSize: '11px', color: '#ffc94d', margin: 0, fontWeight: '600', lineHeight: '1.4' }}>
-                        ⚠️ Identity verification required to request join permissions.
-                      </p>
-                      <Link
-                        to="/profile/me/verify-id"
-                        style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#ffc94d', textDecoration: 'underline' }}
-                      >
-                        Verify government ID now
-                      </Link>
-                    </div>
-                  ) : isReliabilityTooLow ? (
+                  {isReliabilityTooLow ? (
                     <div style={{ background: 'rgba(255,84,112,0.14)', border: '1px solid rgba(255,84,112,0.25)', padding: '12px', borderRadius: '12px' }}>
                       <p style={{ fontSize: '11px', color: '#ff5470', margin: 0, fontWeight: '600', lineHeight: '1.4' }}>
                         🔴 Access Denied: Your reliability score ({user?.reliabilityScore}%) is below the platform threshold.
