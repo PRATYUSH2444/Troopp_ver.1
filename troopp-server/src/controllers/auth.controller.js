@@ -78,12 +78,13 @@ export const signup = async (req, res, next) => {
     // Send/Cache Email OTP
     const code = await generateEmailOTP(email)
 
-    // Send verification email — if provider fails, surface the real error immediately
+    // Send verification email — if provider fails, surface error cleanly
     try {
       await sendOTPEmail(email, code)
     } catch (emailErr) {
       logger.error(`Failed sending OTP email to ${email}: ${emailErr.message}`)
-      return next(new AppError(`Email delivery failed: ${emailErr.message}`, 500, 'EMAIL_DELIVERY_FAILED'))
+      const userMessage = emailErr.userMessage || `Email delivery failed: ${emailErr.message}`
+      return next(new AppError(userMessage, 500, 'EMAIL_DELIVERY_FAILED'))
     }
 
     res.status(200).json({

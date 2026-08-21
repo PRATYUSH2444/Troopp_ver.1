@@ -125,7 +125,7 @@ export const sendOTPEmail = async (to, otp) => {
   const resendApiKey = process.env.RESEND_API_KEY
   if (resendApiKey) {
     try {
-      const configuredFrom = process.env.RESEND_FROM || process.env.EMAIL_FROM
+      const configuredFrom = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || process.env.EMAIL_FROM
       const isPublicWebmail = !configuredFrom || /@(gmail|yahoo|outlook|hotmail|icloud|proton|aol)\./i.test(configuredFrom)
       const resendFrom = isPublicWebmail ? 'Troopp <onboarding@resend.dev>' : configuredFrom
 
@@ -150,8 +150,10 @@ export const sendOTPEmail = async (to, otp) => {
       logger.info(`Verification email sent via Resend API to ${to}: ${resData.id}`)
       return { messageId: resData.id }
     } catch (err) {
-      logger.error(`Resend API dispatch error: ${err.message}`)
-      throw new Error(`Email provider error (Resend): ${err.message}`)
+      logger.error(`[RESEND API ERROR]: ${err.message}`)
+      const error = new Error(`Email provider error (Resend): ${err.message}`)
+      error.userMessage = "We couldn't send the verification email right now. Please try again in a moment."
+      throw error
     }
   }
 
