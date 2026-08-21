@@ -107,7 +107,21 @@ export const sendOTPEmail = async (to, otp) => {
     return { messageId: 'mock-test-id' }
   }
 
-  // 1. Check if Resend HTTPS API is available (works 100% on all cloud hosting providers over port 443)
+  const subject = 'Troopp - Verify your Email Address'
+  const text = `Your Troopp verification code is: ${otp}. This code is valid for 10 minutes.`
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E7E5E4; border-radius: 12px;">
+      <h2 style="color: #F97316; font-family: 'Plus Jakarta Sans', sans-serif;">Verify your Troopp Account</h2>
+      <p style="font-size: 15px; color: #1C1917;">Your friends are busy. Your weekend isn't.</p>
+      <p style="font-size: 14px; color: #78716C; margin-top: 20px;">Use the following 6-digit code to complete your email verification:</p>
+      <div style="background-color: #FAFAF8; border: 1px dashed #E7E5E4; padding: 15px; text-align: center; border-radius: 8px; margin: 20px 0;">
+        <span style="font-family: 'Courier New', monospace; font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #F97316;">${otp}</span>
+      </div>
+      <p style="font-size: 12px; color: #78716C;">This code is valid for 10 minutes. If you did not request this verification, please disregard this email.</p>
+    </div>
+  `
+
+  // 1. Resend HTTPS REST API (Port 443 — immune to cloud SMTP port blocks)
   const resendApiKey = process.env.RESEND_API_KEY
   if (resendApiKey) {
     try {
@@ -120,19 +134,9 @@ export const sendOTPEmail = async (to, otp) => {
         body: JSON.stringify({
           from: process.env.EMAIL_FROM || 'Troopp <onboarding@resend.dev>',
           to: [to],
-          subject: 'Troopp - Verify your Email Address',
-          text: `Your Troopp verification code is: ${otp}. This code is valid for 10 minutes.`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E7E5E4; border-radius: 12px;">
-              <h2 style="color: #F97316; font-family: 'Plus Jakarta Sans', sans-serif;">Verify your Troopp Account</h2>
-              <p style="font-size: 15px; color: #1C1917;">Your friends are busy. Your weekend isn't.</p>
-              <p style="font-size: 14px; color: #78716C; margin-top: 20px;">Use the following 6-digit code to complete your email verification:</p>
-              <div style="background-color: #FAFAF8; border: 1px dashed #E7E5E4; padding: 15px; text-align: center; border-radius: 8px; margin: 20px 0;">
-                <span style="font-family: 'Courier New', monospace; font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #F97316;">${otp}</span>
-              </div>
-              <p style="font-size: 12px; color: #78716C;">This code is valid for 10 minutes. If you did not request this verification, please disregard this email.</p>
-            </div>
-          `
+          subject,
+          text,
+          html
         })
       })
       const resData = await response.json()
@@ -143,38 +147,92 @@ export const sendOTPEmail = async (to, otp) => {
       return { messageId: resData.id }
     } catch (err) {
       logger.error(`Resend API dispatch error: ${err.message}`)
-      throw new Error(`Email provider error: ${err.message}`)
+      throw new Error(`Email provider error (Resend): ${err.message}`)
     }
   }
 
-  // 2. Fall back to SMTP (Gmail / Custom SMTP)
+  // 2. Brevo (Sendinblue) HTTPS REST API (Port 443)
+  const brevoApiKey = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY
+  if (brevoApiKey) {
+    try {
+      const senderEmail = process.env.SMTP_USER || 'prakash.pratyush20@gmail.com'
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey.trim(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'Troopp', email: senderEmail },
+          to: [{ email: to }],
+          subject,
+          textContent: text,
+          htmlContent: html
+        })
+      })
+      const resData = await response.json()
+      if (!response.ok) {
+        throw new Error(resData.message || 'Brevo API error')
+      }
+      logger.info(`Verification email sent via Brevo API to ${to}: ${resData.messageId}`)
+      return { messageId: resData.messageId }
+    } catch (err) {
+      logger.error(`Brevo API dispatch error: ${err.message}`)
+      throw new Error(`Email provider error (Brevo): ${err.message}`)
+    }
+  }
+
+  // 3. SendGrid HTTPS REST API (Port 443)
+  const sendgridApiKey = process.env.SENDGRID_API_KEY
+  if (sendgridApiKey) {
+    try {
+      const senderEmail = process.env.SMTP_USER || 'prakash.pratyush20@gmail.com'
+      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sendgridApiKey.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: to }] }],
+          from: { email: senderEmail, name: 'Troopp' },
+          subject,
+          content: [
+            { type: 'text/plain', value: text },
+            { type: 'text/html', value: html }
+          ]
+        })
+      })
+      if (!response.ok) {
+        const errText = await response.text()
+        throw new Error(errText || 'SendGrid API error')
+      }
+      logger.info(`Verification email sent via SendGrid API to ${to}`)
+      return { messageId: 'sendgrid-sent' }
+    } catch (err) {
+      logger.error(`SendGrid API dispatch error: ${err.message}`)
+      throw new Error(`Email provider error (SendGrid): ${err.message}`)
+    }
+  }
+
+  // 4. Fall back to SMTP (Gmail / Custom SMTP)
   const client = await getTransporter()
   if (!client) {
-    throw new Error('SMTP_USER and SMTP_PASS are not configured in Render environment variables. Please add them in the Render dashboard.')
+    throw new Error('No email provider configured. Please add RESEND_API_KEY or SMTP_USER/SMTP_PASS in the Render dashboard.')
   }
 
   const sender = process.env.EMAIL_FROM || (process.env.SMTP_USER ? `"Troopp" <${process.env.SMTP_USER}>` : '"Troopp" <no-reply@troopp.in>')
   const mailOptions = {
     from: sender,
     to,
-    subject: 'Troopp - Verify your Email Address',
-    text: `Your Troopp verification code is: ${otp}. This code is valid for 10 minutes.`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E7E5E4; border-radius: 12px;">
-        <h2 style="color: #F97316; font-family: 'Plus Jakarta Sans', sans-serif;">Verify your Troopp Account</h2>
-        <p style="font-size: 15px; color: #1C1917;">Your friends are busy. Your weekend isn't.</p>
-        <p style="font-size: 14px; color: #78716C; margin-top: 20px;">Use the following 6-digit code to complete your email verification:</p>
-        <div style="background-color: #FAFAF8; border: 1px dashed #E7E5E4; padding: 15px; text-align: center; border-radius: 8px; margin: 20px 0;">
-          <span style="font-family: 'Courier New', monospace; font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #F97316;">${otp}</span>
-        </div>
-        <p style="font-size: 12px; color: #78716C;">This code is valid for 10 minutes. If you did not request this verification, please disregard this email.</p>
-      </div>
-    `
+    subject,
+    text,
+    html
   }
 
   try {
     const sendPromise = client.sendMail(mailOptions)
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP server response timed out after 10s')), 10000))
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP server response timed out after 10s. Render blocks direct SMTP ports — use RESEND_API_KEY for HTTP delivery.')), 10000))
     const info = await Promise.race([sendPromise, timeoutPromise])
 
     logger.info(`Verification email sent successfully to ${to}: ${info.messageId}`)
@@ -197,29 +255,55 @@ export const sendResetPasswordEmail = async (to, token) => {
       logger.info(`[SMTP BYPASS FOR TEST]: Skipping real SMTP for ${to}. Reset link: ${resetUrl}`)
       return { messageId: 'mock-test-id' }
     }
+
+    const subject = 'Troopp - Reset your Password'
+    const text = `Reset your Troopp password using this link: ${resetUrl}. Link expires in 15 minutes.`
+    const html = `
+      <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #10151a; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; color: #f3f1ea;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; border-radius: 12px; background: linear-gradient(155deg, #ff6a2c, #d9481a); font-weight: 700; font-size: 20px; color: white; text-align: center;">T</div>
+        </div>
+        <h2 style="color: #f3f1ea; font-size: 20px; font-weight: 700; text-align: center; margin-top: 0; margin-bottom: 16px;">Reset your password</h2>
+        <p style="font-size: 14px; color: #9ba6ad; line-height: 1.6; text-align: center; margin-bottom: 30px;">We received a request to reset your password for your Troopp account. Click the button below to secure your account and set a new password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background: linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%); color: #1a0e08; font-weight: 600; font-size: 14.5px; padding: 14px 32px; text-decoration: none; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(255, 106, 44, 0.25);">Reset Password</a>
+        </div>
+        <p style="font-size: 12px; color: #6b757c; line-height: 1.6; text-align: center; margin-top: 30px; margin-bottom: 8px;">If you cannot click the button above, copy and paste this URL into your browser:</p>
+        <p style="font-size: 12px; color: #ff6a2c; text-align: center; word-break: break-all; margin: 0 0 30px 0;">${resetUrl}</p>
+        <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 30px 0 20px 0;" />
+        <p style="font-size: 11px; color: #6b757c; text-align: center; margin: 0; line-height: 1.5;">This secure reset link is valid for 15 minutes. If you did not request a password change, you can safely ignore this email.</p>
+      </div>
+    `
+
+    // Resend API
+    if (process.env.RESEND_API_KEY) {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: process.env.EMAIL_FROM || 'Troopp <onboarding@resend.dev>',
+          to: [to],
+          subject,
+          text,
+          html
+        })
+      })
+      const resData = await response.json()
+      if (!response.ok) throw new Error(resData.message || 'Resend error')
+      return { messageId: resData.id }
+    }
+
     const client = await getTransporter()
     const sender = process.env.EMAIL_FROM || (process.env.SMTP_USER ? `"Troopp" <${process.env.SMTP_USER}>` : '"Troopp" <no-reply@troopp.in>')
     const mailOptions = {
       from: sender,
       to,
-      subject: 'Troopp - Reset your Password',
-      text: `Reset your Troopp password using this link: ${resetUrl}. Link expires in 15 minutes.`,
-      html: `
-        <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #10151a; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; color: #f3f1ea;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; border-radius: 12px; background: linear-gradient(155deg, #ff6a2c, #d9481a); font-weight: 700; font-size: 20px; color: white; text-align: center;">T</div>
-          </div>
-          <h2 style="color: #f3f1ea; font-size: 20px; font-weight: 700; text-align: center; margin-top: 0; margin-bottom: 16px;">Reset your password</h2>
-          <p style="font-size: 14px; color: #9ba6ad; line-height: 1.6; text-align: center; margin-bottom: 30px;">We received a request to reset your password for your Troopp account. Click the button below to secure your account and set a new password:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" style="background: linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%); color: #1a0e08; font-weight: 600; font-size: 14.5px; padding: 14px 32px; text-decoration: none; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(255, 106, 44, 0.25);">Reset Password</a>
-          </div>
-          <p style="font-size: 12px; color: #6b757c; line-height: 1.6; text-align: center; margin-top: 30px; margin-bottom: 8px;">If you cannot click the button above, copy and paste this URL into your browser:</p>
-          <p style="font-size: 12px; color: #ff6a2c; text-align: center; word-break: break-all; margin: 0 0 30px 0;">${resetUrl}</p>
-          <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 30px 0 20px 0;" />
-          <p style="font-size: 11px; color: #6b757c; text-align: center; margin: 0; line-height: 1.5;">This secure reset link is valid for 15 minutes. If you did not request a password change, you can safely ignore this email.</p>
-        </div>
-      `
+      subject,
+      text,
+      html
     }
 
     const info = await client.sendMail(mailOptions)
