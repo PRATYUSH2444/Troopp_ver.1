@@ -11,14 +11,17 @@ export const getRedisClient = () => {
     return redisClient
   }
 
-  const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379'
+  const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL
+  if (!redisUrl) {
+    logger.warn('No REDIS_URL or UPSTASH_REDIS_URL configured. Redis disabled, using in-memory fallbacks.')
+    return null
+  }
   try {
     redisClient = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
       enableReadyCheck: true,
       retryStrategy(times) {
-        // Ephemeral reconnect strategy with max 2s delay
-        const delay = Math.min(times * 50, 2000)
+        const delay = Math.min(times * 100, 3000)
         return delay
       }
     })

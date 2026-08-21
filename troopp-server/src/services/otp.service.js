@@ -46,34 +46,27 @@ const emailOtpCache = new Map()
 export const generateEmailOTP = (email) => {
   const normalizedEmail = email.toLowerCase().trim()
   const code = generate6DigitCode()
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000)
 
-  // NOTE: In test mode and dev mode with offline Redis, we return synchronously
-  // to maintain full backward compatibility with the existing Jest unit tests.
-  // When Redis is healthy in dev or running in production, it returns a Promise.
-  if (process.env.NODE_ENV === 'test' || (!isRedisHealthy() && process.env.NODE_ENV !== 'production')) {
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000)
-    emailOtpCache.set(normalizedEmail, { code, expiresAt })
-    logger.warn(`[DEV FALLBACK] Cached Email OTP in-memory for: ${normalizedEmail}`)
-    return code
+  // Always seed in-memory cache for high availability
+  emailOtpCache.set(normalizedEmail, { code, expiresAt })
+
+  if (isRedisHealthy()) {
+    const redis = getRedisClient()
+    return (async () => {
+      try {
+        await redis.setex(`otp:email:${normalizedEmail}`, OTP_EXPIRY_MINUTES * 60, code)
+        logger.info(`Generated Email OTP for: ${normalizedEmail} (Redis cached)`)
+        return code
+      } catch (err) {
+        logger.warn('Failed to save OTP to Redis, using in-memory cache:', err.message)
+        return code
+      }
+    })()
   }
 
-  // Strict fail-closed policy for production
-  if (!isRedisHealthy()) {
-    throw new AppError('Verification service is temporarily unavailable. Please try again later.', 503, 'SERVICE_UNAVAILABLE')
-  }
-
-  const redis = getRedisClient()
-  return (async () => {
-    try {
-      // Store in Redis with TTL in seconds
-      await redis.setex(`otp:email:${normalizedEmail}`, OTP_EXPIRY_MINUTES * 60, code)
-      logger.info(`Generated Email OTP for: ${normalizedEmail} (Valid for ${OTP_EXPIRY_MINUTES}m)`)
-      return code
-    } catch (err) {
-      logger.error('Failed to save OTP to Redis:', err)
-      throw new AppError('Failed to generate verification code. Please try again.', 500, 'OTP_GENERATE_ERROR')
-    }
-  })()
+  logger.info(`Generated Email OTP for: ${normalizedEmail} (In-memory cached)`)
+  return code
 }
 
 /**
@@ -85,64 +78,43 @@ export const generateEmailOTP = (email) => {
 export const verifyEmailOTP = (email, code) => {
   const normalizedEmail = email.toLowerCase().trim()
 
-  // NOTE: Returns synchronously in test/dev-fallback mode to support legacy Jest unit assertions.
-  if (process.env.NODE_ENV === 'test' || (!isRedisHealthy() && process.env.NODE_ENV !== 'production')) {
-    const cachedData = emailOtpCache.get(normalizedEmail)
-    if (!cachedData) {
-      logger.warn(`[DEV FALLBACK] Email OTP verification failed: No code cached for ${normalizedEmail}`)
-      return false
-    }
+  if (isRedisHealthy()) {
+    const redis = getRedisClient()
+    return (async () => {
+      try {
+        const cachedCode = await redis.get(`otp:email:${normalizedEmail}`)
+        if (cachedCode && cachedCode === code.trim()) {
+          await redis.del(`otp:email:${normalizedEmail}`)
+          emailOtpCache.delete(normalizedEmail)
+          return true
+        }
+      } catch (err) {
+        logger.warn('Redis OTP verification query error, falling back to in-memory cache:', err.message)
+      }
 
-    const { code: cachedCode, expiresAt } = cachedData
-
-    // Check expiration
-    if (new Date() > new Date(expiresAt)) {
-      logger.warn(`[DEV FALLBACK] Email OTP verification failed: Cached code has expired.`)
+      // Check in-memory fallback if Redis check returns false/fails
+      const cachedData = emailOtpCache.get(normalizedEmail)
+      if (!cachedData) return false
+      if (new Date() > new Date(cachedData.expiresAt)) {
+        emailOtpCache.delete(normalizedEmail)
+        return false
+      }
+      if (cachedData.code !== code.trim()) return false
       emailOtpCache.delete(normalizedEmail)
-      return false
-    }
-
-    // Check code match
-    if (cachedCode !== code.trim()) {
-      logger.warn(`[DEV FALLBACK] Email OTP verification failed: Incorrect code submitted for ${normalizedEmail}`)
-      return false
-    }
-
-    // Clear verification cache on success
-    emailOtpCache.delete(normalizedEmail)
-    logger.info(`[DEV FALLBACK] Email OTP successfully verified for: ${normalizedEmail}`)
-    return true
-  }
-
-  // Strict fail-closed policy for production
-  if (!isRedisHealthy()) {
-    throw new AppError('Verification service is temporarily unavailable. Please try again later.', 503, 'SERVICE_UNAVAILABLE')
-  }
-
-  const redis = getRedisClient()
-  return (async () => {
-    try {
-      const cachedCode = await redis.get(`otp:email:${normalizedEmail}`)
-      if (!cachedCode) {
-        logger.warn(`Email OTP verification failed: No code cached for ${normalizedEmail}`)
-        return false
-      }
-
-      // Check code match
-      if (cachedCode !== code.trim()) {
-        logger.warn(`Email OTP verification failed: Incorrect code submitted for ${normalizedEmail}`)
-        return false
-      }
-
-      // Clear verification cache on success to prevent reuse
-      await redis.del(`otp:email:${normalizedEmail}`)
-      logger.info(`Email OTP successfully verified for: ${normalizedEmail}`)
       return true
-    } catch (err) {
-      logger.error('Failed to verify OTP from Redis:', err)
-      throw new AppError('Failed to verify verification code. Please try again.', 500, 'OTP_VERIFY_ERROR')
-    }
-  })()
+    })()
+  }
+
+  // Pure in-memory check when Redis is unavailable
+  const cachedData = emailOtpCache.get(normalizedEmail)
+  if (!cachedData) return false
+  if (new Date() > new Date(cachedData.expiresAt)) {
+    emailOtpCache.delete(normalizedEmail)
+    return false
+  }
+  if (cachedData.code !== code.trim()) return false
+  emailOtpCache.delete(normalizedEmail)
+  return true
 }
 
 // ============================================================================
