@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { apiRequest, setAccessToken, BASE_URL } from '../utils/api.js'
+import { apiRequest, setAccessToken, setLoggingOut, BASE_URL } from '../utils/api.js'
 
 const AuthContext = createContext(null)
 
@@ -74,15 +74,18 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     setLoading(true)
+    setLoggingOut(true)
     try {
       await apiRequest('/auth/logout', { method: 'POST' })
     } catch (err) {
-      console.error('Logout request failed:', err)
+      console.warn('Logout request finished with note:', err.message)
     } finally {
       setAccessToken('')
       setUser(null)
       setIsAuthenticated(false)
       setLoading(false)
+      setLoggingOut(false)
+      sessionStorage.removeItem('chunk_reload_attempted')
     }
   }
 

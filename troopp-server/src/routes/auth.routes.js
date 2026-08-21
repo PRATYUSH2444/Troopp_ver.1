@@ -3,7 +3,7 @@ import passport from 'passport'
 import jwt from 'jsonwebtoken'
 
 import * as authController from '../controllers/auth.controller.js'
-import { protect } from '../middleware/auth.middleware.js'
+import { protect, resolveUserOptional } from '../middleware/auth.middleware.js'
 import { validate } from '../middleware/validate.js'
 import * as schemas from '../middleware/validate.js'
 import * as limits from '../middleware/rateLimit.middleware.js'
@@ -40,8 +40,8 @@ router.post('/login', limits.authLoginLimiter, validate(schemas.loginSchema), au
 // Silent Token Refresh (checks refresh HttpOnly cookie)
 router.post('/refresh', authController.refresh)
 
-// User Logout (revokes active Access Token)
-router.post('/logout', protect, authController.logout)
+// User Logout (idempotent, revokes tokens if provided and clears cookie)
+router.post('/logout', resolveUserOptional, authController.logout)
 
 // ============================================================================
 // 3. PASSWORD RECOVERY / FORGOT PASSWORDS

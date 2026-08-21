@@ -440,30 +440,37 @@ export const refresh = async (req, res, next) => {
  */
 export const logout = async (req, res, next) => {
   try {
-    const token = req.token
+    const token = req.token || (req.headers.authorization?.startsWith('Bearer') ? req.headers.authorization.split(' ')[1] : null)
 
     if (token) {
-      // Hash access token for blacklisting
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
-      const decoded = jwt.decode(token)
-      const expiresAt = decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 15 * 60 * 1000)
+      try {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+        const decoded = jwt.decode(token)
+        const expiresAt = decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 15 * 60 * 1000)
 
-      await TokenBlacklist.create({
-        token_hash: tokenHash,
-        user_id: req.user.id,
-        expires_at: expiresAt
-      })
-      logger.info(`Blacklisted access token hash for logged-out user: ${req.user?.email}`)
+        await TokenBlacklist.findOrCreate({
+          where: { token_hash: tokenHash },
+          defaults: {
+            token_hash: tokenHash,
+            user_id: decoded?.id || null,
+            expires_at: expiresAt
+          }
+        })
+        logger.info(`Blacklisted access token hash for logged-out user: ${decoded?.id || 'unknown'}`)
+      } catch (tokenErr) {
+        logger.debug(`Token blacklist on logout handled: ${tokenErr.message}`)
+      }
     }
 
     // Clear refresh cookie
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/'
     })
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Log out successful.'
     })

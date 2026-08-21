@@ -17,72 +17,95 @@ const ScrollToTop = () => {
 }
 
 // ============================================================================
-// LAZY-LOAD PAGE COMPONENTS
-// ============================================================================
+// Core Public Pages (directly imported to prevent any post-deployment chunk 404s)
+import Landing from '../pages/Landing.jsx'
+import Login from '../pages/Login.jsx'
+import Signup from '../pages/Signup.jsx'
+import GoogleCallback from '../pages/GoogleCallback.jsx'
+import Feed from '../pages/Feed.jsx'
 
-// Public Pages
-const Landing = lazy(() => import('../pages/Landing.jsx'))
-const Login = lazy(() => import('../pages/Login.jsx'))
-const Signup = lazy(() => import('../pages/Signup.jsx'))
-const VerifyEmail = lazy(() => import('../pages/VerifyEmail.jsx'))
-const VerifyPhone = lazy(() => import('../pages/VerifyPhone.jsx'))
-const VerifyPhoneCheck = lazy(() => import('../pages/VerifyPhoneCheck.jsx'))
-const CompleteSignup = lazy(() => import('../pages/CompleteSignup.jsx'))
-const GoogleCallback = lazy(() => import('../pages/GoogleCallback.jsx'))
-const ForgotPassword = lazy(() => import('../pages/ForgotPassword.jsx'))
-const ResetPassword = lazy(() => import('../pages/ResetPassword.jsx'))
-const ShareActivity = lazy(() => import('../pages/ShareActivity.jsx'))
-const Terms = lazy(() => import('../pages/Terms.jsx'))
-const Privacy = lazy(() => import('../pages/Privacy.jsx'))
-const NotFound = lazy(() => import('../pages/NotFound.jsx'))
-const Maintenance = lazy(() => import('../pages/Maintenance.jsx'))
+// Robust lazy loader with automatic single-retry reload for stale production chunks
+export const lazyWithRetry = (componentImport) =>
+  lazy(async () => {
+    try {
+      return await componentImport()
+    } catch (error) {
+      const isChunkLoadFailed =
+        error?.name === 'ChunkLoadError' ||
+        /Failed to fetch dynamically imported module/i.test(error?.message || '') ||
+        /Loading chunk/i.test(error?.message || '') ||
+        /error loading dynamically imported module/i.test(error?.message || '')
+
+      const hasReloaded = sessionStorage.getItem('chunk_reload_attempted')
+
+      if (isChunkLoadFailed && !hasReloaded) {
+        sessionStorage.setItem('chunk_reload_attempted', 'true')
+        window.location.reload()
+        return new Promise(() => {}) // Wait for browser to reload
+      }
+
+      throw error
+    }
+  })
+
+// Remaining Public Pages (Lazy Loaded with Auto-Retry)
+const VerifyEmail = lazyWithRetry(() => import('../pages/VerifyEmail.jsx'))
+const VerifyPhone = lazyWithRetry(() => import('../pages/VerifyPhone.jsx'))
+const VerifyPhoneCheck = lazyWithRetry(() => import('../pages/VerifyPhoneCheck.jsx'))
+const CompleteSignup = lazyWithRetry(() => import('../pages/CompleteSignup.jsx'))
+const ForgotPassword = lazyWithRetry(() => import('../pages/ForgotPassword.jsx'))
+const ResetPassword = lazyWithRetry(() => import('../pages/ResetPassword.jsx'))
+const ShareActivity = lazyWithRetry(() => import('../pages/ShareActivity.jsx'))
+const Terms = lazyWithRetry(() => import('../pages/Terms.jsx'))
+const Privacy = lazyWithRetry(() => import('../pages/Privacy.jsx'))
+const NotFound = lazyWithRetry(() => import('../pages/NotFound.jsx'))
+const Maintenance = lazyWithRetry(() => import('../pages/Maintenance.jsx'))
 
 // Protected App Pages
-const Onboarding = lazy(() => import('../pages/Onboarding.jsx'))
-import Feed from '../pages/Feed.jsx'
-const Search = lazy(() => import('../pages/Search.jsx'))
-const ActivityDetail = lazy(() => import('../pages/ActivityDetail.jsx'))
-const CreateActivity = lazy(() => import('../pages/CreateActivity.jsx'))
-const EditActivity = lazy(() => import('../pages/EditActivity.jsx'))
-const SetupActivity = lazy(() => import('../pages/SetupActivity.jsx'))
-const MyProfile = lazy(() => import('../pages/MyProfile.jsx'))
-const EditProfile = lazy(() => import('../pages/EditProfile.jsx'))
-const EmergencyContacts = lazy(() => import('../pages/EmergencyContacts.jsx'))
-const Settings = lazy(() => import('../pages/Settings.jsx'))
-const NotificationSettings = lazy(() => import('../pages/NotificationSettings.jsx'))
-const UserProfile = lazy(() => import('../pages/UserProfile.jsx'))
-const TripRoom = lazy(() => import('../pages/TripRoom.jsx'))
-const Notifications = lazy(() => import('../pages/Notifications.jsx'))
-const JoinRequestsPage = lazy(() => import('../pages/activities/JoinRequestsPage.jsx'))
-const RatingPage = lazy(() => import('../pages/rating/RatingPage.jsx'))
-const MemoryWallDetailPage = lazy(() => import('../pages/memory/MemoryWallDetailPage.jsx'))
-const NotificationPreferencesPage = lazy(() => import('../pages/settings/NotificationPreferencesPage.jsx'))
-const FollowersListPage = lazy(() => import('../pages/social/FollowersListPage.jsx'))
-const FollowingListPage = lazy(() => import('../pages/social/FollowingListPage.jsx'))
-const Suspended = lazy(() => import('../pages/Suspended.jsx'))
-const Banned = lazy(() => import('../pages/Banned.jsx'))
-const Offline = lazy(() => import('../pages/Offline.jsx'))
+const Onboarding = lazyWithRetry(() => import('../pages/Onboarding.jsx'))
+const Search = lazyWithRetry(() => import('../pages/Search.jsx'))
+const ActivityDetail = lazyWithRetry(() => import('../pages/ActivityDetail.jsx'))
+const CreateActivity = lazyWithRetry(() => import('../pages/CreateActivity.jsx'))
+const EditActivity = lazyWithRetry(() => import('../pages/EditActivity.jsx'))
+const SetupActivity = lazyWithRetry(() => import('../pages/SetupActivity.jsx'))
+const MyProfile = lazyWithRetry(() => import('../pages/MyProfile.jsx'))
+const EditProfile = lazyWithRetry(() => import('../pages/EditProfile.jsx'))
+const EmergencyContacts = lazyWithRetry(() => import('../pages/EmergencyContacts.jsx'))
+const Settings = lazyWithRetry(() => import('../pages/Settings.jsx'))
+const NotificationSettings = lazyWithRetry(() => import('../pages/NotificationSettings.jsx'))
+const UserProfile = lazyWithRetry(() => import('../pages/UserProfile.jsx'))
+const TripRoom = lazyWithRetry(() => import('../pages/TripRoom.jsx'))
+const Notifications = lazyWithRetry(() => import('../pages/Notifications.jsx'))
+const JoinRequestsPage = lazyWithRetry(() => import('../pages/activities/JoinRequestsPage.jsx'))
+const RatingPage = lazyWithRetry(() => import('../pages/rating/RatingPage.jsx'))
+const MemoryWallDetailPage = lazyWithRetry(() => import('../pages/memory/MemoryWallDetailPage.jsx'))
+const NotificationPreferencesPage = lazyWithRetry(() => import('../pages/settings/NotificationPreferencesPage.jsx'))
+const FollowersListPage = lazyWithRetry(() => import('../pages/social/FollowersListPage.jsx'))
+const FollowingListPage = lazyWithRetry(() => import('../pages/social/FollowingListPage.jsx'))
+const Suspended = lazyWithRetry(() => import('../pages/Suspended.jsx'))
+const Banned = lazyWithRetry(() => import('../pages/Banned.jsx'))
+const Offline = lazyWithRetry(() => import('../pages/Offline.jsx'))
 
 // Community Pages
-const CommunityFeed = lazy(() => import('../pages/community/CommunityFeed.jsx'))
-const BoardFeed = lazy(() => import('../pages/community/BoardFeed.jsx'))
-const PostDetail = lazy(() => import('../pages/community/PostDetail.jsx'))
-const SubmitPost = lazy(() => import('../pages/community/SubmitPost.jsx'))
-const CreateBoard = lazy(() => import('../pages/community/CreateBoard.jsx'))
-const ModQueue = lazy(() => import('../pages/community/ModQueue.jsx'))
+const CommunityFeed = lazyWithRetry(() => import('../pages/community/CommunityFeed.jsx'))
+const BoardFeed = lazyWithRetry(() => import('../pages/community/BoardFeed.jsx'))
+const PostDetail = lazyWithRetry(() => import('../pages/community/PostDetail.jsx'))
+const SubmitPost = lazyWithRetry(() => import('../pages/community/SubmitPost.jsx'))
+const CreateBoard = lazyWithRetry(() => import('../pages/community/CreateBoard.jsx'))
+const ModQueue = lazyWithRetry(() => import('../pages/community/ModQueue.jsx'))
 
 // Admin Pages
-const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard.jsx'))
-const AdminUsers = lazy(() => import('../pages/admin/AdminUsers.jsx'))
-const AdminUserDetail = lazy(() => import('../pages/admin/AdminUserDetail.jsx'))
-const AdminReports = lazy(() => import('../pages/admin/AdminReports.jsx'))
-const AdminActivityReports = lazy(() => import('../pages/admin/AdminActivityReports.jsx'))
-const AdminActivities = lazy(() => import('../pages/admin/AdminActivities.jsx'))
-const AdminAnalytics = lazy(() => import('../pages/admin/AdminAnalytics.jsx'))
-const AdminBroadcast = lazy(() => import('../pages/admin/AdminBroadcast.jsx'))
-const AdminIPBlocks = lazy(() => import('../pages/admin/AdminIPBlocks.jsx'))
-const AdminLogs = lazy(() => import('../pages/admin/AdminLogs.jsx'))
-const AdminSettings = lazy(() => import('../pages/admin/AdminSettings.jsx'))
+const AdminDashboard = lazyWithRetry(() => import('../pages/admin/AdminDashboard.jsx'))
+const AdminUsers = lazyWithRetry(() => import('../pages/admin/AdminUsers.jsx'))
+const AdminUserDetail = lazyWithRetry(() => import('../pages/admin/AdminUserDetail.jsx'))
+const AdminReports = lazyWithRetry(() => import('../pages/admin/AdminReports.jsx'))
+const AdminActivityReports = lazyWithRetry(() => import('../pages/admin/AdminActivityReports.jsx'))
+const AdminActivities = lazyWithRetry(() => import('../pages/admin/AdminActivities.jsx'))
+const AdminAnalytics = lazyWithRetry(() => import('../pages/admin/AdminAnalytics.jsx'))
+const AdminBroadcast = lazyWithRetry(() => import('../pages/admin/AdminBroadcast.jsx'))
+const AdminIPBlocks = lazyWithRetry(() => import('../pages/admin/AdminIPBlocks.jsx'))
+const AdminLogs = lazyWithRetry(() => import('../pages/admin/AdminLogs.jsx'))
+const AdminSettings = lazyWithRetry(() => import('../pages/admin/AdminSettings.jsx'))
 
 // Loading Fallback Component
 const LoaderFallback = () => (

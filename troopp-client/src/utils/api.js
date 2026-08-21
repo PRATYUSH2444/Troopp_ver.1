@@ -51,6 +51,14 @@ const executeRefresh = async () => {
   }
 }
 
+let isLoggingOut = false
+
+export const setLoggingOut = (status) => {
+  isLoggingOut = status
+}
+
+export const getLoggingOut = () => isLoggingOut
+
 /**
  * Base API Request wrapper with 30s timeout and silent token refresh on 401.
  */
@@ -100,13 +108,20 @@ export const apiRequest = async (endpoint, options = {}) => {
     throw error
   }
 
-  // If 401, attempt a single silent refresh then retry — but NOT for auth endpoints
+  // If 401, attempt a single silent refresh then retry — but NEVER during logout or for auth endpoints
+  const isAuthEndpoint =
+    endpoint.startsWith('/auth/refresh') ||
+    endpoint.startsWith('/auth/login') ||
+    endpoint.startsWith('/auth/signup') ||
+    endpoint.startsWith('/auth/logout') ||
+    endpoint.startsWith('/auth/forgot-password') ||
+    endpoint.startsWith('/auth/reset-password')
+
   if (
     response &&
     response.status === 401 &&
-    endpoint !== '/auth/refresh' &&
-    endpoint !== '/auth/login' &&
-    endpoint !== '/auth/signup'
+    !isLoggingOut &&
+    !isAuthEndpoint
   ) {
     if (!refreshPromise) {
       refreshPromise = executeRefresh().finally(() => {

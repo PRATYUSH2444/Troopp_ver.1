@@ -24,6 +24,16 @@ if (sentryDsn && sentryDsn !== 'https://your_sentry_dsn_key@o0.ingest.sentry.io/
   })
 }
 
+// Automatically recover from stale deployment chunks without falling into ErrorBoundary
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault()
+  const hasReloaded = sessionStorage.getItem('chunk_preload_reload')
+  if (!hasReloaded) {
+    sessionStorage.setItem('chunk_preload_reload', 'true')
+    window.location.reload()
+  }
+})
+
 // Clean up registered service workers in development mode to avoid HMR caching freeze
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
@@ -37,7 +47,6 @@ if (import.meta.env.DEV && 'serviceWorker' in navigator) {
     }
   })
 }
-
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
