@@ -137,22 +137,10 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-core'
-            }
-            if (id.includes('framer-motion')) {
-              return 'framer-motion'
-            }
-            if (id.includes('socket.io-client')) {
-              return 'socket-client'
-            }
-            if (id.includes('sentry')) {
-              return 'sentry'
-            }
-            return 'vendor'
-          }
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['framer-motion', 'react-hot-toast'],
+          'socket-vendor': ['socket.io-client']
         }
       }
     },
