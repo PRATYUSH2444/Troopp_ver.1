@@ -1,12 +1,22 @@
 export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 
-let accessTokenInMemory = ''
+let accessTokenInMemory = (typeof window !== 'undefined' && sessionStorage.getItem('troopp_token')) || ''
 
 export const setAccessToken = (token) => {
-  accessTokenInMemory = token
+  accessTokenInMemory = token || ''
+  if (typeof window !== 'undefined') {
+    if (token) {
+      sessionStorage.setItem('troopp_token', token)
+    } else {
+      sessionStorage.removeItem('troopp_token')
+    }
+  }
 }
 
 export const getAccessToken = () => {
+  if (!accessTokenInMemory && typeof window !== 'undefined') {
+    accessTokenInMemory = sessionStorage.getItem('troopp_token') || ''
+  }
   return accessTokenInMemory
 }
 

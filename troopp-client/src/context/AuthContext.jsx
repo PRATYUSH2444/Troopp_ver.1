@@ -9,16 +9,42 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const checkInProgress = useRef(false)
 
-  // On page load: Silent check if session cookie exists
+  // On page load: Hydrate immediately from stored token, then verify/refresh
   useEffect(() => {
     if (checkInProgress.current) return
     checkInProgress.current = true
 
     const checkSession = async () => {
+      // 1. Immediate sync hydration from token
+      const storedToken = typeof window !== 'undefined' ? sessionStorage.getItem('troopp_token') : null
+      if (storedToken) {
+        try {
+          const parts = storedToken.split('.')
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]))
+            if (!payload.exp || payload.exp * 1000 > Date.now()) {
+              setAccessToken(storedToken)
+              setUser({
+                id: payload.id,
+                email: payload.email,
+                role: payload.role,
+                name: payload.name,
+                trustScore: payload.trust_score,
+                onboardingCompleted: payload.onboarding_completed || false
+              })
+              setIsAuthenticated(true)
+            }
+          }
+        } catch (e) {
+          console.warn('Session hydration note:', e.message)
+        }
+      }
+
+      // 2. Refresh verification in background
       try {
         const res = await apiRequest('/auth/refresh', { method: 'POST' })
 
-        if (res.ok) {
+        if (res && res.ok) {
           const data = await res.json()
           if (data.success && data.accessToken) {
             setAccessToken(data.accessToken)
@@ -39,9 +65,8 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (err) {
-        // Timeout or network error — not logged in, just continue
         if (!err.isTimeout) {
-          console.error('Silent session check failed:', err)
+          console.warn('Background session refresh note:', err.message)
         }
       } finally {
         setLoading(false)

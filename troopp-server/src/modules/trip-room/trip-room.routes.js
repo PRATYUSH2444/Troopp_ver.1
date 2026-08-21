@@ -10,11 +10,26 @@ const router = Router()
 // All routes require authentication
 router.use(authGuard)
 
-// Middleware: Verify user is a confirmed member of this trip room
+// Middleware: Verify user is a confirmed member or host of this trip room
 const checkTripRoomMember = async (req, res, next) => {
   try {
     const { id } = req.params
     const userId = req.user.id
+
+    const activity = await Activity.findByPk(id)
+    if (!activity) {
+      return next(new AppError('Activity not found.', 404, 'ACTIVITY_NOT_FOUND'))
+    }
+
+    if (activity.creator_id === userId || activity.host_id === userId) {
+      const [hostMember] = await ActivityMember.findOrCreate({
+        where: { activity_id: id, user_id: userId },
+        defaults: { status: 'confirmed', role: 'host', position: 0 }
+      })
+      req.member = hostMember
+      req.activity = activity
+      return next()
+    }
 
     const member = await ActivityMember.findOne({
       where: { activity_id: id, user_id: userId, status: 'confirmed' }
@@ -25,6 +40,7 @@ const checkTripRoomMember = async (req, res, next) => {
     }
 
     req.member = member
+    req.activity = activity
     next()
   } catch (err) {
     next(err)

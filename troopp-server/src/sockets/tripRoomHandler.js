@@ -29,10 +29,21 @@ const registerTripRoomHandlers = (io, socket) => {
         return socket.emit('error', { code: 'INVALID_ROOM_ID', message: 'Room ID is required.' })
       }
 
-      // Verify user is confirmed member of this trip room
-      const member = await ActivityMember.findOne({
+      // Verify user is confirmed member or host of this trip room
+      let member = await ActivityMember.findOne({
         where: { activity_id: roomId, user_id: userId, status: 'confirmed' }
       })
+
+      if (!member) {
+        const activity = await Activity.findByPk(roomId)
+        if (activity && (activity.creator_id === userId || activity.host_id === userId)) {
+          const [hostMember] = await ActivityMember.findOrCreate({
+            where: { activity_id: roomId, user_id: userId },
+            defaults: { status: 'confirmed', role: 'host', position: 0 }
+          })
+          member = hostMember
+        }
+      }
 
       if (!member) {
         logger.warn(`Unauthorized socket join request from User: ${userId} to Room: ${roomId}`)

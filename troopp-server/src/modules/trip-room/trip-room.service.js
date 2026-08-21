@@ -241,14 +241,15 @@ export const lockUnlockTrip = async (activityId, hostId, isLocked) => {
   return activity
 }
 
-// 5. ONBOARDING & DASHBOARD HEALTH
 export const getOnboarding = async (activityId, userId) => {
+  const activity = await Activity.findByPk(activityId)
+  const isHost = activity && (activity.creator_id === userId || activity.host_id === userId)
   const status = await tripRoomRepo.getOnboardingStatus(activityId, userId)
   const rules = await TripRule.findOne({ where: { activity_id: activityId } })
   const welcome = await TripWelcomeMessage.findOne({ where: { activity_id: activityId } })
 
   return {
-    onboardingCompleted: status ? status.onboarding_completed : false,
+    onboardingCompleted: isHost ? true : (status ? status.onboarding_completed : false),
     rules: rules || {},
     welcomeMessage: welcome ? welcome.message_text : 'Welcome to the trip!'
   }
