@@ -25,12 +25,35 @@ if (sentryDsn && sentryDsn !== 'https://your_sentry_dsn_key@o0.ingest.sentry.io/
 }
 
 // Automatically recover from stale deployment chunks without falling into ErrorBoundary
-window.addEventListener('vite:preloadError', (event) => {
-  event.preventDefault()
+const handleChunkError = () => {
   const hasReloaded = sessionStorage.getItem('chunk_preload_reload')
   if (!hasReloaded) {
     sessionStorage.setItem('chunk_preload_reload', 'true')
-    window.location.reload()
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) reg.unregister()
+        window.location.reload()
+      })
+    } else {
+      window.location.reload()
+    }
+  }
+}
+
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault()
+  handleChunkError()
+})
+
+window.addEventListener('unhandledrejection', (event) => {
+  const isChunkError =
+    /Failed to fetch dynamically imported module/i.test(event.reason?.message || '') ||
+    /Loading chunk/i.test(event.reason?.message || '') ||
+    /error loading dynamically imported module/i.test(event.reason?.message || '')
+
+  if (isChunkError) {
+    event.preventDefault()
+    handleChunkError()
   }
 })
 
@@ -61,7 +84,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             We encountered an unexpected error. Please try reloading the page.
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then((registrations) => {
+                  for (const reg of registrations) reg.unregister()
+                  window.location.reload()
+                })
+              } else {
+                window.location.reload()
+              }
+            }}
             className="px-6 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl shadow-neumorphic-outset transition-all active:shadow-neumorphic-inset"
           >
             Refresh App
