@@ -31,36 +31,7 @@ if (Sentry.Handlers && typeof Sentry.Handlers.requestHandler === 'function') {
   app.use(Sentry.Handlers.requestHandler())
 }
 
-// 2. Helmet Security Headers Configuration
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://apis.google.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
-        connectSrc: ["'self'", 'wss://*', 'https://*.googleapis.com'],
-      },
-    },
-    frameguard: { action: 'deny' },
-    noSniff: true,
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-    referrerPolicy: { policy: 'same-origin' },
-  })
-)
-
-// Custom Permissions Policy Header Middle-ware
-app.use((req, res, next) => {
-  res.setHeader(
-    'Permissions-Policy',
-    'geolocation=(self), camera=(self), microphone=()'
-  )
-  next()
-})
-
-// 3. CORS Policy Configuration
+// 2. CORS Policy Configuration (MUST be first before Helmet or security headers)
 const isAllowedOrigin = (origin) => {
   if (!origin) return true
   if (origin.includes('localhost') || origin.includes('127.0.0.1')) return true
@@ -80,14 +51,38 @@ app.use(
         callback(null, true)
       } else {
         logger.warn(`CORS request blocked for origin: ${origin}`)
-        callback(new AppError('Connection blocked by CORS policy.', 403, 'CORS_BLOCKED'))
+        callback(null, false)
       }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id', 'Accept', 'Cookie'],
+    optionsSuccessStatus: 200
   })
 )
+
+// Handle preflight OPTIONS requests for all routes
+app.options('*', cors())
+
+// 3. Helmet Security Headers Configuration
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    frameguard: { action: 'deny' },
+    noSniff: true,
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  })
+)
+
+// Custom Permissions Policy Header Middle-ware
+app.use((req, res, next) => {
+  res.setHeader(
+    'Permissions-Policy',
+    'geolocation=(self), camera=(self), microphone=()'
+  )
+  next()
+})
 
 // 4. Request Body Parsers (10mb payload limit)
 app.use(express.json({ limit: '10mb' }))
