@@ -16,6 +16,8 @@ const VerifyPhoneCheck = () => {
   const [code, setCode] = useState('')
   const [hasError, setHasError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(30)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user, isAuthenticated } = useAuth()
@@ -28,6 +30,38 @@ const VerifyPhoneCheck = () => {
       navigate('/signup')
     }
   }, [email, phone, isAuthenticated, navigate])
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(c => c - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendCooldown])
+
+  const handleResendSMS = async () => {
+    if (resendCooldown > 0 || resending) return
+    setResending(true)
+    haptics.lightTap()
+    try {
+      const endpoint = isAuthenticated ? '/profiles/verify-phone' : '/auth/verify-phone'
+      const res = await apiRequest(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ email, phone })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error?.message || 'Failed to resend SMS.')
+      }
+      haptics.success()
+      toast.success('New SMS verification code sent!')
+      setResendCooldown(30)
+    } catch (err) {
+      haptics.error()
+      toast.error(err.message || 'SMS resend failed.')
+    } finally {
+      setResending(false)
+    }
+  }
 
   const handleVerifySMS = async (otpCode) => {
     const activeCode = otpCode || code
@@ -238,6 +272,33 @@ const VerifyPhoneCheck = () => {
             >
               {submitting ? 'Verifying...' : 'Verify & Continue'}
             </button>
+
+            {/* Resend SMS Action */}
+            <div style={{ textAlign: 'center', marginTop: '12px' }}>
+              <p style={{ fontSize: '13.5px', color: '#9ba6ad' }}>
+                Didn't receive the SMS?{' '}
+                <button
+                  type="button"
+                  onClick={handleResendSMS}
+                  disabled={resendCooldown > 0 || resending}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: resendCooldown > 0 ? '#6b757c' : '#ff6a2c',
+                    fontWeight: '600',
+                    cursor: resendCooldown > 0 ? 'default' : 'pointer',
+                    padding: '0 4px',
+                    fontSize: '13.5px'
+                  }}
+                >
+                  {resending
+                    ? 'Sending...'
+                    : resendCooldown > 0
+                    ? `Resend in ${resendCooldown}s`
+                    : 'Resend SMS'}
+                </button>
+              </p>
+            </div>
           </form>
         </div>
       </motion.div>

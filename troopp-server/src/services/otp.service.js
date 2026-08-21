@@ -11,11 +11,18 @@ const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES || '10', 10)
  * Initialize Twilio Client only if credentials are set.
  * Returns null if credentials are not configured.
  */
+/**
+ * Initialize Twilio Client only if credentials are set.
+ * Returns null if credentials are not configured.
+ */
 const getTwilioClient = () => {
-  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID } = process.env
-  if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_VERIFY_SERVICE_SID) {
+  const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim()
+  const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim()
+  const serviceSid = (process.env.TWILIO_VERIFY_SERVICE_SID || '').trim()
+
+  if (accountSid && authToken && serviceSid) {
     try {
-      return twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+      return twilio(accountSid, authToken)
     } catch (error) {
       logger.error('Failed to initialize Twilio client:', error)
       return null
@@ -123,52 +130,46 @@ export const verifyEmailOTP = (email, code) => {
 
 /**
  * Send an OTP verification code via SMS to user phone.
- * Falls back to console log printing in development if Twilio is unconfigured.
  * @param {string} phone - Target phone (in E.164 format, e.g. +91XXXXXXXXXX)
  */
 export const sendPhoneOTP = async (phone) => {
   const client = getTwilioClient()
-  const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID
+  const serviceSid = (process.env.TWILIO_VERIFY_SERVICE_SID || '').trim()
 
   if (phone.startsWith('+910000')) {
     logger.warn(`[SMS MOCK BYPASS]: Sandbox mock phone detected: ${phone}. OTP code: 123456`)
     return true
   }
 
-  if (client && serviceSid) {
-    try {
-      const verification = await client.verify.v2
-        .services(serviceSid)
-        .verifications.create({ to: phone, channel: 'sms' })
-      logger.info(`Twilio SMS OTP verification status: ${verification.status} for ${phone}`)
-      return true
-    } catch (error) {
-      logger.error(`Twilio SMS sending failed for ${phone}:`, error)
-      // Fallback in development mode or for trial account errors (e.g. unverified recipient number 21608)
-      if (process.env.NODE_ENV !== 'production' || error.code === 21608 || error.code === 21211 || error.status === 400 || error.status === 403) {
-        logger.warn(`[SMS MOCK FALLBACK]: Twilio SMS dispatch failed (${error.message}). Falling back to mock OTP 123456 for ${phone}`)
-        return true
-      }
-      throw new AppError(error.message || 'Failed to send SMS verification code.', 400, 'SMS_SEND_FAILED')
-    }
-  } else {
-    // Development Mock bypass
-    const mockCode = '123456'
-    logger.warn(`[SMS MOCK BYPASS]: Twilio is unconfigured. OTP code for ${phone} is: ${mockCode}`)
+  if (!client || !serviceSid) {
+    throw new AppError(
+      'SMS verification is not configured on the server. Please add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_VERIFY_SERVICE_SID in the Render environment variables.',
+      500,
+      'SMS_PROVIDER_NOT_CONFIGURED'
+    )
+  }
+
+  try {
+    const verification = await client.verify.v2
+      .services(serviceSid)
+      .verifications.create({ to: phone, channel: 'sms' })
+    logger.info(`Twilio SMS OTP verification status: ${verification.status} for ${phone}`)
     return true
+  } catch (error) {
+    logger.error(`Twilio SMS sending failed for ${phone}:`, error)
+    throw new AppError(`SMS delivery failed: ${error.message}`, 400, 'SMS_SEND_FAILED')
   }
 }
 
 /**
  * Verify a phone SMS OTP.
- * Falls back to checking mock codes in development if Twilio is unconfigured or trial account error occurred.
  * @param {string} phone - Target phone
  * @param {string} code - Submitted code
  * @returns {boolean} isValid
  */
 export const verifyPhoneOTP = async (phone, code) => {
   const client = getTwilioClient()
-  const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID
+  const serviceSid = (process.env.TWILIO_VERIFY_SERVICE_SID || '').trim()
 
   if (phone.startsWith('+910000')) {
     const isSandboxCode = code.trim() === '123456'
@@ -176,43 +177,31 @@ export const verifyPhoneOTP = async (phone, code) => {
       logger.info(`[SMS MOCK BYPASS]: Successfully verified mock code for sandbox: ${phone}`)
       return true
     }
-    logger.warn(`[SMS MOCK BYPASS]: Incorrect code submitted for sandbox: ${phone}`)
     return false
   }
 
-  if (client && serviceSid) {
-    try {
-      const check = await client.verify.v2
-        .services(serviceSid)
-        .verificationChecks.create({ to: phone, code })
-      
-      const isApproved = check.status === 'approved'
-      if (isApproved) {
-        logger.info(`Twilio SMS OTP successfully verified for: ${phone}`)
-        return true
-      }
-      if (code.trim() === '123456') {
-        logger.info(`[SMS MOCK FALLBACK]: Successfully verified fallback mock code 123456 for: ${phone}`)
-        return true
-      }
-      logger.warn(`Twilio SMS OTP verification failed for: ${phone} (Status: ${check.status})`)
-      return false
-    } catch (error) {
-      logger.error(`Twilio SMS check failed for ${phone}:`, error)
-      if (code.trim() === '123456') {
-        logger.info(`[SMS MOCK FALLBACK]: Successfully verified fallback mock code 123456 for: ${phone}`)
-        return true
-      }
-      return false
-    }
-  } else {
-    // Development Mock check
-    const isSandboxCode = code.trim() === '123456'
-    if (isSandboxCode) {
-      logger.info(`[SMS MOCK BYPASS]: Successfully verified mock code for: ${phone}`)
+  if (!client || !serviceSid) {
+    throw new AppError(
+      'SMS verification is not configured on the server. Please add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_VERIFY_SERVICE_SID in the Render environment variables.',
+      500,
+      'SMS_PROVIDER_NOT_CONFIGURED'
+    )
+  }
+
+  try {
+    const check = await client.verify.v2
+      .services(serviceSid)
+      .verificationChecks.create({ to: phone, code: code.trim() })
+
+    const isApproved = check.status === 'approved'
+    if (isApproved) {
+      logger.info(`Twilio SMS OTP successfully verified for: ${phone}`)
       return true
     }
-    logger.warn(`[SMS MOCK BYPASS]: Incorrect code submitted for: ${phone}`)
+    logger.warn(`Twilio SMS OTP verification rejected for: ${phone} (Status: ${check.status})`)
     return false
+  } catch (error) {
+    logger.error(`Twilio SMS check failed for ${phone}:`, error)
+    throw new AppError(`SMS verification error: ${error.message}`, 400, 'SMS_CHECK_FAILED')
   }
 }
