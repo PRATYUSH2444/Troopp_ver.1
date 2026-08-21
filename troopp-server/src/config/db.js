@@ -16,7 +16,11 @@ const {
 let sequelize
 
 if (DATABASE_URL) {
-  sequelize = new Sequelize(DATABASE_URL, {
+  const cleanDbUrl = DATABASE_URL.includes('sslmode=require')
+    ? DATABASE_URL.replace('sslmode=require', 'sslmode=verify-full')
+    : DATABASE_URL
+
+  sequelize = new Sequelize(cleanDbUrl, {
     dialect: 'postgres',
     dialectOptions: {
       ssl: {
