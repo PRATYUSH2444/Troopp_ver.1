@@ -18,12 +18,16 @@ const initPassport = () => {
     return
   }
 
+  const defaultCallback = process.env.NODE_ENV === 'production'
+    ? 'https://troopp-render.onrender.com/api/v1/auth/google/callback'
+    : 'http://localhost:5000/api/v1/auth/google/callback'
+
   passport.use(
     new GoogleStrategy(
       {
-        clientID: GOOGLE_CLIENT_ID,
-        clientSecret: GOOGLE_CLIENT_SECRET,
-        callbackURL: GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/v1/auth/google/callback',
+        clientID: GOOGLE_CLIENT_ID.trim(),
+        clientSecret: GOOGLE_CLIENT_SECRET.trim(),
+        callbackURL: (GOOGLE_CALLBACK_URL || defaultCallback).trim(),
         passReqToCallback: true,
       },
       async (req, accessToken, refreshToken, profile, done) => {
