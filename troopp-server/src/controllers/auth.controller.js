@@ -76,7 +76,11 @@ export const signup = async (req, res, next) => {
 
     // Send/Cache Email OTP
     const code = await generateEmailOTP(email)
-    await sendOTPEmail(email, code)
+
+    // Dispatch email in background with error logging so the client receives an instant response
+    sendOTPEmail(email, code).catch(err => {
+      logger.error(`Failed sending OTP email to ${email}: ${err.message}`)
+    })
 
     res.status(200).json({
       success: true,

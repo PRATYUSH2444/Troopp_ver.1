@@ -5,14 +5,14 @@ let transporter
 
 /**
  * Configure Nodemailer SMTP Transporter.
- * Uses Ethereal test accounts in development or fallbacks if credentials are not defined.
+ * Uses strict timeouts to avoid hanging requests.
  */
 const getTransporter = async () => {
   if (transporter) {
     return transporter
   }
 
-  const { GMAIL_USER, GMAIL_PASSWORD, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env
+  const { GMAIL_USER, GMAIL_PASSWORD, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, NODE_ENV } = process.env
   const user = GMAIL_USER || SMTP_USER
   const pass = GMAIL_PASSWORD || SMTP_PASS
   const host = SMTP_HOST || 'smtp.gmail.com'
@@ -27,15 +27,33 @@ const getTransporter = async () => {
       auth: {
         user,
         pass
-      }
+      },
+      connectionTimeout: 4000,
+      greetingTimeout: 4000,
+      socketTimeout: 4000
     })
     logger.info(`Nodemailer configured to use SMTP (${host}:${port}).`)
     return transporter
   }
 
-  // Local development fallback: create an Ethereal virtual mail account
+  // In production without credentials, fallback directly to console logger without network delays
+  if (NODE_ENV === 'production') {
+    logger.warn('[EMAIL CONFIG MISSING]: SMTP_USER / SMTP_PASS not set on server. Emails will be logged to console.')
+    transporter = {
+      sendMail: async (mailOptions) => {
+        logger.info(`[SMTP CONSOLE LOG]: Sending Email to: ${mailOptions.to}. Subject: ${mailOptions.subject}. Content: ${mailOptions.text}`)
+        return { messageId: 'console-log-id' }
+      }
+    }
+    return transporter
+  }
+
+  // Local development fallback: create an Ethereal virtual mail account with timeout protection
   try {
-    const testAccount = await nodemailer.createTestAccount()
+    const testAccountPromise = nodemailer.createTestAccount()
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Ethereal account creation timeout')), 3000))
+    const testAccount = await Promise.race([testAccountPromise, timeoutPromise])
+
     transporter = nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
@@ -43,13 +61,15 @@ const getTransporter = async () => {
       auth: {
         user: testAccount.user,
         pass: testAccount.pass
-      }
+      },
+      connectionTimeout: 4000,
+      greetingTimeout: 4000,
+      socketTimeout: 4000
     })
     logger.info(`Nodemailer configured with Ethereal virtual mail. Access logs at: https://ethereal.email/ (User: ${testAccount.user})`)
     return transporter
   } catch (error) {
-    logger.error('Failed to create Ethereal email transporter, falling back to console logger:', error)
-    // Return a dummy transporter that just logs to console
+    logger.warn('Ethereal setup bypassed, falling back to console logger:', error.message)
     transporter = {
       sendMail: async (mailOptions) => {
         logger.info(`[SMTP DUMMY LOG]: Sending Email to: ${mailOptions.to}. Subject: ${mailOptions.subject}. Content: ${mailOptions.text}`)
@@ -61,14 +81,14 @@ const getTransporter = async () => {
 }
 
 /**
- * Send an OTP signup verification email.
+ * Send an OTP signup verification email with strict 4s timeout protection.
  * @param {string} to - Receiver email
  * @param {string} otp - 6-digit code
  */
 export const sendOTPEmail = async (to, otp) => {
   try {
     if (to.endsWith('@troopp.com') || to.endsWith('@troopp.in') || process.env.NODE_ENV === 'test') {
-      logger.info(`[SMTP BYPASS FOR TEST]: Skipping real SMTP for ${to}. OTP Code: ${otp}`);
+      logger.info(`[SMTP BYPASS FOR TEST]: Skipping real SMTP for ${to}. OTP Code: ${otp}`)
       return { messageId: 'mock-test-id' }
     }
     const client = await getTransporter()
@@ -90,12 +110,13 @@ export const sendOTPEmail = async (to, otp) => {
       `
     }
 
-    const info = await client.sendMail(mailOptions)
+    const sendPromise = client.sendMail(mailOptions)
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP sendMail timed out after 4s')), 4000))
+    const info = await Promise.race([sendPromise, timeoutPromise])
+
     logger.info(`Verification email sent successfully: ${info.messageId}`)
     return info
   } catch (error) {
-    // Log but do NOT throw — OTP is already cached in memory.
-    // Signup will succeed; user may need to check Render logs for OTP if SMTP is misconfigured.
     logger.error(`[EMAIL SEND FAILED] Could not send OTP email to ${to}: ${error.message}. OTP: ${otp}`)
     return { messageId: null, error: error.message }
   }
