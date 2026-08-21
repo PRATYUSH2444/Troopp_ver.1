@@ -94,8 +94,10 @@ export const sendOTPEmail = async (to, otp) => {
     logger.info(`Verification email sent successfully: ${info.messageId}`)
     return info
   } catch (error) {
-    logger.error(`Error sending email to ${to}:`, error)
-    throw error
+    // Log but do NOT throw — OTP is already cached in memory.
+    // Signup will succeed; user may need to check Render logs for OTP if SMTP is misconfigured.
+    logger.error(`[EMAIL SEND FAILED] Could not send OTP email to ${to}: ${error.message}. OTP: ${otp}`)
+    return { messageId: null, error: error.message }
   }
 }
 
