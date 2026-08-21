@@ -127,24 +127,12 @@ export default defineConfig({
       '@styles': path.resolve(__dirname, './src/styles')
     }
   },
+  esbuild: {
+    drop: ['console', 'debugger']
+  },
   build: {
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
-    },
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['framer-motion', 'react-hot-toast'],
-          'socket-vendor': ['socket.io-client']
-        }
-      }
-    },
-    chunkSizeWarningLimit: 600
+    target: 'esnext',
+    chunkSizeWarningLimit: 1000
   },
   server: {
     port: 5173,
