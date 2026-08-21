@@ -37,6 +37,7 @@ const isAllowedOrigin = (origin) => {
   if (origin.includes('localhost') || origin.includes('127.0.0.1')) return true
   if (origin.endsWith('.vercel.app')) return true
   if (process.env.CLIENT_URL && origin === process.env.CLIENT_URL.trim()) return true
+  if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL.trim()) return true
   if (process.env.CORS_ALLOWED_ORIGINS) {
     const list = process.env.CORS_ALLOWED_ORIGINS.split(',').map(s => s.trim())
     if (list.includes(origin)) return true

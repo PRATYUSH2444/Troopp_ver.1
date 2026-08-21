@@ -74,7 +74,7 @@ router.get('/google', (req, res, next) => {
 // Google OAuth callback endpoint
 router.get(
   '/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=OAuthFailed`, session: false }),
   async (req, res) => {
     try {
       const user = req.user
@@ -102,7 +102,7 @@ router.get(
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000
       })
 

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext.jsx'
 import { haptics } from '../utils/haptics.js'
+import { BASE_URL } from '../utils/api.js'
 
 /**
  * Premium Login viewport with high-fidelity styling parameters
@@ -42,7 +43,7 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     haptics.lightTap()
-    window.location.href = 'http://localhost:3000/api/v1/auth/google'
+    window.location.href = `${BASE_URL}/auth/google`
   }
 
   return (
