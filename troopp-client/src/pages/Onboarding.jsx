@@ -107,9 +107,24 @@ const AVAILABLE_TAGS = [
   'Day Trips'
 ]
 
+const DEFAULT_CITIES_FALLBACK = [
+  { id: '11111111-1111-1111-1111-111111111111', city_name: 'Mumbai' },
+  { id: '22222222-2222-2222-2222-222222222222', city_name: 'Delhi NCR' },
+  { id: '33333333-3333-3333-3333-333333333333', city_name: 'Bengaluru' },
+  { id: '44444444-4444-4444-4444-444444444444', city_name: 'Hyderabad' },
+  { id: '55555555-5555-5555-5555-555555555555', city_name: 'Ahmedabad' },
+  { id: '66666666-6666-6666-6666-666666666666', city_name: 'Pune' },
+  { id: '77777777-7777-7777-7777-777777777777', city_name: 'Chennai' },
+  { id: '88888888-8888-8888-8888-888888888888', city_name: 'Kolkata' },
+  { id: '99999999-9999-9999-9999-999999999999', city_name: 'Jaipur' },
+  { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', city_name: 'Surat' },
+  { id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', city_name: 'Goa' },
+  { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', city_name: 'Chandigarh' }
+]
+
 const Onboarding = () => {
   const [step, setStep] = useState(1)
-  const [cities, setCities] = useState([])
+  const [cities, setCities] = useState(DEFAULT_CITIES_FALLBACK)
   const [submitting, setSubmitting] = useState(false)
   const [loadingProfile, setLoadingProfile] = useState(true)
   const navigate = useNavigate()
@@ -118,7 +133,7 @@ const Onboarding = () => {
   // Onboarding details
   const [bio, setBio] = useState('')
   const [gender, setGender] = useState('prefer_not_to_say')
-  const [cityId, setCityId] = useState('')
+  const [cityId, setCityId] = useState('22222222-2222-2222-2222-222222222222') // Delhi NCR default
   const [selectedTags, setSelectedTags] = useState([])
   
   // Emergency contact details

@@ -43,9 +43,23 @@ const initPassport = () => {
             return done(new Error('Google profile returned an invalid email address.'), null)
           }
 
+          // Helper to ensure Profile record exists
+          const ensureProfile = async (targetUser) => {
+            const [userProfile] = await Profile.findOrCreate({
+              where: { user_id: targetUser.id },
+              defaults: {
+                name: profile.displayName || 'Google Traveler',
+                avatar_url: profile.photos?.[0]?.value || null,
+                gender: 'prefer_not_to_say',
+              }
+            })
+            return userProfile
+          }
+
           // 1. Search by Google ID
           let user = await User.findOne({ where: { google_id: googleId } })
           if (user) {
+            await ensureProfile(user)
             return done(null, user)
           }
 
@@ -54,29 +68,24 @@ const initPassport = () => {
           if (user) {
             user.google_id = googleId
             await user.save()
+            await ensureProfile(user)
             return done(null, user)
           }
 
           // 3. Register a new user stub for Google signups
-          // Note: Since onboarding is a distinct step, this creates an un-onboarded user stub
           user = await User.create({
             email: email.toLowerCase().trim(),
             google_id: googleId,
-            is_phone_verified: false, // Must verify phone on complete-signup onboarding
-            trust_score: 50, // Initial default score
+            is_phone_verified: false,
+            trust_score: 50,
             account_status: 'active',
             onboarding_completed: false,
           })
 
           // Create Profile association
-          await Profile.create({
-            user_id: user.id,
-            name: profile.displayName || 'Google User',
-            avatar_url: profile.photos?.[0]?.value || null,
-            gender: 'prefer_not_to_say',
-          })
+          await ensureProfile(user)
 
-          logger.info(`Registered new Google OAuth user stub: ${email}`)
+          logger.info(`Registered and initialized Google OAuth user: ${email}`)
           return done(null, user)
         } catch (error) {
           logger.error('Google Strategy OAuth authentication failed:', error)

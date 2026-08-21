@@ -6,6 +6,7 @@ import Profile from '../models/Profile.js'
 import EmergencyContact from '../models/EmergencyContact.js'
 import Follow from '../models/Follow.js'
 import ActivityMember from '../models/ActivityMember.js'
+import City, { DEFAULT_CITIES } from '../models/City.js'
 import { AppError } from '../middleware/errorHandler.middleware.js'
 import ReliabilityScoreLog from '../models/ReliabilityScoreLog.js'
 import logger from '../config/logger.js'
@@ -93,9 +94,13 @@ router.post('/me/avatar', uploadSingle('avatar'), async (req, res, next) => {
     }
 
     const userId = req.user.id
-    const profile = await Profile.findOne({ where: { user_id: userId } })
+    let profile = await Profile.findOne({ where: { user_id: userId } })
     if (!profile) {
-      return next(new AppError('Profile record not found.', 404, 'PROFILE_NOT_FOUND'))
+      profile = await Profile.create({
+        user_id: userId,
+        name: req.user.email ? req.user.email.split('@')[0] : 'Traveler',
+        gender: 'prefer_not_to_say'
+      })
     }
 
     // Upload to Cloudinary under 'avatars' folder
@@ -169,6 +174,16 @@ router.get('/me', async (req, res, next) => {
 
     if (!user) {
       return next(new AppError('User profile not found.', 404, 'PROFILE_NOT_FOUND'))
+    }
+
+    let profile = user.Profile
+    if (!profile) {
+      profile = await Profile.create({
+        user_id: user.id,
+        name: user.email ? user.email.split('@')[0] : 'Traveler',
+        gender: 'prefer_not_to_say',
+        bio: ''
+      })
     }
 
     const emergencyContacts = await EmergencyContact.findAll({
@@ -533,11 +548,19 @@ router.put('/me', validate(updateProfileSchema), async (req, res, next) => {
     const userId = req.user.id
 
     const user = await User.findByPk(userId, { transaction })
-    const profile = await Profile.findOne({ where: { user_id: userId }, transaction })
-
-    if (!user || !profile) {
+    if (!user) {
       await transaction.rollback()
-      return next(new AppError('Profile record not found.', 404, 'PROFILE_NOT_FOUND'))
+      return next(new AppError('User account not found.', 404, 'USER_NOT_FOUND'))
+    }
+
+    let profile = await Profile.findOne({ where: { user_id: userId }, transaction })
+    if (!profile) {
+      profile = await Profile.create({
+        user_id: userId,
+        name: name ? sanitizeHTML(name.trim()) : (user.email ? user.email.split('@')[0] : 'Traveler'),
+        gender: gender || 'prefer_not_to_say',
+        bio: bio !== undefined ? sanitizeHTML(bio.trim()) : ''
+      }, { transaction })
     }
 
     let userChanged = false
@@ -546,6 +569,19 @@ router.put('/me', validate(updateProfileSchema), async (req, res, next) => {
       userChanged = true
     }
     if (cityId) {
+      let cityRecord = await City.findByPk(cityId, { transaction })
+      if (!cityRecord) {
+        const defaultMatch = DEFAULT_CITIES.find(
+          c => c.id === cityId || c.city_name.toLowerCase() === String(cityId).toLowerCase()
+        )
+        if (defaultMatch) {
+          try {
+            await City.create(defaultMatch, { transaction, ignoreDuplicates: true })
+          } catch (e) {
+            // Ignore race condition duplicate error
+          }
+        }
+      }
       user.city_id = cityId
       userChanged = true
     }
