@@ -5,6 +5,14 @@ import { motion } from 'framer-motion'
  * Shared packing checklist. Coordinates who's bringing what.
  */
 const ChecklistTab = ({ checklist = [], onToggleItem, members = [] }) => {
+  const safeList = Array.isArray(checklist)
+    ? checklist
+    : typeof checklist === 'string'
+    ? (() => { try { return JSON.parse(checklist) } catch { return [] } })()
+    : []
+
+  const safeMembers = Array.isArray(members) ? members : []
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: '#f3f1ea' }}>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -14,7 +22,7 @@ const ChecklistTab = ({ checklist = [], onToggleItem, members = [] }) => {
         </span>
       </div>
 
-      {checklist.length === 0 ? (
+      {safeList.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 20px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '32px' }}>🎒</span>
           <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>Checklist is empty</h4>
@@ -22,8 +30,9 @@ const ChecklistTab = ({ checklist = [], onToggleItem, members = [] }) => {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {checklist.map((item, index) => {
-            const checkedByMember = members.find((m) => m.userId === item.checked_by_id)
+          {safeList.map((item, index) => {
+            if (!item) return null
+            const checkedByMember = safeMembers.find((m) => (m.userId || m.id) === item.checked_by_id)
             const isChecked = !!item.checked
 
             return (

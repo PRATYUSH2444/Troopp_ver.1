@@ -239,7 +239,7 @@ const NewJoinerOnboarding = ({
                   <span style={{ textAlign: 'right' }}>Policy</span>
                 </div>
                 <div style={{ maxHeight: '180px', overflowY: 'auto', divideY: '1px solid rgba(255,255,255,0.04)' }} className="scrollbar-thin">
-                  {rules.map((item, idx) => (
+                  {(Array.isArray(rules) ? rules : []).map((item, idx) => (
                     <div
                       key={idx}
                       style={{
@@ -251,8 +251,8 @@ const NewJoinerOnboarding = ({
                         lineHeight: '1.4'
                       }}
                     >
-                      <span style={{ color: '#f3f1ea' }}>{item.rule}</span>
-                      <span style={{ textAlign: 'right', fontWeight: '700', color: item.color }}>{item.type}</span>
+                      <span style={{ color: '#f3f1ea' }}>{item?.rule}</span>
+                      <span style={{ textAlign: 'right', fontWeight: '700', color: item?.color }}>{item?.type}</span>
                     </div>
                   ))}
                 </div>
@@ -296,21 +296,21 @@ const NewJoinerOnboarding = ({
               <div style={{ padding: '12px 14px', background: '#212b33', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <span style={{ fontSize: '10px', fontWeight: '700', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Confirmed Travelers</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {members.slice(0, 3).map((m, i) => (
-                    <div key={m.userId || i} style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#ff6a2c', fontSize: '9px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #1a2129', color: '#1a0e08', overflow: 'hidden' }}>
-                      {m.avatarUrl || m.User?.Profile?.avatar_url ? (
-                        <img src={m.avatarUrl || m.User?.Profile?.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {(Array.isArray(members) ? members : []).slice(0, 3).map((m, i) => (
+                    <div key={m?.userId || m?.id || i} style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#ff6a2c', fontSize: '9px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #1a2129', color: '#1a0e08', overflow: 'hidden' }}>
+                      {m?.avatarUrl || m?.User?.Profile?.avatar_url ? (
+                        <img src={m?.avatarUrl || m?.User?.Profile?.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        (m.name || m.User?.Profile?.name || 'U')[0].toUpperCase()
+                        ((m?.name || m?.User?.Profile?.name || 'U')[0] || 'U').toUpperCase()
                       )}
                     </div>
                   ))}
-                  {members.length > 3 && (
+                  {(Array.isArray(members) ? members : []).length > 3 && (
                     <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', marginLeft: '4px' }}>
-                      + {members.length - 3} others
+                      + {(Array.isArray(members) ? members : []).length - 3} others
                     </span>
                   )}
-                  {members.length === 0 && (
+                  {(Array.isArray(members) ? members : []).length === 0 && (
                     <span style={{ fontSize: '11px', color: '#6b757c', fontStyle: 'italic' }}>
                       Host is only member
                     </span>

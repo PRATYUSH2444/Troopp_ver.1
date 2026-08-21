@@ -44,24 +44,26 @@ const NumberTicker = ({ value, duration = 400 }) => {
 }
 
 // Interactive Waypoint Row component with check-in confirmation details
-const WaypointRow = ({ point, onCheckIn, user }) => {
+const WaypointRow = ({ point = {}, onCheckIn, user }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [justConfirmed, setJustConfirmed] = useState(false)
-  const prevConfirmedLen = useRef(point.confirmed.length)
+  const confirmedList = Array.isArray(point?.confirmed) ? point.confirmed : []
+  const pendingList = Array.isArray(point?.pending) ? point.pending : []
+  const prevConfirmedLen = useRef(confirmedList.length)
 
-  const isAllConfirmed = point.pending.length === 0
+  const isAllConfirmed = pendingList.length === 0
   const userName = user?.name || 'Explorer'
-  const canCheckIn = point.pending.includes(userName)
+  const canCheckIn = pendingList.includes(userName)
 
   useEffect(() => {
-    if (point.confirmed.length > prevConfirmedLen.current) {
+    if (confirmedList.length > prevConfirmedLen.current) {
       setJustConfirmed(true)
       haptics.waypointCheckin()
       const timer = setTimeout(() => setJustConfirmed(false), 2000)
       return () => clearTimeout(timer)
     }
-    prevConfirmedLen.current = point.confirmed.length
-  }, [point.confirmed])
+    prevConfirmedLen.current = confirmedList.length
+  }, [confirmedList])
 
   return (
     <div
@@ -112,11 +114,11 @@ const WaypointRow = ({ point, onCheckIn, user }) => {
             }}
           />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {point.label}
+            {point?.label || 'Checkpoint'}
           </span>
         </div>
         <span style={{ fontSize: '11px', color: '#9ba6ad', fontWeight: '500', marginLeft: '8px', whiteSpace: 'nowrap' }}>
-          {point.time}
+          {point?.time || ''}
         </span>
       </div>
 
@@ -145,8 +147,8 @@ const WaypointRow = ({ point, onCheckIn, user }) => {
                 ✓ Checked-In:
               </strong>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                {point.confirmed.length > 0 ? (
-                  point.confirmed.map((name) => (
+                {confirmedList.length > 0 ? (
+                  confirmedList.map((name) => (
                     <motion.div
                       key={name}
                       initial={{ opacity: 0, scale: 0.75, x: -10 }}
@@ -179,8 +181,8 @@ const WaypointRow = ({ point, onCheckIn, user }) => {
                 ⏳ Pending:
               </strong>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                {point.pending.length > 0 ? (
-                  point.pending.map((name) => (
+                {pendingList.length > 0 ? (
+                  pendingList.map((name) => (
                     <span
                       key={name}
                       style={{
@@ -244,6 +246,8 @@ const InfoTab = ({
   const [sharing, setSharing] = useState(false)
   const { user } = useAuth()
   
+  const safeMembers = Array.isArray(members) ? members : []
+
   // Local Waypoints checkpoints data list
   const [localWaypoints, setLocalWaypoints] = useState([
     { id: 1, label: 'Start Point Meeting', time: '06:00 AM', confirmed: ['Amit', 'Priya'], pending: ['Vikram'] },
@@ -266,19 +270,21 @@ const InfoTab = ({
     return () => clearInterval(interval)
   }, [sharing])
 
-  const meetingLabel = activity.meeting_point_label || 'Mumbai Central Railway Station'
-  const hostName = activity.Creator?.Profile?.name || 'Group Host'
+  const meetingLabel = activity?.meeting_point_label || 'Mumbai Central Railway Station'
+  const hostName = activity?.Creator?.Profile?.name || 'Group Host'
 
   const handleCheckIn = (waypointId) => {
     const userName = user?.name || 'Explorer'
     setLocalWaypoints((prev) =>
-      prev.map((pt) => {
+      (Array.isArray(prev) ? prev : []).map((pt) => {
         if (pt.id !== waypointId) return pt
-        if (pt.confirmed.includes(userName)) return pt
+        const conf = Array.isArray(pt.confirmed) ? pt.confirmed : []
+        const pend = Array.isArray(pt.pending) ? pt.pending : []
+        if (conf.includes(userName)) return pt
         return {
           ...pt,
-          confirmed: [...pt.confirmed, userName],
-          pending: pt.pending.filter((name) => name !== userName)
+          confirmed: [...conf, userName],
+          pending: pend.filter((name) => name !== userName)
         }
       })
     )
@@ -305,7 +311,7 @@ const InfoTab = ({
       >
         {/* Placeholder SVG background representing route map */}
         <div style={{ position: 'absolute', inset: 0, background: '#1a2129', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b757c', fontWeight: '600', fontSize: '12px' }}>
-          🗺️ Google Map: [Lat: {activity.meeting_point_lat || 19.07}, Lng: {activity.meeting_point_lng || 72.87}]
+          🗺️ Google Map: [Lat: {activity?.meeting_point_lat || 19.07}, Lng: {activity?.meeting_point_lng || 72.87}]
         </div>
         <div style={{ background: 'rgba(12,16,19,0.85)', backdropFilter: 'blur(6px)', padding: '8px 14px', borderRadius: '12px', zIndex: 10, display: 'flex', flexDirection: 'column', color: 'white', maxWidth: '85%', border: '1px solid rgba(255,255,255,0.06)' }}>
           <span style={{ fontSize: '9px', fontWeight: '700', uppercase: 'true', letterSpacing: '0.05em', color: '#ff6a2c' }}>Meeting Point</span>
@@ -328,11 +334,11 @@ const InfoTab = ({
       >
         <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Destination Location</span>
         <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#f3f1ea', lineHeight: 1.2, fontFamily: 'Space Grotesk' }}>
-          {activity.destination || 'Harishchandragad Peak'}
+          {activity?.destination || activity?.title || 'Trip Destination'}
         </h3>
         <p style={{ fontSize: '13px', color: '#9ba6ad', lineHeight: 1.5, marginTop: '4px' }}>
-          📅 Scheduled on: {new Date(activity.date_time || '2026-07-15T06:00:00Z').toLocaleString()} <br />
-          💰 Estimated Budget: ₹{activity.cost_per_person || 0} per person
+          📅 Scheduled on: {new Date(activity?.date_time || '2026-07-15T06:00:00Z').toLocaleString()} <br />
+          💰 Estimated Budget: ₹{activity?.cost_per_person || 0} per person
         </p>
       </div>
 
@@ -349,43 +355,28 @@ const InfoTab = ({
           gap: '12px'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-          <Avatar size="md" score={85} name={hostName} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Avatar
+            src={activity?.Creator?.Profile?.avatar_url}
+            name={hostName}
+            size="md"
+            score={activity?.Creator?.trust_score || 85}
+          />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '9px', fontWeight: '700', color: '#ff6a2c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Group Leader</span>
-            <span style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>
-              {hostName}
-            </span>
-            <span style={{ fontSize: '11px', color: '#9ba6ad', marginTop: '2px' }}>Host Rating: 98% · Trust: 85</span>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: '#ff6a2c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Trip Organizer</span>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>{hostName}</span>
           </div>
         </div>
-        <button
-          style={{
-            height: '32px',
-            padding: '0 14px',
-            border: '1px solid rgba(255,255,255,0.14)',
-            background: '#212b33',
-            borderRadius: '100px',
-            fontSize: '11px',
-            fontWeight: '700',
-            color: '#f3f1ea',
-            cursor: 'pointer',
-            transition: 'background-color 150ms'
-          }}
-          onClick={() => onMemberTap && onMemberTap({ name: hostName, isHost: true })}
-        >
-          Profile
-        </button>
       </div>
 
       {/* 4. Horizontal Confirmed Members Scroll bar */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Confirmed Members (<NumberTicker value={members.length} />)
+          Confirmed Members (<NumberTicker value={safeMembers.length} />)
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', overflowX: 'auto', paddingBottom: '6px' }}>
           <AnimatePresence>
-            {members.map((m) => (
+            {safeMembers.map((m) => (
               <motion.div
                 key={m.userId || m.id}
                 onClick={() => onMemberTap && onMemberTap(m)}
@@ -463,7 +454,7 @@ const InfoTab = ({
           Check-in Waypoints Status
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {localWaypoints.map((point) => (
+          {(Array.isArray(localWaypoints) ? localWaypoints : []).map((point) => (
             <WaypointRow
               key={point.id}
               point={point}
@@ -479,4 +470,3 @@ const InfoTab = ({
 
 export default InfoTab
 export { InfoTab }
-

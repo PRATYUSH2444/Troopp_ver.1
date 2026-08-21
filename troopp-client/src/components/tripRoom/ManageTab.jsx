@@ -100,10 +100,11 @@ const ManageTab = ({
       {/* SECTION A: MEMBER MANAGEMENT */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px' }}>
         <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Member Roster ({members.length})
+          Member Roster ({(Array.isArray(members) ? members : []).length})
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {members.map((m) => {
+          {(Array.isArray(members) ? members : []).map((m) => {
+            if (!m) return null
             const uid = m.userId || m.user_id || m.User?.id || m.id
             const mName = m.name || m.User?.Profile?.name || 'Explorer'
             const mAvatar = m.avatarUrl || m.User?.Profile?.avatar_url

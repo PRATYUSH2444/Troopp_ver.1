@@ -115,15 +115,25 @@ const ExpensesTab = ({
   
   const [expensesLocked, setExpensesLocked] = useState(false)
 
+  const safeExpenses = Array.isArray(expenses)
+    ? expenses
+    : typeof expenses === 'string'
+    ? (() => { try { return JSON.parse(expenses) } catch { return [] } })()
+    : []
+
+  const safeMembers = Array.isArray(members) ? members : []
+
   // Summary statistics
-  const totalLogged = expenses.reduce((acc, cur) => acc + parseFloat(cur.amount), 0)
+  const totalLogged = safeExpenses.reduce((acc, cur) => acc + parseFloat(cur?.amount || 0), 0)
 
   let totalSplits = 0
   let settledSplits = 0
-  expenses.forEach((e) => {
-    e.Splits?.forEach((s) => {
+  safeExpenses.forEach((e) => {
+    if (!e) return
+    const splits = Array.isArray(e.Splits) ? e.Splits : []
+    splits.forEach((s) => {
       totalSplits += 1
-      if (s.is_settled) {
+      if (s?.is_settled) {
         settledSplits += 1
       }
     })
@@ -148,10 +158,12 @@ const ExpensesTab = ({
   
   // Balance calculation
   let myOutstanding = 0
-  expenses.forEach((exp) => {
-    exp.Splits?.forEach((split) => {
-      if (split.user_id === currentUserId && !split.is_settled) {
-        myOutstanding += parseFloat(split.share_amount)
+  safeExpenses.forEach((exp) => {
+    if (!exp) return
+    const splits = Array.isArray(exp.Splits) ? exp.Splits : []
+    splits.forEach((split) => {
+      if (split?.user_id === currentUserId && !split?.is_settled) {
+        myOutstanding += parseFloat(split?.share_amount || 0)
       }
     })
   })
@@ -163,8 +175,8 @@ const ExpensesTab = ({
     setSplitType('equal')
     
     const initialShares = {}
-    members.forEach((m) => {
-      initialShares[m.userId] = ''
+    safeMembers.forEach((m) => {
+      if (m?.userId || m?.id) initialShares[m.userId || m.id] = ''
     })
     setCustomShares(initialShares)
     setModalOpen(true)
@@ -310,22 +322,22 @@ const ExpensesTab = ({
 
       {/* Expenses list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '64px' }}>
-        {expenses.length === 0 ? (
+        {safeExpenses.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px 20px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '32px' }}>💸</span>
             <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>Ledger is empty</h4>
             <p style={{ fontSize: '11px', color: '#9ba6ad' }}>Tap the orange button to log the first expense.</p>
           </div>
         ) : (
-          expenses.map((exp) => (
-            <div key={exp.id} style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+          safeExpenses.map((exp) => (
+            <div key={exp?.id} style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>{exp.description}</span>
-                  <span style={{ fontSize: '11px', color: '#9ba6ad', marginTop: '2px' }}>Paid by {exp.Payer?.Profile?.name || 'Explorer'}</span>
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>{exp?.description}</span>
+                  <span style={{ fontSize: '11px', color: '#9ba6ad', marginTop: '2px' }}>Paid by {exp?.Payer?.Profile?.name || 'Explorer'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '15px', fontWeight: '700', color: '#ff6a2c', fontFamily: 'var(--font-mono)' }}>₹{parseFloat(exp.amount).toLocaleString()}</span>
+                  <span style={{ fontSize: '15px', fontWeight: '700', color: '#ff6a2c', fontFamily: 'var(--font-mono)' }}>₹{parseFloat(exp?.amount || 0).toLocaleString()}</span>
                   {isHost && (
                     <button
                       onClick={() => onDeleteExpense(exp.id)}
@@ -350,11 +362,11 @@ const ExpensesTab = ({
 
               {/* Splits rows */}
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {exp.Splits?.map((split) => (
+                {(Array.isArray(exp?.Splits) ? exp.Splits : []).map((split) => (
                   <ExpenseSplitRow
-                    key={split.id}
+                    key={split?.id}
                     split={split}
-                    isMySplit={split.user_id === currentUserId}
+                    isMySplit={split?.user_id === currentUserId}
                     onSettleSplit={onSettleSplit}
                     currentUserId={currentUserId}
                   />

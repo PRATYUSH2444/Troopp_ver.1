@@ -1,39 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { VariableSizeList as List } from 'react-window'
 import { motion, AnimatePresence } from 'framer-motion'
 import Avatar from '../common/Avatar.jsx'
 
 /**
- * Renders the real-time chat tab with virtualization.
+ * Renders the real-time chat tab with auto-scrolling messages list.
  */
 const ChatTab = ({ messages = [], typingUsers = [], onSendMessage, currentUserId, onReportMessage }) => {
   const [inputText, setInputText] = useState('')
   const [reportModalMessage, setReportModalMessage] = useState(null)
   
-  const listRef = useRef(null)
+  const messagesEndRef = useRef(null)
   const containerRef = useRef(null)
-  
-  // Calculate dynamic heights for messages
-  const getRowHeight = (index) => {
-    const msg = messages[index]
-    if (!msg) return 60
-    
-    const textLength = (msg.message_text || '').length
-    if (msg.message_type === 'announcement') {
-      return 120 + Math.ceil(textLength / 40) * 18
-    }
-    if (msg.message_type === 'system') {
-      return 50
-    }
-    
-    // Default text bubble
-    return 70 + Math.ceil(textLength / 50) * 20
-  }
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
-    if (listRef.current && messages.length > 0) {
-      listRef.current.scrollToItem(messages.length - 1, 'end')
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
 
@@ -50,160 +32,153 @@ const ChatTab = ({ messages = [], typingUsers = [], onSendMessage, currentUserId
     }
   }
 
-  // Virtual Row Renderer
-  const Row = ({ index, style }) => {
-    const msg = messages[index]
-    if (!msg) return null
-
-    const isOwn = msg.sender_id === currentUserId
-    const senderName = msg.Sender?.Profile?.name || 'Explorer'
-    const senderAvatar = msg.Sender?.Profile?.avatar_url
-    const trustScore = msg.Sender?.trust_score || 50
-
-    if (msg.message_type === 'announcement') {
-      return (
-        <div style={{ ...style, padding: '8px 16px' }}>
-          <div style={{ background: 'rgba(255,201,77,0.06)', border: '1px solid #ffc94d', padding: '14px', borderRadius: '16px', display: 'flex', gap: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,201,77,0.16)', flexShrink: 0, display: 'flex', alignItems: 'center', justify: 'center', fontWeight: '900', fontSize: '16px', color: '#ffc94d' }}>
-              📢
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '11px', fontWeight: '800', color: '#ffc94d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Announcement by {senderName}
-                </span>
-              </div>
-              <p style={{ fontSize: '13px', color: '#f3f1ea', leadingHeight: '1.4', fontWeight: '600' }}>
-                {msg.message_text}
-              </p>
-              <span style={{ fontSize: '10px', color: '#6b757c', marginTop: '2px' }}>
-                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    if (msg.message_type === 'member_joined_system') {
-      return (
-        <div style={{ ...style, padding: '4px 16px', display: 'flex', alignItems: 'center', justify: 'center' }}>
-          <motion.div
-            initial={{ y: -30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 22 }}
-            style={{
-              width: '100%',
-              background: 'rgba(79,190,142,0.1)',
-              border: '1px solid rgba(79,190,142,0.2)',
-              color: '#4fbe8e',
-              padding: '10px',
-              borderRadius: '12px',
-              textAlign: 'center',
-              fontSize: '11px',
-              fontWeight: '700',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-            }}
-          >
-            🎉 {msg.message_text}
-          </motion.div>
-        </div>
-      )
-    }
-
-    if (msg.message_type === 'system') {
-      return (
-        <div style={{ ...style, display: 'flex', alignItems: 'center', justify: 'center', fontSize: '11px', color: '#6b757c', fontStyle: 'italic', padding: '0 16px' }}>
-          <motion.span
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {msg.message_text}
-          </motion.span>
-        </div>
-      )
-    }
-
-    // Default chat text bubble
-    const isSending = msg.status === 'sending'
-    return (
-      <div
-        style={style}
-        onContextMenu={(e) => {
-          e.preventDefault()
-          setReportModalMessage(msg)
-        }}
-        onClick={() => {
-          setReportModalMessage(msg)
-        }}
-      >
-        <motion.div
-          initial={{ x: isOwn ? 40 : -40, scale: 0.9, opacity: 0 }}
-          animate={{ x: 0, scale: 1, opacity: isSending ? 0.6 : 1 }}
-          transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-          style={{ display: 'flex', gap: '10px', padding: '6px 16px', flexDirection: isOwn ? 'row-reverse' : 'row' }}
-        >
-          {/* Avatar */}
-          <div style={{ flexShrink: 0 }}>
-            <Avatar src={senderAvatar} name={senderName} size="sm" score={trustScore} />
-          </div>
-
-          {/* Bubble */}
-          <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '70%', alignItems: isOwn ? 'flex-end' : 'flex-start' }}>
-            <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', marginBottom: '2px', padding: '0 4px' }}>
-              {senderName} · <span style={{ fontSize: '10px', fontWeight: '700', color: '#ff6a2c' }}>{trustScore}</span>
-            </span>
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: '14px',
-                fontSize: '13px',
-                lineHeight: 1.4,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                transition: 'all 300ms ease',
-                background: isOwn ? 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)' : '#212b33',
-                color: isOwn ? '#1a0e08' : '#f3f1ea',
-                border: isOwn ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                borderTopRightRadius: isOwn ? '0px' : '14px',
-                borderTopLeftRadius: isOwn ? '14px' : '0px'
-              }}
-            >
-              {msg.message_text}
-            </div>
-            {!isSending && (
-              <span style={{ fontSize: '10px', color: '#6b757c', marginTop: '4px', padding: '0 4px' }}>
-                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
-          </div>
-        </motion.div>
-      </div>
-    )
-  }
+  const safeMessages = Array.isArray(messages) ? messages : []
+  const safeTypingUsers = Array.isArray(typingUsers) ? typingUsers : []
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '500px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', overflow: 'hidden' }} ref={containerRef}>
       
       {/* Messages Viewport */}
-      <div style={{ flex: 1, minHeight: 0, background: '#10151a', position: 'relative' }}>
-        {messages.length === 0 ? (
+      <div style={{ flex: 1, minHeight: 0, background: '#10151a', position: 'relative', overflowY: 'auto', padding: '12px 0' }} className="scrollbar-thin">
+        {safeMessages.length === 0 ? (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '8px' }}>
             <span style={{ fontSize: '32px' }}>💬</span>
             <span style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Start chatting below</span>
             <p style={{ fontSize: '11px', color: '#6b757c', maxWidth: '240px' }}>Introduce yourself to other members before setting off.</p>
           </div>
         ) : (
-          <List
-            ref={listRef}
-            height={420}
-            itemCount={messages.length}
-            itemSize={getRowHeight}
-            width="100%"
-            style={{ overflowX: 'hidden' }}
-          >
-            {Row}
-          </List>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {safeMessages.map((msg, index) => {
+              if (!msg) return null
+
+              const isOwn = msg.sender_id === currentUserId
+              const senderName = msg.Sender?.Profile?.name || 'Explorer'
+              const senderAvatar = msg.Sender?.Profile?.avatar_url
+              const trustScore = msg.Sender?.trust_score || 50
+
+              if (msg.message_type === 'announcement') {
+                return (
+                  <div key={msg.id || index} style={{ padding: '4px 16px' }}>
+                    <div style={{ background: 'rgba(255,201,77,0.06)', border: '1px solid #ffc94d', padding: '14px', borderRadius: '16px', display: 'flex', gap: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,201,77,0.16)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '16px', color: '#ffc94d' }}>
+                        📢
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#ffc94d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Announcement by {senderName}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '13px', color: '#f3f1ea', lineHeight: '1.4', fontWeight: '600' }}>
+                          {msg.message_text}
+                        </p>
+                        <span style={{ fontSize: '10px', color: '#6b757c', marginTop: '2px' }}>
+                          {new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              if (msg.message_type === 'member_joined_system') {
+                return (
+                  <div key={msg.id || index} style={{ padding: '4px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <motion.div
+                      initial={{ y: -10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 350, damping: 22 }}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(79,190,142,0.1)',
+                        border: '1px solid rgba(79,190,142,0.2)',
+                        color: '#4fbe8e',
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        textAlign: 'center',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                      }}
+                    >
+                      🎉 {msg.message_text}
+                    </motion.div>
+                  </div>
+                )
+              }
+
+              if (msg.message_type === 'system') {
+                return (
+                  <div key={msg.id || index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#6b757c', fontStyle: 'italic', padding: '2px 16px' }}>
+                    <motion.span
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {msg.message_text}
+                    </motion.span>
+                  </div>
+                )
+              }
+
+              // Default chat text bubble
+              const isSending = msg.status === 'sending'
+              return (
+                <div
+                  key={msg.id || index}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    setReportModalMessage(msg)
+                  }}
+                  onClick={() => {
+                    setReportModalMessage(msg)
+                  }}
+                >
+                  <motion.div
+                    initial={{ x: isOwn ? 20 : -20, scale: 0.95, opacity: 0 }}
+                    animate={{ x: 0, scale: 1, opacity: isSending ? 0.6 : 1 }}
+                    transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                    style={{ display: 'flex', gap: '10px', padding: '4px 16px', flexDirection: isOwn ? 'row-reverse' : 'row' }}
+                  >
+                    {/* Avatar */}
+                    <div style={{ flexShrink: 0 }}>
+                      <Avatar src={senderAvatar} name={senderName} size="sm" score={trustScore} />
+                    </div>
+
+                    {/* Bubble */}
+                    <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '70%', alignItems: isOwn ? 'flex-end' : 'flex-start' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', marginBottom: '2px', padding: '0 4px' }}>
+                        {senderName} · <span style={{ fontSize: '10px', fontWeight: '700', color: '#ff6a2c' }}>{trustScore}</span>
+                      </span>
+                      <div
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '14px',
+                          fontSize: '13px',
+                          lineHeight: 1.4,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                          transition: 'all 300ms ease',
+                          background: isOwn ? 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)' : '#212b33',
+                          color: isOwn ? '#1a0e08' : '#f3f1ea',
+                          border: isOwn ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                          borderTopRightRadius: isOwn ? '0px' : '14px',
+                          borderTopLeftRadius: isOwn ? '14px' : '0px'
+                        }}
+                      >
+                        {msg.message_text}
+                      </div>
+                      {!isSending && (
+                        <span style={{ fontSize: '10px', color: '#6b757c', marginTop: '4px', padding: '0 4px' }}>
+                          {new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+                  </motion.div>
+                </div>
+              )
+            })}
+            <div ref={messagesEndRef} />
+          </div>
         )}
       </div>
 
@@ -227,7 +202,7 @@ const ChatTab = ({ messages = [], typingUsers = [], onSendMessage, currentUserId
               originX: 0
             }}
           >
-            <span style={{ fontWeight: '700' }}>{typingUsers.map((u) => u.userName).join(', ')}</span> is typing
+            <span style={{ fontWeight: '700' }}>{safeTypingUsers.map((u) => u?.userName || 'Traveler').join(', ')}</span> is typing
             <span style={{ display: 'flex', gap: '3px', marginLeft: '4px', alignItems: 'center', height: '8px' }}>
               <motion.span
                 animate={{ y: [0, -3, 0] }}

@@ -105,7 +105,7 @@ const PollsTab = ({
 
       {/* Polls list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '64px' }}>
-        {polls.length === 0 ? (
+        {(!Array.isArray(polls) || polls.length === 0) ? (
           <div style={{ textAlign: 'center', padding: '80px 20px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '32px' }}>📊</span>
             <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>No active polls</h4>
@@ -113,14 +113,29 @@ const PollsTab = ({
           </div>
         ) : (
           polls.map((poll) => {
+            if (!poll) return null
+
+            const rawOptions = poll.options
+            const pollOptions = Array.isArray(rawOptions)
+              ? rawOptions
+              : typeof rawOptions === 'string'
+              ? (() => { try { return JSON.parse(rawOptions) } catch { return [] } })()
+              : []
+
+            const rawVotes = poll.votes
+            const votes = Array.isArray(rawVotes)
+              ? rawVotes
+              : typeof rawVotes === 'string'
+              ? (() => { try { return JSON.parse(rawVotes) } catch { return [] } })()
+              : []
+
             // Count total votes
             let totalVotes = 0
             let maxVotesIndex = -1
             let maxVotesCount = 0
 
-            const votes = Array.isArray(poll.votes) ? poll.votes : []
             votes.forEach((vArr, idx) => {
-              const count = Array.isArray(vArr) ? vArr.length : 0
+              const count = Array.isArray(vArr) ? vArr.length : (typeof vArr === 'number' ? vArr : 0)
               totalVotes += count
               if (count > maxVotesCount) {
                 maxVotesCount = count
@@ -176,8 +191,8 @@ const PollsTab = ({
 
                 {/* Options List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                  {poll.options.map((option, idx) => {
-                    const optVotes = votes[idx] ? votes[idx].length : 0
+                  {pollOptions.map((option, idx) => {
+                    const optVotes = votes[idx] ? (Array.isArray(votes[idx]) ? votes[idx].length : (typeof votes[idx] === 'number' ? votes[idx] : 0)) : 0
                     const percentage = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0
                     const isMajority = maxVotesCount > 0 && idx === maxVotesIndex
                     const didVoteThis = userVotedIndex === idx

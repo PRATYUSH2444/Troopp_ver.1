@@ -441,6 +441,27 @@ const TripRoom = () => {
     )
   }
 
+  // Fallback if activity data could not be fetched
+  if (!activity) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4" style={{ background: '#10151a', color: '#f3f1ea' }}>
+        <h2 className="text-xl font-bold mb-2">Trip Room Unavailable</h2>
+        <p className="text-sm text-text-secondary mb-6">Could not load this trip room's information.</p>
+        <button
+          onClick={() => navigate('/feed')}
+          className="px-6 py-2.5 bg-primary text-bg font-semibold rounded-xl text-sm"
+        >
+          Return to Feed
+        </button>
+      </div>
+    )
+  }
+
+  const safeMessages = Array.isArray(messages) ? messages : []
+  const safeExpenses = Array.isArray(expenses) ? expenses : []
+  const safePolls = Array.isArray(polls) ? polls : []
+  const safeMembers = Array.isArray(members) ? members : []
+
   // Onboarding Wall Gate Check
   if (!onboardingComplete) {
     return (
@@ -450,10 +471,10 @@ const TripRoom = () => {
         hostAvatar={activity?.Creator?.Profile?.avatar_url}
         safetyText={tripRules?.safety_briefing_text || welcomeMessage}
         rules={tripRules}
-        messagesCount={messages.length}
-        expensesSum={expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0)}
-        pollsCount={polls.length}
-        members={members}
+        messagesCount={safeMessages.length}
+        expensesSum={safeExpenses.reduce((sum, e) => sum + parseFloat(e?.amount || 0), 0)}
+        pollsCount={safePolls.length}
+        members={safeMembers}
         onComplete={handleCompleteOnboarding}
       />
     )
@@ -496,7 +517,7 @@ const TripRoom = () => {
             </span>
             <AnimatePresence mode="wait">
               <motion.span
-                key={members.length}
+                key={safeMembers.length}
                 initial={{ scale: 1.3, opacity: 0 }}
                 animate={{ scale: 1.0, opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -512,7 +533,7 @@ const TripRoom = () => {
                   color: flashType === 'join' ? '#4fbe8e' : flashType === 'leave' ? '#ff5470' : '#f3f1ea'
                 }}
               >
-                👤 {members.length} {members.length === 1 ? 'member' : 'members'}
+                👤 {safeMembers.length} {safeMembers.length === 1 ? 'member' : 'members'}
               </motion.span>
             </AnimatePresence>
           </div>
@@ -582,7 +603,7 @@ const TripRoom = () => {
         <div style={{ flex: 1 }}>
           {activeTab === 'chat' && (
             <ChatTab
-              messages={messages}
+              messages={safeMessages}
               typingUsers={typingUsers}
               currentUserId={user?.id}
               onSendMessage={handleSendMessage}
@@ -591,17 +612,17 @@ const TripRoom = () => {
           )}
 
           {activeTab === 'info' && (
-            <InfoTab activity={activity} members={members} onMemberTap={(m) => alert(`Selected profile: ${m.name}`)} />
+            <InfoTab activity={activity} members={safeMembers} onMemberTap={(m) => alert(`Selected profile: ${m.name}`)} />
           )}
 
           {activeTab === 'expenses' && (
             <ExpensesTab
-              expenses={expenses}
-              members={members}
+              expenses={safeExpenses}
+              members={safeMembers}
               currentUserId={user?.id}
               isHost={isHost}
               onAddExpense={handleAddExpense}
-              onDeleteExpense={(id) => setExpenses((prev) => prev.filter((e) => e.id !== id))}
+              onDeleteExpense={(id) => setExpenses((prev) => (Array.isArray(prev) ? prev : []).filter((e) => e.id !== id))}
               onSettleSplit={handleSettleSplit}
             />
           )}
@@ -609,20 +630,20 @@ const TripRoom = () => {
           {activeTab === 'checklist' && (
             <ChecklistTab
               checklist={activity?.packing_checklist}
-              members={members}
+              members={safeMembers}
               onToggleItem={handleToggleChecklistItem}
             />
           )}
 
           {activeTab === 'polls' && (
             <PollsTab
-              polls={polls}
+              polls={safePolls}
               currentUserId={user?.id}
               isHost={isHost}
               onCreatePoll={handleCreatePoll}
               onVotePoll={handleVotePoll}
               onClosePoll={(id) =>
-                setPolls((prev) => prev.map((p) => (p.id === id ? { ...p, is_closed: true } : p)))
+                setPolls((prev) => (Array.isArray(prev) ? prev : []).map((p) => (p.id === id ? { ...p, is_closed: true } : p)))
               }
             />
           )}
@@ -630,7 +651,7 @@ const TripRoom = () => {
           {activeTab === 'manage' && isHost && (
             <ManageTab
               roomId={roomId}
-              members={members}
+              members={safeMembers}
               healthMetrics={healthMetrics}
               onMuteMember={handleMuteMember}
               onRemoveMember={handleRemoveMember}
