@@ -15,14 +15,28 @@ const PORT = process.env.PORT || 5000
 const server = http.createServer(app)
 
 // 2. Attach Socket.io to HTTP Server
-const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS
-  ? process.env.CORS_ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173']
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) return true
+  if (origin.endsWith('.vercel.app')) return true
+  if (process.env.CLIENT_URL && origin === process.env.CLIENT_URL.trim()) return true
+  if (process.env.CORS_ALLOWED_ORIGINS) {
+    const list = process.env.CORS_ALLOWED_ORIGINS.split(',').map(s => s.trim())
+    if (list.includes(origin)) return true
+  }
+  return false
+}
 
 const io = new Server(server, {
   path: '/socket.io',
   cors: {
-    origin: corsAllowedOrigins,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true)
+      } else {
+        callback(new Error('CORS blocked'))
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true
   }

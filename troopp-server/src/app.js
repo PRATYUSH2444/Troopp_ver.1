@@ -61,17 +61,25 @@ app.use((req, res, next) => {
 })
 
 // 3. CORS Policy Configuration
-const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
-  ? process.env.CORS_ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173']
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) return true
+  if (origin.endsWith('.vercel.app')) return true
+  if (process.env.CLIENT_URL && origin === process.env.CLIENT_URL.trim()) return true
+  if (process.env.CORS_ALLOWED_ORIGINS) {
+    const list = process.env.CORS_ALLOWED_ORIGINS.split(',').map(s => s.trim())
+    if (list.includes(origin)) return true
+  }
+  return false
+}
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true)
       } else {
+        logger.warn(`CORS request blocked for origin: ${origin}`)
         callback(new AppError('Connection blocked by CORS policy.', 403, 'CORS_BLOCKED'))
       }
     },
