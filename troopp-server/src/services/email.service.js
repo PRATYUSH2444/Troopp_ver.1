@@ -125,9 +125,9 @@ export const sendOTPEmail = async (to, otp) => {
   const resendApiKey = process.env.RESEND_API_KEY
   if (resendApiKey) {
     try {
-      const customFrom = process.env.EMAIL_FROM
-      const isPublicWebmail = customFrom && (customFrom.includes('@gmail.') || customFrom.includes('@yahoo.') || customFrom.includes('@outlook.') || customFrom.includes('@hotmail.'))
-      const resendFrom = (customFrom && !isPublicWebmail) ? customFrom : 'Troopp <onboarding@resend.dev>'
+      const configuredFrom = process.env.RESEND_FROM || process.env.EMAIL_FROM
+      const isPublicWebmail = !configuredFrom || /@(gmail|yahoo|outlook|hotmail|icloud|proton|aol)\./i.test(configuredFrom)
+      const resendFrom = isPublicWebmail ? 'Troopp <onboarding@resend.dev>' : configuredFrom
 
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -281,9 +281,9 @@ export const sendResetPasswordEmail = async (to, token) => {
 
     // Resend API
     if (process.env.RESEND_API_KEY) {
-      const customFrom = process.env.EMAIL_FROM
-      const isPublicWebmail = customFrom && (customFrom.includes('@gmail.') || customFrom.includes('@yahoo.') || customFrom.includes('@outlook.') || customFrom.includes('@hotmail.'))
-      const resendFrom = (customFrom && !isPublicWebmail) ? customFrom : 'Troopp <onboarding@resend.dev>'
+      const configuredFrom = process.env.RESEND_FROM || process.env.EMAIL_FROM
+      const isPublicWebmail = !configuredFrom || /@(gmail|yahoo|outlook|hotmail|icloud|proton|aol)\./i.test(configuredFrom)
+      const resendFrom = isPublicWebmail ? 'Troopp <onboarding@resend.dev>' : configuredFrom
 
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
