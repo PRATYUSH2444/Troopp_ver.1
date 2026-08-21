@@ -36,7 +36,7 @@ const socketAuthMiddleware = async (socket, next) => {
     }
 
     // 2. Query user and check account status
-    const user = await User.findByPk(decoded.id, { include: [{ model: Profile }] })
+    const user = await User.findByPk(decoded.id, { include: [{ model: Profile, as: 'Profile' }] })
     if (!user) {
       logger.warn(`Socket connection rejected: User not found in DB [ID: ${decoded.id}]`)
       return next(new Error('UNAUTHORIZED'))

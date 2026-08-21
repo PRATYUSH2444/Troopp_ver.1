@@ -291,7 +291,7 @@ export const getPost = async (postId, currentUserId = null) => {
       {
         model: User,
         attributes: ['id', 'trust_score', 'reliability_score'],
-        include: [{ model: Profile, attributes: ['name', 'avatar_url', 'gender'] }]
+        include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'] }]
       },
       {
         model: Board,
@@ -410,7 +410,7 @@ export const listPosts = async (boardName = null, sort = 'hot', limit = 15, curs
       {
         model: User,
         attributes: ['id', 'trust_score', 'reliability_score'],
-        include: [{ model: Profile, attributes: ['name', 'avatar_url', 'gender'] }]
+        include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'] }]
       },
       {
         model: Board,
@@ -729,7 +729,7 @@ export const listComments = async (postId, currentUserId = null) => {
       {
         model: User,
         attributes: ['id', 'trust_score', 'reliability_score'],
-        include: [{ model: Profile, attributes: ['name', 'avatar_url', 'gender'] }]
+        include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'] }]
       }
     ],
     order: [['score', 'DESC'], ['created_at', 'ASC']]
@@ -978,7 +978,7 @@ export const listModerationQueue = async (userId) => {
     // Filter out reports that this moderator doesn't manage, unless they are a superadmin
     if (isSuperAdmin || (boardId && moderatedBoardIds.includes(boardId))) {
       const reporter = await User.findByPk(report.reporter_id, {
-        include: [{ model: Profile, attributes: ['name'] }]
+        include: [{ model: Profile, as: 'Profile', attributes: ['name'] }]
       })
       
       enrichedReports.push({
@@ -1277,7 +1277,7 @@ export const searchCommunity = async (queryStr) => {
       {
         model: User,
         attributes: ['id', 'trust_score', 'reliability_score'],
-        include: [{ model: Profile, attributes: ['name', 'avatar_url', 'gender'] }]
+        include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'] }]
       },
       {
         model: Board,

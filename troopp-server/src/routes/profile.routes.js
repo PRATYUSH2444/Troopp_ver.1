@@ -33,7 +33,7 @@ router.post('/complete-onboarding', async (req, res, next) => {
   try {
     const userId = req.user.id
     const user = await User.findByPk(userId, {
-      include: [{ model: Profile }]
+      include: [{ model: Profile, as: 'Profile' }]
     })
     if (!user) {
       return next(new AppError('User account not found.', 404, 'USER_NOT_FOUND'))
@@ -142,6 +142,7 @@ router.get('/search/members', async (req, res, next) => {
     const users = await User.findAll({
       include: [{
         model: Profile,
+        as: 'Profile',
         where: {
           name: {
             [Op.iLike]: `%${q.trim()}%`
@@ -169,7 +170,7 @@ router.get('/search/members', async (req, res, next) => {
 router.get('/me', async (req, res, next) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      include: [{ model: Profile }]
+      include: [{ model: Profile, as: 'Profile' }]
     })
 
     if (!user) {
@@ -448,7 +449,7 @@ router.get('/:userId', async (req, res, next) => {
   try {
     const { userId } = req.params
     const targetUser = await User.findByPk(userId, {
-      include: [{ model: Profile }]
+      include: [{ model: Profile, as: 'Profile' }]
     })
 
     if (!targetUser) {

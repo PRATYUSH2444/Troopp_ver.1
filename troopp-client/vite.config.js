@@ -13,6 +13,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'inline',
       workbox: {
+        navigateFallback: null,
         clientsClaim: true,
         skipWaiting: true,
         cleanupOutdatedCaches: true,
