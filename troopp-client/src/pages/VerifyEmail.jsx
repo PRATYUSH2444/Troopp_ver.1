@@ -15,6 +15,8 @@ const VerifyEmail = () => {
   const [code, setCode] = useState('')
   const [hasError, setHasError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(30)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const email = searchParams.get('email')
@@ -25,6 +27,37 @@ const VerifyEmail = () => {
       navigate('/signup')
     }
   }, [email, navigate])
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(c => c - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendCooldown])
+
+  const handleResend = async () => {
+    if (resendCooldown > 0 || resending) return
+    setResending(true)
+    haptics.lightTap()
+    try {
+      const res = await apiRequest('/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error?.message || 'Failed to resend verification code.')
+      }
+      haptics.success()
+      toast.success('New verification code sent to your email!')
+      setResendCooldown(30)
+    } catch (err) {
+      haptics.error()
+      toast.error(err.message || 'Failed to resend code.')
+    } finally {
+      setResending(false)
+    }
+  }
 
   const handleVerify = async (otpCode) => {
     const activeCode = otpCode || code
@@ -208,6 +241,33 @@ const VerifyEmail = () => {
             >
               {submitting ? 'Verifying...' : 'Verify Email'}
             </button>
+
+            {/* Resend Code Action */}
+            <div style={{ textAlign: 'center', marginTop: '12px' }}>
+              <p style={{ fontSize: '13.5px', color: '#9ba6ad' }}>
+                Didn't receive the email?{' '}
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resendCooldown > 0 || resending}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: resendCooldown > 0 ? '#6b757c' : '#ff6a2c',
+                    fontWeight: '600',
+                    cursor: resendCooldown > 0 ? 'default' : 'pointer',
+                    padding: '0 4px',
+                    fontSize: '13.5px'
+                  }}
+                >
+                  {resending
+                    ? 'Sending...'
+                    : resendCooldown > 0
+                    ? `Resend in ${resendCooldown}s`
+                    : 'Resend Code'}
+                </button>
+              </p>
+            </div>
           </form>
         </div>
       </motion.div>

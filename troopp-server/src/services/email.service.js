@@ -13,26 +13,39 @@ const getTransporter = async () => {
   }
 
   const { GMAIL_USER, GMAIL_PASSWORD, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, NODE_ENV } = process.env
-  const user = GMAIL_USER || SMTP_USER
-  const pass = GMAIL_PASSWORD || SMTP_PASS
-  const host = SMTP_HOST || 'smtp.gmail.com'
-  const port = parseInt(SMTP_PORT || '587', 10)
+  const user = (GMAIL_USER || SMTP_USER || '').trim()
+  const rawPass = (GMAIL_PASSWORD || SMTP_PASS || '').trim()
+  const pass = rawPass.replace(/\s+/g, '') // Google App Passwords contain spaces (e.g. "abcd efgh ijkl mnop")
+  const host = (SMTP_HOST || 'smtp.gmail.com').trim()
+  const port = parseInt(SMTP_PORT || '465', 10)
 
   // If credentials are provided
   if (user && pass) {
-    transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: {
-        user,
-        pass
-      },
-      connectionTimeout: 4000,
-      greetingTimeout: 4000,
-      socketTimeout: 4000
-    })
-    logger.info(`Nodemailer configured to use SMTP (${host}:${port}).`)
+    const isGmail = host.includes('gmail') || user.endsWith('@gmail.com')
+    if (isGmail) {
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user,
+          pass
+        }
+      })
+      logger.info(`Nodemailer configured with Gmail service for: ${user}`)
+    } else {
+      transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: {
+          user,
+          pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      })
+      logger.info(`Nodemailer configured with custom SMTP (${host}:${port}) for: ${user}`)
+    }
     return transporter
   }
 
@@ -92,8 +105,9 @@ export const sendOTPEmail = async (to, otp) => {
       return { messageId: 'mock-test-id' }
     }
     const client = await getTransporter()
+    const sender = process.env.EMAIL_FROM || (process.env.SMTP_USER ? `"Troopp" <${process.env.SMTP_USER}>` : '"Troopp" <no-reply@troopp.in>')
     const mailOptions = {
-      from: process.env.EMAIL_FROM || '"Troopp Support" <no-reply@troopp.in>',
+      from: sender,
       to,
       subject: 'Troopp - Verify your Email Address',
       text: `Your Troopp verification code is: ${otp}. This code is valid for 10 minutes.`,
@@ -111,10 +125,10 @@ export const sendOTPEmail = async (to, otp) => {
     }
 
     const sendPromise = client.sendMail(mailOptions)
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP sendMail timed out after 4s')), 4000))
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP sendMail timed out after 8s')), 8000))
     const info = await Promise.race([sendPromise, timeoutPromise])
 
-    logger.info(`Verification email sent successfully: ${info.messageId}`)
+    logger.info(`Verification email sent successfully to ${to}: ${info.messageId}`)
     return info
   } catch (error) {
     logger.error(`[EMAIL SEND FAILED] Could not send OTP email to ${to}: ${error.message}. OTP: ${otp}`)
@@ -131,12 +145,13 @@ export const sendResetPasswordEmail = async (to, token) => {
   try {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`
     if (to.endsWith('@troopp.com') || to.endsWith('@troopp.in') || process.env.NODE_ENV === 'test') {
-      logger.info(`[SMTP BYPASS FOR TEST]: Skipping real SMTP for ${to}. Reset link: ${resetUrl}`);
+      logger.info(`[SMTP BYPASS FOR TEST]: Skipping real SMTP for ${to}. Reset link: ${resetUrl}`)
       return { messageId: 'mock-test-id' }
     }
     const client = await getTransporter()
+    const sender = process.env.EMAIL_FROM || (process.env.SMTP_USER ? `"Troopp" <${process.env.SMTP_USER}>` : '"Troopp" <no-reply@troopp.in>')
     const mailOptions = {
-      from: process.env.EMAIL_FROM || '"Troopp Support" <no-reply@troopp.in>',
+      from: sender,
       to,
       subject: 'Troopp - Reset your Password',
       text: `Reset your Troopp password using this link: ${resetUrl}. Link expires in 15 minutes.`,
