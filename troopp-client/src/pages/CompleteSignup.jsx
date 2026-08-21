@@ -19,6 +19,21 @@ const AVAILABLE_TAGS = [
   'Day Trips'
 ]
 
+const DEFAULT_CITIES_FALLBACK = [
+  { id: '11111111-1111-1111-1111-111111111111', city_name: 'Mumbai' },
+  { id: '22222222-2222-2222-2222-222222222222', city_name: 'Delhi NCR' },
+  { id: '33333333-3333-3333-3333-333333333333', city_name: 'Bengaluru' },
+  { id: '44444444-4444-4444-4444-444444444444', city_name: 'Hyderabad' },
+  { id: '55555555-5555-5555-5555-555555555555', city_name: 'Ahmedabad' },
+  { id: '66666666-6666-6666-6666-666666666666', city_name: 'Pune' },
+  { id: '77777777-7777-7777-7777-777777777777', city_name: 'Chennai' },
+  { id: '88888888-8888-8888-8888-888888888888', city_name: 'Kolkata' },
+  { id: '99999999-9999-9999-9999-999999999999', city_name: 'Jaipur' },
+  { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', city_name: 'Surat' },
+  { id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', city_name: 'Goa' },
+  { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', city_name: 'Chandigarh' }
+]
+
 /**
  * Signup Step 5: Profile finalization and password creation.
  * Exclusively dark mode theme matching the Sign Up Page.
@@ -28,10 +43,10 @@ const CompleteSignup = () => {
   const [name, setName] = useState('')
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState('prefer_not_to_say')
-  const [cityId, setCityId] = useState('')
+  const [cityId, setCityId] = useState('33333333-3333-3333-3333-333333333333') // Default to Bengaluru
   const [selectedTags, setSelectedTags] = useState([])
   const [tosAccepted, setTosAccepted] = useState(false)
-  const [cities, setCities] = useState([])
+  const [cities, setCities] = useState(DEFAULT_CITIES_FALLBACK)
   
   const [submitting, setSubmitting] = useState(false)
   const [searchParams] = useSearchParams()
@@ -53,9 +68,12 @@ const CompleteSignup = () => {
         const res = await apiRequest('/cities')
         if (res.ok) {
           const data = await res.json()
-          setCities(data.data || [])
           if (data.data?.length > 0) {
-            setCityId(data.data[0].id)
+            setCities(data.data)
+            // If current cityId is not in the loaded list, select the first one
+            if (!data.data.some((c) => c.id === cityId)) {
+              setCityId(data.data[0].id)
+            }
           }
         }
       } catch (err) {
@@ -91,6 +109,7 @@ const CompleteSignup = () => {
     if (passwordError) return toast.error(passwordError)
 
     if (!dob) return toast.error('Date of birth is required for age check.')
+    if (!cityId) return toast.error('Please select your home city.')
     if (!tosAccepted) return toast.error('You must accept the Terms of Service.')
 
     const today = new Date()
