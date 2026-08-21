@@ -2,6 +2,7 @@ import { Sequelize } from 'sequelize'
 import logger from './logger.js'
 
 const {
+  DATABASE_URL,
   DB_HOST,
   DB_PORT,
   DB_NAME,
@@ -12,40 +13,81 @@ const {
   NODE_ENV
 } = process.env
 
-// Setup Sequelize configurations
-const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
-  host: DB_HOST || '127.0.0.1',
-  port: parseInt(DB_PORT || '5432', 10),
-  dialect: 'postgres',
-  logging: (msg) => {
-    if (NODE_ENV === 'development') {
-      logger.debug(msg)
+let sequelize
+
+if (DATABASE_URL) {
+  sequelize = new Sequelize(DATABASE_URL, {
+    dialect: 'postgres',
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    },
+    logging: (msg) => {
+      if (NODE_ENV === 'development') {
+        logger.debug(msg)
+      }
+    },
+    pool: {
+      min: parseInt(DB_POOL_MIN || '2', 10),
+      max: parseInt(DB_POOL_MAX || '10', 10),
+      acquire: 30000,
+      idle: 10000,
+    },
+    define: {
+      timestamps: true,
+      underscored: true,
+    },
+    retry: {
+      match: [
+        /ConnectionError/,
+        /SequelizeConnectionError/,
+        /SequelizeConnectionRefusedError/,
+        /SequelizeHostNotFoundError/,
+        /SequelizeHostNotReachableError/,
+        /SequelizeInvalidConnectionError/,
+        /SequelizeConnectionTimedOutError/,
+        /TimeoutError/
+      ],
+      max: 3,
     }
-  },
-  pool: {
-    min: parseInt(DB_POOL_MIN || '5', 10),
-    max: parseInt(DB_POOL_MAX || '20', 10),
-    acquire: 30000,
-    idle: 10000,
-  },
-  define: {
-    timestamps: true,
-    underscored: true, // Use snake_case for DB fields automatically
-  },
-  retry: {
-    match: [
-      /ConnectionError/,
-      /SequelizeConnectionError/,
-      /SequelizeConnectionRefusedError/,
-      /SequelizeHostNotFoundError/,
-      /SequelizeHostNotReachableError/,
-      /SequelizeInvalidConnectionError/,
-      /SequelizeConnectionTimedOutError/,
-      /TimeoutError/
-    ],
-    max: 3, // Retry 3 times
-  }
-})
+  })
+} else {
+  sequelize = new Sequelize(DB_NAME || 'troopp', DB_USER || 'postgres', DB_PASSWORD || 'postgres', {
+    host: DB_HOST || '127.0.0.1',
+    port: parseInt(DB_PORT || '5432', 10),
+    dialect: 'postgres',
+    logging: (msg) => {
+      if (NODE_ENV === 'development') {
+        logger.debug(msg)
+      }
+    },
+    pool: {
+      min: parseInt(DB_POOL_MIN || '5', 10),
+      max: parseInt(DB_POOL_MAX || '20', 10),
+      acquire: 30000,
+      idle: 10000,
+    },
+    define: {
+      timestamps: true,
+      underscored: true,
+    },
+    retry: {
+      match: [
+        /ConnectionError/,
+        /SequelizeConnectionError/,
+        /SequelizeConnectionRefusedError/,
+        /SequelizeHostNotFoundError/,
+        /SequelizeHostNotReachableError/,
+        /SequelizeInvalidConnectionError/,
+        /SequelizeConnectionTimedOutError/,
+        /TimeoutError/
+      ],
+      max: 3,
+    }
+  })
+}
 
 // Set up query timeout middleware interceptor (5 seconds query timeout)
 sequelize.addHook('beforeQuery', (options) => {
