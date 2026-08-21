@@ -49,8 +49,8 @@ import ModAction from './ModAction.js'
 // ==============================================================================
 
 // 1. User & Profile
-User.hasOne(Profile, { foreignKey: 'user_id', onDelete: 'CASCADE' })
-Profile.belongsTo(User, { foreignKey: 'user_id' })
+User.hasOne(Profile, { foreignKey: 'user_id', as: 'Profile', onDelete: 'CASCADE' })
+Profile.belongsTo(User, { foreignKey: 'user_id', as: 'User' })
 
 // 2. User & EmergencyContact
 User.hasMany(EmergencyContact, { foreignKey: 'user_id', as: 'EmergencyContacts', onDelete: 'CASCADE' })
