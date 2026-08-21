@@ -19,7 +19,7 @@ MemoryPhoto.init(
       allowNull: false,
     },
     photo_url: {
-      type: DataTypes.STRING(255),
+      type: DataTypes.TEXT,
       allowNull: false,
     },
     caption: {

@@ -88,6 +88,15 @@ const startServer = async () => {
     // Auto-seed default cities if table is empty
     await City.seedDefaultsIfNeeded()
 
+    // Apply explicit column migrations for unlimited URL length (Google OAuth photos & CDN URLs)
+    try {
+      await sequelize.query('ALTER TABLE profiles ALTER COLUMN avatar_url TYPE TEXT;')
+      await sequelize.query('ALTER TABLE memory_photos ALTER COLUMN photo_url TYPE TEXT;')
+      logger.info('Production column migrations verified: avatar_url and photo_url are TEXT.')
+    } catch (migErr) {
+      logger.debug('Column migration check:', migErr.message)
+    }
+
     server.listen(PORT, () => {
       logger.info(`=== TROOPP BACKEND SERVER ONLINE ===`)
       logger.info(`Listening at: http://localhost:${PORT}`)
