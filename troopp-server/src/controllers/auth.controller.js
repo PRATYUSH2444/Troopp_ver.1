@@ -7,6 +7,7 @@ import Profile from '../models/Profile.js'
 import EmergencyContact from '../models/EmergencyContact.js'
 import NotificationPreference from '../models/NotificationPreference.js'
 import TokenBlacklist from '../models/TokenBlacklist.js'
+import City, { DEFAULT_CITIES } from '../models/City.js'
 
 import { AppError } from '../middleware/errorHandler.middleware.js'
 import { generateEmailOTP, verifyEmailOTP, sendPhoneOTP, verifyPhoneOTP } from '../services/otp.service.js'
@@ -177,11 +178,47 @@ export const completeSignup = async (req, res, next) => {
     // 1. Hash password with bcrypt work factor 12
     const passwordHash = await bcrypt.hash(password, 12)
 
+    // Resolve & validate city_id to guarantee FK constraint integrity
+    let validCityId = city_id
+    if (validCityId) {
+      let cityRecord = await City.findByPk(validCityId)
+      if (!cityRecord) {
+        const defaultMatch = DEFAULT_CITIES.find(
+          c => c.id === validCityId || c.city_name.toLowerCase() === String(validCityId).toLowerCase()
+        )
+        if (defaultMatch) {
+          try {
+            cityRecord = await City.create(defaultMatch, { ignoreDuplicates: true })
+            validCityId = cityRecord.id
+          } catch (e) {
+            const recheck = await City.findByPk(defaultMatch.id)
+            validCityId = recheck ? recheck.id : defaultMatch.id
+          }
+        } else {
+          const firstCity = await City.findOne({ where: { is_active: true } })
+          if (firstCity) {
+            validCityId = firstCity.id
+          } else {
+            await City.seedDefaultsIfNeeded()
+            validCityId = DEFAULT_CITIES[2].id // Bengaluru
+          }
+        }
+      }
+    } else {
+      const firstCity = await City.findOne({ where: { is_active: true } })
+      if (firstCity) {
+        validCityId = firstCity.id
+      } else {
+        await City.seedDefaultsIfNeeded()
+        validCityId = DEFAULT_CITIES[2].id // Bengaluru
+      }
+    }
+
     let user = existingUser
     if (user) {
       // Update stub account
       user.password_hash = passwordHash
-      user.city_id = city_id
+      user.city_id = validCityId
       user.interest_tags = interest_tags || []
       user.onboarding_completed = false
       user.tos_accepted_at = new Date()
@@ -191,7 +228,7 @@ export const completeSignup = async (req, res, next) => {
       user = await User.create({
         email: normalizedEmail,
         password_hash: passwordHash,
-        city_id,
+        city_id: validCityId,
         interest_tags: interest_tags || [],
         onboarding_completed: false,
         is_phone_verified: true, // Set from previous validation step

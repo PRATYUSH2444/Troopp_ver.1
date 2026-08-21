@@ -3,7 +3,7 @@ import http from 'http'
 import { Server } from 'socket.io'
 
 import app from './app.js'
-import { sequelize } from './models/index.js'
+import { sequelize, City } from './models/index.js'
 import logger from './config/logger.js'
 import socketAuthMiddleware from './middleware/socketAuth.js'
 import registerTripRoomHandlers from './sockets/tripRoomHandler.js'
@@ -84,6 +84,9 @@ const startServer = async () => {
     logger.info('Synchronizing database schema...')
     await sequelize.sync({ alter: true })
     logger.info('Database schema synchronized successfully.')
+
+    // Auto-seed default cities if table is empty
+    await City.seedDefaultsIfNeeded()
 
     server.listen(PORT, () => {
       logger.info(`=== TROOPP BACKEND SERVER ONLINE ===`)
