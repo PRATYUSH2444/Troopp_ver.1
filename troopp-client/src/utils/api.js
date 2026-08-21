@@ -12,15 +12,29 @@ export const getAccessToken = () => {
 
 let refreshPromise = null
 
+/**
+ * fetch() wrapped with an AbortController timeout.
+ * Throws AbortError after timeoutMs — prevents infinite hangs.
+ */
+const fetchWithTimeout = (url, options = {}, timeoutMs = 30000) => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...options, signal: controller.signal })
+    .then((res) => { clearTimeout(timer); return res })
+    .catch((err) => { clearTimeout(timer); throw err })
+}
+
 const executeRefresh = async () => {
   try {
-    const res = await fetch(`${BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+    const res = await fetchWithTimeout(
+      `${BASE_URL}/auth/refresh`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      },
+      15000 // 15s timeout for silent refresh
+    )
     if (res.ok) {
       const data = await res.json()
       if (data.success && data.accessToken) {
@@ -30,36 +44,44 @@ const executeRefresh = async () => {
     }
     return null
   } catch (err) {
-    console.error('Silent token rotation failed:', err)
+    if (err.name !== 'AbortError') {
+      console.error('Silent token rotation failed:', err)
+    }
     return null
   }
 }
 
 /**
- * Base API Request wrapper with silent token refresh handler.
+ * Base API Request wrapper with 30s timeout and silent token refresh on 401.
  */
 export const apiRequest = async (endpoint, options = {}) => {
   const url = `${BASE_URL}${endpoint}`
-  
+
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers
   }
-  
+
   if (accessTokenInMemory) {
     headers['Authorization'] = `Bearer ${accessTokenInMemory}`
   }
-  
+
   const config = {
     ...options,
     headers,
-    credentials: 'include' // Send cookies automatically
+    credentials: 'include'
   }
-  
+
   let response
   try {
-    response = await fetch(url, config)
+    response = await fetchWithTimeout(url, config, 30000)
   } catch (error) {
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error('Request timed out. The server may be starting up — please try again in a moment.')
+      timeoutError.isTimeout = true
+      throw timeoutError
+    }
+
     if (!navigator.onLine) {
       try {
         const { toast } = await import('react-hot-toast')
@@ -67,7 +89,7 @@ export const apiRequest = async (endpoint, options = {}) => {
       } catch (err) {
         console.error('Offline toast display failure:', err)
       }
-      
+
       const path = window.location.pathname
       const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/offline', '/landing', '/']
       const requiresNetwork = !publicPaths.some((p) => path === p || path.startsWith(p))
@@ -78,8 +100,14 @@ export const apiRequest = async (endpoint, options = {}) => {
     throw error
   }
 
-  // If 401 Unauthorized, attempt to run Silent Refresh
-  if (response && response.status === 401 && endpoint !== '/auth/refresh' && endpoint !== '/auth/login') {
+  // If 401, attempt a single silent refresh then retry — but NOT for auth endpoints
+  if (
+    response &&
+    response.status === 401 &&
+    endpoint !== '/auth/refresh' &&
+    endpoint !== '/auth/login' &&
+    endpoint !== '/auth/signup'
+  ) {
     if (!refreshPromise) {
       refreshPromise = executeRefresh().finally(() => {
         refreshPromise = null
@@ -89,7 +117,7 @@ export const apiRequest = async (endpoint, options = {}) => {
     const newAccessToken = await refreshPromise
     if (newAccessToken) {
       config.headers['Authorization'] = `Bearer ${newAccessToken}`
-      response = await fetch(url, config)
+      response = await fetchWithTimeout(url, config, 30000)
     }
   }
 

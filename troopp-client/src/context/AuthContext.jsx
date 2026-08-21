@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { apiRequest, setAccessToken } from '../utils/api.js'
+import { apiRequest, setAccessToken, BASE_URL } from '../utils/api.js'
 
 const AuthContext = createContext(null)
 
@@ -16,19 +16,13 @@ export const AuthProvider = ({ children }) => {
 
     const checkSession = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
-        const res = await fetch(`${apiUrl}/auth/refresh`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
-        })
-        
+        const res = await apiRequest('/auth/refresh', { method: 'POST' })
+
         if (res.ok) {
           const data = await res.json()
           if (data.success && data.accessToken) {
             setAccessToken(data.accessToken)
-            
-            // Decrypt or parse profile token details (simulate parsing payload or calling user profile detail)
+
             const parts = data.accessToken.split('.')
             if (parts.length === 3) {
               const payload = JSON.parse(atob(parts[1]))
@@ -45,7 +39,10 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (err) {
-        console.error('Silent session check failed:', err)
+        // Timeout or network error — not logged in, just continue
+        if (!err.isTimeout) {
+          console.error('Silent session check failed:', err)
+        }
       } finally {
         setLoading(false)
       }
