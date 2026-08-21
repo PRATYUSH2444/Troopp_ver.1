@@ -3,7 +3,7 @@ import http from 'http'
 import { Server } from 'socket.io'
 
 import app from './app.js'
-import { sequelize } from './config/db.js'
+import { sequelize } from './models/index.js'
 import logger from './config/logger.js'
 import socketAuthMiddleware from './middleware/socketAuth.js'
 import registerTripRoomHandlers from './sockets/tripRoomHandler.js'
@@ -76,12 +76,14 @@ initCronJobs()
 // 6. Connect Database and Start HTTP Server
 const startServer = async () => {
   try {
-    logger.info('Connecting to MySQL database...')
+    logger.info('Connecting to PostgreSQL database...')
     await sequelize.authenticate()
     logger.info('Database connection established successfully.')
 
-    // Database models are synchronized via migrations (npm run migrate)
-    logger.info('Database checked.')
+    // Synchronize all models with PostgreSQL database to create any missing tables automatically
+    logger.info('Synchronizing database schema...')
+    await sequelize.sync({ alter: true })
+    logger.info('Database schema synchronized successfully.')
 
     server.listen(PORT, () => {
       logger.info(`=== TROOPP BACKEND SERVER ONLINE ===`)
