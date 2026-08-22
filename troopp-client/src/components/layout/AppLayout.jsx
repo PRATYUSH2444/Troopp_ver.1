@@ -28,6 +28,10 @@ const AppLayout = () => {
     }
   }, [isMobileMenuOpen])
 
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [location.pathname])
+
 
 
   const handleLogout = async () => {
@@ -334,7 +338,6 @@ const AppLayout = () => {
 
       {/* SIDEBAR */}
       <aside className="sidebar">
-        
         {/* BRAND — hidden on mobile via display rule */}
         <div className="brand">
           <div style={{

@@ -109,7 +109,7 @@ const PullToRefresh = ({ onRefresh, children, className }) => {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleMouseDown}
-      className={clsx('relative w-full h-full touch-pan-x', className)}
+      className={clsx('relative w-full h-full', className)}
     >
       {/* Pull indicator spinner drawer */}
       <motion.div
