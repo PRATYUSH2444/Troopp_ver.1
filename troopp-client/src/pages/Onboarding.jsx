@@ -405,8 +405,8 @@ const Onboarding = () => {
           background: #1a2129;
           border: 1px solid rgba(255,255,255,0.08);
           border-radius: 24px;
-          width: 460px;
-          max-width: calc(100vw - 32px);
+          width: 100%;
+          max-width: 480px;
           box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.03) inset;
           overflow: hidden;
           box-sizing: border-box;
@@ -486,9 +486,6 @@ const Onboarding = () => {
           }
           .wizard-body {
             padding: 24px 20px 28px;
-          }
-          .wizard-card {
-            max-width: calc(100vw - 24px);
           }
         }
       `}</style>

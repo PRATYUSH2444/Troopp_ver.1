@@ -127,7 +127,7 @@ const MyProfile = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#10151a', paddingBottom: '96px' }}>
+    <div className="page-container-medium">
       
       {/* Sliding Milestone Banner */}
       <AnimatePresence>
@@ -225,7 +225,7 @@ const MyProfile = () => {
         )}
       </AnimatePresence>
 
-      <div style={{ width: '100%', maxWidth: '768px', margin: '0 auto', padding: '28px 24px 80px', display: 'flex', flexDirection: 'column', gap: '20px', userSelect: 'none' }}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', userSelect: 'none' }}>
         
         {/* Top Header Card */}
         <div

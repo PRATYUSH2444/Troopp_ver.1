@@ -169,39 +169,37 @@ const ActivityDetail = () => {
   const { maleRatio, femaleRatio, otherRatio } = getDynamicGenderComposition()
 
   return (
-    <div style={{ minHeight: '100vh', background: '#10151a', padding: '28px 24px 80px' }}>
-      <div style={{ width: '100%', maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        
-        {/* Back Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', userSelect: 'none' }}>
-          <button
-            onClick={() => {
-              haptics.lightTap()
-              navigate(-1)
-            }}
-            onMouseEnter={() => setIsBackHovered(true)}
-            onMouseLeave={() => setIsBackHovered(false)}
-            style={{
-              padding: '8px 16px',
-              background: isBackHovered ? 'rgba(255,255,255,0.08)' : 'transparent',
-              border: '1px solid rgba(255,255,255,0.14)',
-              color: isBackHovered ? '#f3f1ea' : '#9ba6ad',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 150ms ease'
-            }}
-          >
-            ← Back
-          </button>
-        </div>
+    <div className="page-container-medium">
+      {/* Back Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', userSelect: 'none' }}>
+        <button
+          onClick={() => {
+            haptics.lightTap()
+            navigate(-1)
+          }}
+          onMouseEnter={() => setIsBackHovered(true)}
+          onMouseLeave={() => setIsBackHovered(false)}
+          style={{
+            padding: '8px 16px',
+            background: isBackHovered ? 'rgba(255,255,255,0.08)' : 'transparent',
+            border: '1px solid rgba(255,255,255,0.14)',
+            color: isBackHovered ? '#f3f1ea' : '#9ba6ad',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 150ms ease'
+          }}
+        >
+          ← Back
+        </button>
+      </div>
 
-        {/* 2 Column Main Grid Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'start' }}>
-          
-          {/* Left Main Details Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', gridColumn: 'span 2' }}>
+      {/* 2 Column Main Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start w-full">
+        
+        {/* Left Main Details Column */}
+        <div className="flex flex-col gap-5 w-full min-w-0">
             
             {/* Cover Banner & Details Card */}
             <div
@@ -471,7 +469,7 @@ const ActivityDetail = () => {
           </div>
 
           {/* Right Host & Join Side Panel Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="flex flex-col gap-5 w-full min-w-0 lg:sticky lg:top-6">
             
             {/* Host Details Card */}
             <div
@@ -709,7 +707,6 @@ const ActivityDetail = () => {
                   )}
                 </div>
               )}
-            </div>
           </div>
 
         </div>

@@ -102,7 +102,7 @@ const RatingPage = () => {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col gap-6 pb-20 px-4">
+    <div className="page-container-narrow select-none">
       {/* Header title */}
       {step === 1 && (
         <div className="flex flex-col gap-1 mt-4">

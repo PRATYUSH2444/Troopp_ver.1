@@ -77,7 +77,7 @@ const ModQueue = () => {
   }
 
   return (
-    <div style={{ width: '100%', position: 'relative', zIndex: 10, maxWidth: '800px', margin: '0 auto', textAlign: 'left' }}>
+    <div className="page-container-medium select-none text-left">
       
       {/* Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>

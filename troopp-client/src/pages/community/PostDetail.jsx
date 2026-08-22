@@ -620,7 +620,7 @@ const PostDetail = () => {
   const totalPollVotes = post.poll_results?.reduce((sum, r) => sum + r.votes, 0) || 0
 
   return (
-    <div className="w-full relative z-10 flex flex-col gap-6 select-none max-w-4xl mx-auto">
+    <div className="page-container-medium select-none">
       
       {/* Breadcrumb row */}
       <div className="flex items-center justify-between text-xs text-text-secondary">

@@ -84,32 +84,50 @@ const EditActivity = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50">
+      <div className="flex items-center justify-center py-20">
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen py-6 lg:py-8" style={{ backgroundColor: 'var(--color-bg)' }}>
+    <div className="page-container-narrow">
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 bg-white border border-stone-200 rounded-3xl p-6 lg:p-8 shadow-xl flex flex-col gap-6"
+        style={{
+          background: '#1a2129',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '20px',
+          padding: '28px',
+          boxShadow: 'var(--shadow-card)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
+        }}
       >
-        <div className="text-center">
-          <h2 className="font-heading font-black text-2xl text-stone-900 tracking-tight">
+        <div>
+          <h2
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '24px',
+              fontWeight: '700',
+              color: '#f3f1ea',
+              margin: 0,
+              letterSpacing: '-0.015em'
+            }}
+          >
             Edit Activity
           </h2>
-          <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mt-1">
+          <p style={{ fontSize: '13px', color: '#9ba6ad', margin: '4px 0 0' }}>
             Update your active trip parameters
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Title */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ba6ad' }}>
               Trip Title
             </label>
             <input
@@ -118,14 +136,13 @@ const EditActivity = () => {
               value={formData.title}
               onChange={handleChange}
               placeholder="Day Hike at sunset trail..."
-              className="w-full h-11 px-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary/50"
               required
             />
           </div>
 
           {/* Description */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ba6ad' }}>
               Description / Itinerary Details
             </label>
             <textarea
@@ -134,14 +151,14 @@ const EditActivity = () => {
               value={formData.description}
               onChange={handleChange}
               placeholder="A brief explanation of itinerary checks..."
-              className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium focus:outline-none focus:border-primary/50 resize-none leading-relaxed"
+              style={{ resize: 'vertical' }}
               required
             />
           </div>
 
           {/* Cost Estimate */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ba6ad' }}>
               Cost Estimate per head (₹)
             </label>
             <input
@@ -150,14 +167,13 @@ const EditActivity = () => {
               value={formData.cost_estimate}
               onChange={handleChange}
               placeholder="1500"
-              className="w-full h-11 px-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary/50"
               required
             />
           </div>
 
           {/* Max Capacity */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest px-1">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ba6ad' }}>
               Max slots Capacity
             </label>
             <input
@@ -165,23 +181,42 @@ const EditActivity = () => {
               name="max_capacity"
               value={formData.max_capacity}
               onChange={handleChange}
-              className="w-full h-11 px-4 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary/50"
               required
             />
           </div>
 
-          <div className="flex gap-3 mt-2">
+          <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
             <button
               type="button"
               onClick={() => navigate(`/activities/${id}`)}
-              className="flex-1 h-11 bg-white border border-stone-200 hover:bg-stone-50 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                flex: 1,
+                height: '44px',
+                background: 'transparent',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                borderRadius: '100px',
+                color: '#f3f1ea',
+                fontSize: '13px',
+                fontWeight: '600'
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 h-11 bg-stone-900 text-white hover:bg-stone-850 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+              style={{
+                flex: 1,
+                height: '44px',
+                background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
+                border: 'none',
+                borderRadius: '100px',
+                color: '#1a0e08',
+                fontSize: '13px',
+                fontWeight: '700',
+                boxShadow: '0 4px 14px rgba(255,106,44,0.3)',
+                opacity: saving ? 0.6 : 1
+              }}
             >
               {saving ? 'Updating...' : 'Save Changes'}
             </button>

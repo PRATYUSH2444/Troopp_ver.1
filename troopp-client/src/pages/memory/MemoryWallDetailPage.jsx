@@ -192,7 +192,7 @@ const MemoryWallDetailPage = () => {
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto flex flex-col gap-6 pb-20 relative">
+    <div className="page-container-medium select-none relative">
       {/* Sliding Milestone Banner */}
       <AnimatePresence>
         {milestone && milestoneTexts[milestone] && (

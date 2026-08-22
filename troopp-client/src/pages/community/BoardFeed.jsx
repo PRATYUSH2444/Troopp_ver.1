@@ -29,17 +29,6 @@ const BoardFeed = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState(null)
 
-  // Screen Width State for Responsive Layout
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  const isDesktop = windowWidth > 1024
-  const isTablet = windowWidth > 768
-
   const fetchBoardDetails = async () => {
     try {
       setLoading(true)
@@ -221,12 +210,8 @@ const BoardFeed = () => {
     )
   }
 
-  const gridTemplateColumns = isDesktop 
-    ? '1fr 280px' 
-    : '1fr'
-
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1300px', margin: '0 auto', selectNone: 'true' }}>
+    <div className="page-container-wide select-none">
       
       {/* Board Banner Header */}
       <div className="hero-banner">
@@ -282,18 +267,10 @@ const BoardFeed = () => {
       </div>
 
       {/* Columns */}
-      <div 
-        style={{
-          display: 'grid',
-          gridTemplateColumns: gridTemplateColumns,
-          gap: '24px',
-          alignItems: 'start',
-          width: '100%'
-        }}
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start w-full">
         
         {/* Left Column: Posts List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="flex flex-col gap-4 w-full min-w-0">
           
           {/* Sorting */}
           <div 
@@ -542,86 +519,85 @@ const BoardFeed = () => {
         </div>
 
         {/* Right Column: About Board Details */}
-        {isDesktop && (
-          <div 
-            style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '20px',
-              boxShadow: 'var(--shadow-card)',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              textAlign: 'left'
-            }}
-          >
-            <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '8px', marginTop: 0 }}>
-                About b/{board.name}
-              </h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '12px', marginTop: 0 }}>
-                {board.description || 'Welcome to this local backpacking destination board.'}
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Access rules:</span>
-                  <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)', fontWeight: '600' }}>{board.type}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Subscribers:</span>
-                  <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>{board.member_count}</span>
-                </div>
+        <div 
+          className="w-full min-w-0"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px',
+            boxShadow: 'var(--shadow-card)',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            textAlign: 'left'
+          }}
+        >
+          <div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '8px', marginTop: 0 }}>
+              About b/{board.name}
+            </h3>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '12px', marginTop: 0 }}>
+              {board.description || 'Welcome to this local backpacking destination board.'}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Access rules:</span>
+                <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)', fontWeight: '600' }}>{board.type}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Subscribers:</span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>{board.member_count}</span>
               </div>
             </div>
-
-            {board.rules && board.rules.length > 0 && (
-              <>
-                <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
-                <div>
-                  <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '10px', marginTop: 0 }}>
-                    b/{board.name} Rules
-                  </h4>
-                  <ol style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                    {board.rules.map((rule, idx) => (
-                      <li key={idx}>{rule}</li>
-                    ))}
-                  </ol>
-                </div>
-              </>
-            )}
-
-            {board.flair_options && board.flair_options.length > 0 && (
-              <>
-                <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
-                <div>
-                  <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '8px', marginTop: 0 }}>
-                    Flairs
-                  </h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {board.flair_options.map((flair, idx) => (
-                      <span
-                        key={idx}
-                        style={{
-                          padding: '2px 10px',
-                          borderRadius: '9999px',
-                          fontSize: '10px',
-                          fontWeight: '700',
-                          border: '1px solid transparent',
-                          backgroundColor: `${flair.color || '#ff6a2c'}20`,
-                          color: flair.color || '#ff6a2c'
-                        }}
-                      >
-                        {flair.text}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-
           </div>
-        )}
+
+          {board.rules && board.rules.length > 0 && (
+            <>
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+              <div>
+                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '10px', marginTop: 0 }}>
+                  b/{board.name} Rules
+                </h4>
+                <ol style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  {board.rules.map((rule, idx) => (
+                    <li key={idx}>{rule}</li>
+                  ))}
+                </ol>
+              </div>
+            </>
+          )}
+
+          {board.flair_options && board.flair_options.length > 0 && (
+            <>
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+              <div>
+                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '8px', marginTop: 0 }}>
+                  Flairs
+                </h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {board.flair_options.map((flair, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        padding: '2px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        border: '1px solid transparent',
+                        backgroundColor: `${flair.color || '#ff6a2c'}20`,
+                        color: flair.color || '#ff6a2c'
+                      }}
+                    >
+                      {flair.text}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+        </div>
 
       </div>
 

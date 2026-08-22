@@ -67,11 +67,9 @@ const Settings = () => {
   }
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', background: '#10151a', padding: '28px 40px 80px' }}>
-      <div style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
-        
-        {/* Back Link Header */}
-        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '20px' }}>
+    <div className="page-container-narrow select-none">
+      {/* Back Link Header */}
+      <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '20px' }}>
           <button
             onClick={() => {
               haptics.lightTap()
@@ -457,15 +455,14 @@ const Settings = () => {
           onMouseEnter={() => setIsSignoutHovered(true)}
           onMouseLeave={() => setIsSignoutHovered(false)}
           style={{
-            display: 'block',
             width: '100%',
             height: '48px',
-            background: isSignoutHovered ? 'rgba(255,84,112,0.08)' : 'none',
-            border: '1.5px solid',
-            borderColor: isSignoutHovered ? '#ff5470' : 'rgba(255,84,112,0.30)',
+            background: isSignoutHovered ? 'rgba(255, 84, 112, 0.12)' : 'transparent',
+            border: '1px solid',
+            borderColor: isSignoutHovered ? '#ff5470' : 'rgba(255, 84, 112, 0.28)',
             color: '#ff5470',
-            borderRadius: '12px',
-            fontSize: '15px',
+            borderRadius: '100px',
+            fontSize: '14px',
             fontWeight: '600',
             cursor: 'pointer',
             textAlign: 'center',
@@ -477,7 +474,6 @@ const Settings = () => {
         </button>
 
       </div>
-    </div>
   )
 }
 

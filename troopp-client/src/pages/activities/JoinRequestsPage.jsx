@@ -116,11 +116,9 @@ const JoinRequestsPage = () => {
   const fillPct = activity ? Math.min(100, (activity.current_members / activity.max_group_size) * 100) : 0
 
   return (
-    <div style={{ minHeight: '100vh', background: '#10151a', padding: '28px 24px 80px', color: 'var(--text-primary)' }}>
-      <div style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        
-        {/* Back button and title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', userSelect: 'none' }}>
+    <div className="page-container-narrow select-none text-[var(--text-primary)]">
+      {/* Back button and title */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', userSelect: 'none' }}>
           <Link
             to={`/activities/${id}`}
             onMouseEnter={() => setIsBackHovered(true)}
@@ -208,7 +206,6 @@ const JoinRequestsPage = () => {
           onDecline={() => handleAction(selectedUser?.id, 'decline')}
         />
       </div>
-    </div>
   )
 }
 

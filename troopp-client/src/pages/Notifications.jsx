@@ -121,11 +121,9 @@ const Notifications = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#10151a', padding: '28px 40px 80px' }}>
-      <div style={{ width: '100%', maxWidth: '896px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px', userSelect: 'none' }}>
-        
-        {/* Page header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 0 20px 0' }}>
+    <div className="page-container-medium select-none">
+      {/* Page header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 0 10px 0' }}>
           <h1
             style={{
               fontFamily: 'var(--font-display)',
@@ -263,7 +261,6 @@ const Notifications = () => {
           </div>
         )}
       </div>
-    </div>
   )
 }
 

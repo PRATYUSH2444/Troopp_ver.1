@@ -233,7 +233,7 @@ const AdminLayout = () => {
           </Link>
         </header>
 
-        <div style={{ flexGrow: 1, background: 'var(--bg)', padding: '28px 40px 80px' }}>
+        <div style={{ flexGrow: 1, background: 'var(--bg)', padding: '28px clamp(16px, 3.5vw, 40px) 80px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
           <Outlet />
         </div>
       </main>

@@ -54,8 +54,8 @@ const ForgotPassword = () => {
           background: #1a2129;
           border: 1px solid rgba(255,255,255,0.08);
           border-radius: 24px;
-          width: 440px;
-          max-width: calc(100vw - 40px);
+          width: 100%;
+          max-width: 440px;
           box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.03) inset;
           overflow: hidden;
         }

@@ -144,11 +144,9 @@ const SetupActivity = () => {
   const backTarget = id && id !== 'undefined' ? `/activities/${id}` : '/feed'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#10151a', padding: '28px 24px 80px' }}>
-      <div style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', userSelect: 'none' }}>
+    <div className="page-container-narrow select-none">
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', userSelect: 'none' }}>
           <button
             onClick={() => {
               haptics.lightTap()
@@ -491,7 +489,6 @@ const SetupActivity = () => {
         </form>
 
       </div>
-    </div>
   )
 }
 

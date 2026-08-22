@@ -126,14 +126,14 @@ const EditProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <div className="flex items-center justify-center py-20">
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen py-6 lg:py-8" style={{ backgroundColor: 'var(--color-bg)' }}>
+    <div className="page-container-narrow">
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -141,11 +141,11 @@ const EditProfile = () => {
           background: 'var(--color-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-lg)',
-          padding: '32px 24px',
+          padding: '28px',
           boxShadow: 'var(--shadow-card)',
           userSelect: 'none'
         }}
-        className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-6"
+        className="w-full flex flex-col gap-6"
       >
         <div className="text-center">
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: '900', color: 'var(--color-text-primary)', tracking: '-0.02em', margin: 0 }}>

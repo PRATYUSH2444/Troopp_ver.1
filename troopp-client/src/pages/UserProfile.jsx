@@ -86,8 +86,8 @@ const UserProfile = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#10151a', paddingBottom: '80px' }}>
-      <div style={{ width: '100%', maxWidth: '600px', margin: '0 auto', padding: '0 24px', display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
+    <div className="page-container-medium">
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
         
         {/* Top Banner Area */}
         <div

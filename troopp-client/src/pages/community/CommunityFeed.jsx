@@ -22,19 +22,9 @@ const CommunityFeed = () => {
   const [hasMore, setHasMore] = useState(false)
   
   // Auth interception state
+  // Auth interception state
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState(null)
-
-  // Screen Width State for Responsive Layout
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  const isDesktop = windowWidth > 1024
-  const isTablet = windowWidth > 768
 
   // Fetch boards list for left column
   const fetchBoards = async () => {
@@ -181,17 +171,11 @@ const CommunityFeed = () => {
     }
   }
 
-  const gridTemplateColumns = isDesktop 
-    ? '240px 1fr 280px' 
-    : isTablet 
-      ? '240px 1fr' 
-      : '1fr'
-
   // Checks if user is eligible to moderate any community boards or is superadmin
   const canModerate = user && (user.role === 'admin' || user.role === 'moderator' || boards.some(b => b.creator_id === user.id))
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1300px', margin: '0 auto', selectNone: 'true' }}>
+    <div className="page-container-wide select-none">
       
       {/* HERO BANNER SECTION */}
       <div className="hero-banner">
@@ -228,32 +212,23 @@ const CommunityFeed = () => {
       </div>
 
       {/* Grid Layout */}
-      <div 
-        style={{
-          display: 'grid',
-          gridTemplateColumns: gridTemplateColumns,
-          gap: '24px',
-          alignItems: 'start',
-          width: '100%'
-        }}
-      >
+      <div className="community-grid">
         
         {/* Left Column: Boards Directory */}
-        {isTablet && (
-          <div 
-            style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '20px',
-              boxShadow: 'var(--shadow-card)',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              textAlign: 'left'
-            }}
-          >
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: 0 }}>
+        <div className="community-left-col"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px',
+            boxShadow: 'var(--shadow-card)',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            textAlign: 'left'
+          }}
+        >
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', margin: 0 }}>
               Subscribed Boards
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -353,7 +328,6 @@ const CommunityFeed = () => {
               </>
             )}
           </div>
-        )}
 
         {/* Center Feed Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -674,39 +648,37 @@ const CommunityFeed = () => {
         </div>
 
         {/* Right Column: Sidebar */}
-        {isDesktop && (
-          <div 
-            style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '20px',
-              boxShadow: 'var(--shadow-card)',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              textAlign: 'left'
-            }}
-          >
-            <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '6px', marginTop: 0 }}>
-                Guidelines
-              </h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6', margin: 0 }}>
-                Please respect local cultures and rules when exchanging destination guidelines. Keep the vibe constructive!
-              </p>
-            </div>
-            <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '4px', marginTop: 0 }}>
-                Popular Destinations
-              </h4>
-              <Link to="/community/b/himachal-treks" style={{ fontSize: '12px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500' }} onMouseEnter={(e) => e.target.style.color = 'var(--accent)'} onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary)'}>b/himachal-treks</Link>
-              <Link to="/community/b/goa-beaches" style={{ fontSize: '12px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500' }} onMouseEnter={(e) => e.target.style.color = 'var(--accent)'} onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary)'}>b/goa-beaches</Link>
-              <Link to="/community/b/nepal-trails" style={{ fontSize: '12px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500' }} onMouseEnter={(e) => e.target.style.color = 'var(--accent)'} onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary)'}>b/nepal-trails</Link>
-            </div>
+        <div className="community-right-col"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px',
+            boxShadow: 'var(--shadow-card)',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            textAlign: 'left'
+          }}
+        >
+          <div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '6px', marginTop: 0 }}>
+              Guidelines
+            </h3>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6', margin: 0 }}>
+              Please respect local cultures and rules when exchanging destination guidelines. Keep the vibe constructive!
+            </p>
           </div>
-        )}
+          <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '4px', marginTop: 0 }}>
+              Popular Destinations
+            </h4>
+            <Link to="/community/b/himachal-treks" style={{ fontSize: '12px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500' }} onMouseEnter={(e) => e.target.style.color = 'var(--accent)'} onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary)'}>b/himachal-treks</Link>
+            <Link to="/community/b/goa-beaches" style={{ fontSize: '12px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500' }} onMouseEnter={(e) => e.target.style.color = 'var(--accent)'} onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary)'}>b/goa-beaches</Link>
+            <Link to="/community/b/nepal-trails" style={{ fontSize: '12px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500' }} onMouseEnter={(e) => e.target.style.color = 'var(--accent)'} onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary)'}>b/nepal-trails</Link>
+          </div>
+        </div>
 
       </div>
 

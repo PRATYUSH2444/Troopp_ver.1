@@ -483,8 +483,8 @@ const TripRoom = () => {
   const isHost = user?.id === activity?.creator_id
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', background: '#10151a', padding: '28px 24px 80px' }}>
-      <div style={{ width: '100%', maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
+    <div className="page-container-medium">
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
         
         {/* SOS Active Header notification */}
         {sosActiveInfo && (

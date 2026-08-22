@@ -74,7 +74,7 @@ const CreateBoard = () => {
   }
 
   return (
-    <div style={{ width: '100%', position: 'relative', zIndex: 10, maxWidth: '640px', margin: '0 auto' }}>
+    <div className="page-container-narrow select-none">
       <div 
         style={{
           background: 'var(--surface)',

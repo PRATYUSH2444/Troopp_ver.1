@@ -45,7 +45,7 @@ const FollowingListPage = () => {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col gap-6 pb-20 px-4">
+    <div className="page-container-narrow select-none">
       {/* Header back button */}
       <div className="flex items-center gap-3 mt-4">
         <Link

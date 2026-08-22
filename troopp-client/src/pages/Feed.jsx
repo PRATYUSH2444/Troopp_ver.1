@@ -313,12 +313,12 @@ const Feed = () => {
 
   return (
     <PullToRefresh onRefresh={() => fetchActivities(null, false)}>
-      <div className="min-h-screen pb-20 relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <div className="relative w-full">
         {/* Ambient Blurs */}
         <div className="absolute top-1/4 left-[-10%] w-[500px] h-[500px] bg-orange-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
         <div className="absolute top-2/3 right-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[140px] pointer-events-none z-0" />
 
-        <div className="w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex flex-col gap-6 select-none relative z-10">
+        <div className="page-container-wide relative z-10 select-none">
           
           {/* HERO BANNER */}
           <div className="hero-banner">
@@ -340,7 +340,6 @@ const Feed = () => {
                   navigate('/activities/create')
                 }}
                 className="hero-cta"
-                style={{ background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)' }}
               >
                 Host a Trip +
               </button>

@@ -82,11 +82,9 @@ const NotificationPreferencesPage = () => {
   }
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', background: '#10151a', padding: '28px 24px 80px' }}>
-      <div style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px', userSelect: 'none' }}>
-        
-        {/* Header back navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+    <div className="page-container-narrow select-none">
+      {/* Header back navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
             onClick={() => {
               haptics.lightTap()
@@ -345,7 +343,6 @@ const NotificationPreferencesPage = () => {
           </div>
         </div>
       </div>
-    </div>
   )
 }
 

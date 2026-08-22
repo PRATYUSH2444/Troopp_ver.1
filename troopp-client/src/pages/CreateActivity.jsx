@@ -376,8 +376,7 @@ const CreateActivity = () => {
   }
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', background: '#10151a', padding: '28px 24px 80px' }}>
-      <div style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="page-container-narrow">
         
         {/* Back and Title Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative', userSelect: 'none' }}>
@@ -1215,7 +1214,6 @@ const CreateActivity = () => {
 
         </motion.div>
       </div>
-    </div>
   )
 }
 

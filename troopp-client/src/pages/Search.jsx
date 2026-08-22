@@ -103,11 +103,9 @@ const Search = () => {
   }
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', background: '#10151a' }}>
-      <div style={{ width: '100%', maxWidth: '1300px', margin: '0 auto', padding: '28px 40px 80px' }}>
-        
-        {/* Search input wrapper */}
-        <div style={{ position: 'relative', marginBottom: '24px' }}>
+    <div className="page-container-wide">
+      {/* Search input wrapper */}
+      <div style={{ position: 'relative' }}>
           {/* Magnifier icon */}
           <span
             style={{
@@ -323,7 +321,7 @@ const Search = () => {
               </div>
 
               {results.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-2">
+                <div className="cards-grid mt-2">
                   {results.map((act, idx) => (
                     <ActivityCard key={act.id} activity={act} index={idx} />
                   ))}
@@ -375,7 +373,7 @@ const Search = () => {
                       borderRadius: '12px',
                       fontSize: '13px',
                       fontWeight: '600',
-                      color: '#stone-300',
+                      color: '#9ba6ad',
                       cursor: 'pointer',
                       transition: 'background 150ms'
                     }}
@@ -389,9 +387,7 @@ const Search = () => {
             </div>
           ) : null}
         </div>
-
       </div>
-    </div>
   )
 }
 
