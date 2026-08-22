@@ -316,9 +316,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Filter Bar */
 .filter-bar {
-  position: sticky;
-  top: 16px;
-  z-index: 20;
+  position: relative;
+  z-index: 10;
   background: rgba(26, 33, 41, 0.92);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);

@@ -314,7 +314,7 @@ const Feed = () => {
       <div className="absolute top-1/4 left-0 w-[320px] h-[320px] bg-orange-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
       <div className="absolute top-2/3 right-0 w-[320px] h-[320px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
-      <div className="page-container-wide relative z-10 select-none">
+      <div className="page-container-wide relative z-10">
           
           {/* HERO BANNER */}
           <div className="hero-banner">
@@ -568,7 +568,7 @@ const Feed = () => {
           </AnimatePresence>
 
           {/* MULTI-SELECT CATEGORY CHIPS */}
-          <div className="relative w-full overflow-hidden select-none" style={{ marginBottom: '14px' }}>
+          <div className="relative w-full overflow-hidden" style={{ marginBottom: '14px' }}>
             <div className="flex gap-2.5 overflow-x-auto scrollbar-none py-1" style={{ scrollbarWidth: 'none' }}>
               {CATEGORIES.map((cat) => {
                 const isAll = cat.value === 'all'
