@@ -142,7 +142,12 @@ export const apiRequest = async (endpoint, options = {}) => {
     const newAccessToken = await refreshPromise
     if (newAccessToken) {
       config.headers['Authorization'] = `Bearer ${newAccessToken}`
-      response = await fetchWithTimeout(url, config, 30000)
+      try {
+        response = await fetchWithTimeout(url, config, 30000)
+      } catch (retryErr) {
+        console.warn('Retry request after token refresh failed:', retryErr?.message)
+        // Return the original 401 response rather than throwing
+      }
     }
   }
 

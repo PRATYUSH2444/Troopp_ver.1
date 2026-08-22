@@ -82,7 +82,7 @@ const PollsTab = ({
   }
 
   const handleSubmit = () => {
-    const filledOptions = options.map((o) => o.trim()).filter(Boolean)
+    const filledOptions = options.map((o) => (typeof o === 'string' ? o.trim() : '')).filter(Boolean)
     if (!question.trim() || filledOptions.length < 2) return
 
     onCreatePoll({

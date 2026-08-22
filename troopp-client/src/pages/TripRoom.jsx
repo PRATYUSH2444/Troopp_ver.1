@@ -141,14 +141,27 @@ const TripRoom = () => {
     const serverUrl = import.meta.env.VITE_SOCKET_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api/v1', '') : 'http://localhost:3000')
     const token = getAccessToken()
 
-    // Connect socket
-    const socket = io(serverUrl, {
-      path: '/socket.io',
-      auth: { token },
-      transports: ['websocket', 'polling']
-    })
+    // Track timers for cleanup
+    const timers = []
+
+    let socket
+    try {
+      socket = io(serverUrl, {
+        path: '/socket.io',
+        auth: { token },
+        transports: ['websocket', 'polling']
+      })
+    } catch (err) {
+      console.error('Socket.IO initialization failed:', err)
+      return
+    }
 
     socketRef.current = socket
+
+    // Handle connection errors gracefully instead of crashing
+    socket.on('connect_error', (err) => {
+      console.warn('Socket connection error:', err?.message)
+    })
 
     socket.on('connect', () => {
       socket.emit('join_room', { roomId })
@@ -191,7 +204,7 @@ const TripRoom = () => {
 
       setFlashType('join')
       import('../utils/sounds.js').then((m) => m.playJoinApproved?.()).catch(() => {})
-      setTimeout(() => setFlashType(null), 800)
+      timers.push(setTimeout(() => setFlashType(null), 800))
 
       setMembers((prev) => {
         const arr = Array.isArray(prev) ? prev : []
@@ -222,7 +235,7 @@ const TripRoom = () => {
 
       setFlashType('leave')
       import('../utils/sounds.js').then((m) => m.playError?.()).catch(() => {})
-      setTimeout(() => setFlashType(null), 800)
+      timers.push(setTimeout(() => setFlashType(null), 800))
 
       setMembers((prev) => (Array.isArray(prev) ? prev : []).filter((m) => (m.userId || m.id) !== payload.userId))
     })
@@ -243,15 +256,21 @@ const TripRoom = () => {
 
     // Listen Emergency SOS Alarms broadcast
     socket.on('sos_broadcast', (data) => {
-      haptics.sosTriggered()
+      haptics.sos?.()
       setSosActiveInfo(data)
       import('../utils/sounds.js').then((m) => m.playSosAlarm?.()).catch(() => {})
     })
 
-    // Cleanup sockets on unmount
+    // Cleanup sockets on unmount — wrapped in try/catch to prevent ErrorBoundary crash
     return () => {
-      socket.emit('leave_room', { roomId })
-      socket.disconnect()
+      timers.forEach((t) => clearTimeout(t))
+      try {
+        socket?.emit('leave_room', { roomId })
+        socket?.disconnect()
+      } catch (err) {
+        console.warn('Socket cleanup error:', err)
+      }
+      socketRef.current = null
     }
   }, [roomId, onboardingComplete, user?.id, activity])
 

@@ -5,6 +5,7 @@ import confetti from 'canvas-confetti'
 
 // Settlement Row Component with checkmark draw, bg flash, and strikethrough animations
 const ExpenseSplitRow = ({ split, isMySplit, onSettleSplit, currentUserId }) => {
+  if (!split) return null
   const [justSettled, setJustSettled] = useState(false)
   const prevSettledRef = useRef(split.is_settled)
 
@@ -196,7 +197,8 @@ const ExpensesTab = ({
     let finalCustomList = []
     if (splitType === 'custom') {
       let sumCustom = 0
-      finalCustomList = members.map((m) => {
+      finalCustomList = (Array.isArray(members) ? members : []).map((m) => {
+        if (!m) return { userId: null, amount: 0 }
         const amt = parseFloat(customShares[m.userId] || 0)
         sumCustom += amt
         return {
@@ -228,8 +230,9 @@ const ExpensesTab = ({
     summaryText += `Total Logged: ₹${totalLogged.toLocaleString()}\n`
     summaryText += `--------------------------------------\n`
     
-    expenses.forEach((e) => {
-      summaryText += `• *${e.description}*: ₹${parseFloat(e.amount).toLocaleString()}\n`
+    ;(Array.isArray(expenses) ? expenses : []).forEach((e) => {
+      if (!e) return
+      summaryText += `• *${e.description || 'Unnamed'}*: ₹${parseFloat(e.amount || 0).toLocaleString()}\n`
     })
 
     navigator.clipboard.writeText(summaryText)
@@ -506,9 +509,11 @@ const ExpensesTab = ({
                 {splitType === 'custom' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', border: '1px dashed rgba(255,255,255,0.14)', padding: '12px', borderRadius: '12px', maxHeight: '160px', overflowY: 'auto' }}>
                     <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase' }}>Assign Shares</span>
-                    {members.map((m) => (
-                      <div key={m.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#f3f1ea', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                    {(Array.isArray(members) ? members : []).map((m) => {
+                      if (!m) return null
+                      return (
+                      <div key={m.userId || m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#f3f1ea', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name || 'Member'}</span>
                         <div style={{ position: 'relative', width: '100px' }}>
                           <span style={{ position: 'absolute', left: '10px', top: '6px', fontSize: '10px', color: '#6b757c' }}>₹</span>
                           <input
@@ -531,7 +536,8 @@ const ExpensesTab = ({
                           />
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

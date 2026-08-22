@@ -54,7 +54,7 @@ const ManageTab = ({
   // Safely resolve display name from potentially nested member objects
   const getDisplayName = (m) => m?.name || m?.User?.Profile?.name || 'Explorer'
 
-  // Fallback defaults for health metrics
+  // Fallback defaults for health metrics (|| {} needed because default params don't catch null)
   const {
     averageTrustScore = 80,
     trustedMembersCount = 3,
@@ -63,7 +63,7 @@ const ManageTab = ({
     reportsFiledCount = 0,
     womenPercentage = 30,
     emergencyContactsSetCount = 3
-  } = healthMetrics
+  } = healthMetrics || {}
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: '#f3f1ea', paddingBottom: '64px' }}>
@@ -81,7 +81,7 @@ const ManageTab = ({
           </div>
           <div style={{ padding: '14px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'center' }}>
             <span style={{ fontSize: '9px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase' }}>Trusted Members</span>
-            <span style={{ fontSize: '18px', fontWeight: '800', color: '#f3f1ea', marginTop: '4px', fontFamily: 'var(--font-display)' }}>{trustedMembersCount} / {members.length}</span>
+            <span style={{ fontSize: '18px', fontWeight: '800', color: '#f3f1ea', marginTop: '4px', fontFamily: 'var(--font-display)' }}>{trustedMembersCount} / {(Array.isArray(members) ? members : []).length}</span>
             <span style={{ fontSize: '8px', color: '#6b757c' }}>Score &gt;= 75</span>
           </div>
           <div style={{ padding: '14px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'center' }}>

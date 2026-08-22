@@ -32,7 +32,7 @@ const ChecklistTab = ({ checklist = [], onToggleItem, members = [] }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {safeList.map((item, index) => {
             if (!item) return null
-            const checkedByMember = safeMembers.find((m) => (m.userId || m.id) === item.checked_by_id)
+            const checkedByMember = safeMembers.find((m) => m && (m.userId || m.id) === item.checked_by_id)
             const isChecked = !!item.checked
 
             return (
