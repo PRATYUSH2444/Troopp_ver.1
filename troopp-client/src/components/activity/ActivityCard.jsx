@@ -363,7 +363,7 @@ const ActivityCard = ({ activity, index = 0 }) => {
         }}
       >
         {/* HERO IMAGE AREA */}
-        <div style={{ position: 'relative', height: '192px', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', height: '216px', overflow: 'hidden' }}>
           
           {/* Lazy-Loading Blur-Up Image Container */}
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
