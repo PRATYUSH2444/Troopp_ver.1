@@ -13,6 +13,7 @@ import logger from '../config/logger.js'
 import { uploadSingle } from '../middleware/upload.middleware.js'
 import { uploadToCloudinary } from '../config/cloudinary.js'
 import { validate, updateProfileSchema } from '../middleware/validate.js'
+import { generateTokens, COOKIE_OPTIONS } from '../controllers/auth.controller.js'
 import sequelize from '../config/db.js'
 
 const router = Router()
@@ -72,11 +73,25 @@ router.post('/complete-onboarding', async (req, res, next) => {
     user.onboarding_completed = true
     await user.save()
 
+    const profile = await Profile.findOne({ where: { user_id: user.id } })
+    const profileName = profile ? profile.name : 'Traveler'
+    const { accessToken, refreshToken } = generateTokens(user, profileName)
+    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
+
     logger.info(`Onboarding completed for user: ${user.email}`)
 
     res.status(200).json({
       success: true,
-      message: 'Profile onboarding successfully completed.'
+      message: 'Profile onboarding successfully completed.',
+      accessToken,
+      user: {
+        id: user.id,
+        name: profileName,
+        email: user.email,
+        role: user.role,
+        trustScore: user.trust_score,
+        onboardingCompleted: true
+      }
     })
   } catch (error) {
     next(error)

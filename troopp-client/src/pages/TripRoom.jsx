@@ -51,65 +51,94 @@ const TripRoom = () => {
 
   // 1. Fetch initial configuration and onboarding status check
   useEffect(() => {
+    let isMounted = true
+
     const fetchRoomMeta = async () => {
       try {
-        // Fetch activity metadata
+        setLoading(true)
+
+        // 1. Fetch activity metadata
         const activityRes = await apiRequest(`/activities/${roomId}`)
-        if (!activityRes.ok) throw new Error('Failed to retrieve activity meta.')
+        if (!activityRes.ok) {
+          throw new Error('Failed to retrieve activity meta.')
+        }
         const activityJson = await activityRes.json()
-        setActivity(activityJson.data?.activity || null)
+        const act = activityJson.data?.activity || activityJson.data || null
+        if (!isMounted) return
+        setActivity(act)
+        
         if (activityJson.data?.confirmedMembers) {
-          setMembers(activityJson.data.confirmedMembers)
+          setMembers(Array.isArray(activityJson.data.confirmedMembers) ? activityJson.data.confirmedMembers : [])
         }
 
-        // Fetch onboarding progress
-        const onboardingRes = await apiRequest(`/trip-rooms/${roomId}/onboarding`)
-        if (onboardingRes.ok) {
-          const onboardingJson = await onboardingRes.json()
-          setOnboardingComplete(onboardingJson.data?.onboardingCompleted || false)
-          setTripRules(onboardingJson.data?.rules || null)
-          setWelcomeMessage(onboardingJson.data?.welcomeMessage || '')
+        const isUserHost = Boolean(user?.id && act && (act.creator_id === user.id || act.host_id === user.id))
+
+        // 2. Fetch onboarding progress
+        try {
+          const onboardingRes = await apiRequest(`/trip-rooms/${roomId}/onboarding`)
+          if (onboardingRes.ok) {
+            const onboardingJson = await onboardingRes.json()
+            const isCompleted = isUserHost || Boolean(onboardingJson.data?.onboardingCompleted)
+            if (isMounted) {
+              setOnboardingComplete(isCompleted)
+              setTripRules(onboardingJson.data?.rules || null)
+              setWelcomeMessage(onboardingJson.data?.welcomeMessage || '')
+            }
+          } else if (isUserHost) {
+            if (isMounted) setOnboardingComplete(true)
+          }
+        } catch (onboardingErr) {
+          console.warn('Trip room onboarding fetch note:', onboardingErr)
+          if (isUserHost && isMounted) setOnboardingComplete(true)
         }
 
-        // Fetch initial static tab records
-        const [msgRes, expRes, pollRes, healthRes] = await Promise.all([
+        // 3. Fetch initial tab records safely in parallel
+        const [msgRes, expRes, pollRes, healthRes] = await Promise.allSettled([
           apiRequest(`/trip-rooms/${roomId}/messages`),
           apiRequest(`/trip-rooms/${roomId}/expenses`),
           apiRequest(`/trip-rooms/${roomId}/polls`),
           apiRequest(`/trip-rooms/${roomId}/health`)
         ])
 
-        if (msgRes.ok) {
-          const msgJson = await msgRes.json()
-          setMessages(msgJson.data || [])
+        if (!isMounted) return
+
+        if (msgRes.status === 'fulfilled' && msgRes.value?.ok) {
+          const msgJson = await msgRes.value.json()
+          setMessages(Array.isArray(msgJson.data) ? msgJson.data : [])
         }
-        if (expRes.ok) {
-          const expJson = await expRes.json()
-          setExpenses(expJson.data || [])
+        if (expRes.status === 'fulfilled' && expRes.value?.ok) {
+          const expJson = await expRes.value.json()
+          setExpenses(Array.isArray(expJson.data) ? expJson.data : [])
         }
-        if (pollRes.ok) {
-          const pollJson = await pollRes.json()
-          setPolls(pollJson.data || [])
+        if (pollRes.status === 'fulfilled' && pollRes.value?.ok) {
+          const pollJson = await pollRes.value.json()
+          setPolls(Array.isArray(pollJson.data) ? pollJson.data : [])
         }
-        if (healthRes.ok) {
-          const healthJson = await healthRes.json()
+        if (healthRes.status === 'fulfilled' && healthRes.value?.ok) {
+          const healthJson = await healthRes.value.json()
           setHealthMetrics(healthJson.data || {})
         }
 
       } catch (err) {
         console.error('Failed fetching room metadata:', err)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
+    
     fetchRoomMeta()
-  }, [roomId])
 
-  // 2. Initialize real-time WebSockets connections on onboarding success
+    return () => {
+      isMounted = false
+    }
+  }, [roomId, user?.id])
+
+  // 2. Initialize real-time WebSockets connections on onboarding success or host entry
   useEffect(() => {
-    if (!onboardingComplete) return
+    const isUserHost = Boolean(user?.id && activity && (activity.creator_id === user.id || activity.host_id === user.id))
+    if (!onboardingComplete && !isUserHost) return
 
-    const serverUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api/v1', '') : 'http://localhost:3000'
+    const serverUrl = import.meta.env.VITE_SOCKET_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api/v1', '') : 'http://localhost:3000')
     const token = getAccessToken()
 
     // Connect socket
@@ -127,8 +156,8 @@ const TripRoom = () => {
 
     // Listen room joins responses
     socket.on('room_joined', (data) => {
-      if (data.messages) setMessages(data.messages)
-      if (data.members) setMembers(data.members)
+      if (data.messages && Array.isArray(data.messages)) setMessages(data.messages)
+      if (data.members && Array.isArray(data.members)) setMembers(data.members)
     })
 
     // Listen incoming new messages
@@ -138,14 +167,14 @@ const TripRoom = () => {
       }
       setMessages((prev) => {
         if (payload.sender_id === user?.id) {
-          const idx = prev.findIndex((m) => m.status === 'sending' && m.message_text === payload.message_text)
+          const idx = (Array.isArray(prev) ? prev : []).findIndex((m) => m.status === 'sending' && m.message_text === payload.message_text)
           if (idx !== -1) {
             const updated = [...prev]
             updated[idx] = { ...payload, status: 'sent' }
             return updated
           }
         }
-        return [...prev, payload]
+        return [...(Array.isArray(prev) ? prev : []), payload]
       })
     })
 
@@ -154,20 +183,21 @@ const TripRoom = () => {
       const joinMsg = {
         id: `join-${Date.now()}`,
         sender_id: payload.userId,
-        message_text: `${payload.name} joined the trip room!`,
+        message_text: `${payload.name || 'A traveler'} joined the trip room!`,
         message_type: 'member_joined_system',
         created_at: new Date().toISOString()
       }
-      setMessages((prev) => [...prev, joinMsg])
+      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), joinMsg])
 
       setFlashType('join')
-      import('../utils/sounds.js').then((m) => m.playJoinApproved())
+      import('../utils/sounds.js').then((m) => m.playJoinApproved?.()).catch(() => {})
       setTimeout(() => setFlashType(null), 800)
 
       setMembers((prev) => {
-        if (prev.some((m) => m.userId === payload.userId)) return prev
+        const arr = Array.isArray(prev) ? prev : []
+        if (arr.some((m) => (m.userId || m.id) === payload.userId)) return arr
         return [
-          ...prev,
+          ...arr,
           {
             userId: payload.userId,
             name: payload.name,
@@ -188,265 +218,282 @@ const TripRoom = () => {
         message_type: 'member_left_system',
         created_at: new Date().toISOString()
       }
-      setMessages((prev) => [...prev, leaveMsg])
+      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), leaveMsg])
 
       setFlashType('leave')
-      import('../utils/sounds.js').then((m) => m.playError())
+      import('../utils/sounds.js').then((m) => m.playError?.()).catch(() => {})
       setTimeout(() => setFlashType(null), 800)
 
-      setMembers((prev) => prev.filter((m) => m.userId !== payload.userId))
+      setMembers((prev) => (Array.isArray(prev) ? prev : []).filter((m) => (m.userId || m.id) !== payload.userId))
     })
 
     // Listen typing status indicators
     socket.on('user_typing', (payload) => {
+      if (payload.userId === user?.id) return
       setTypingUsers((prev) => {
-        if (prev.some((u) => u.userId === payload.userId)) return prev
-        return [...prev, payload]
-      })
-
-      setTimeout(() => {
-        setTypingUsers((prev) => prev.filter((u) => u.userId !== payload.userId))
-      }, 3000)
-    })
-
-    // Listen checklist item changes
-    socket.on('checklist_item_updated', (payload) => {
-      setActivity((prev) => {
-        if (!prev) return prev
-        const updatedChecklist = [...(prev.packing_checklist || [])]
-        if (updatedChecklist[payload.itemIndex]) {
-          updatedChecklist[payload.itemIndex].checked = payload.isChecked
-          updatedChecklist[payload.itemIndex].checked_by_id = payload.isChecked ? payload.userId : null
-        }
-        return {
-          ...prev,
-          packing_checklist: updatedChecklist
-        }
+        const arr = Array.isArray(prev) ? prev : []
+        if (arr.some((u) => u.userId === payload.userId)) return arr
+        return [...arr, payload]
       })
     })
 
-    // Listen polls votes
-    socket.on('poll_updated', (payload) => {
-      setPolls((prev) =>
-        prev.map((p) => (p.id === payload.pollId ? { ...p, votes: payload.votes } : p))
-      )
+    socket.on('user_stop_typing', (payload) => {
+      setTypingUsers((prev) => (Array.isArray(prev) ? prev : []).filter((u) => u.userId !== payload.userId))
     })
 
-    // Listen new polls
-    socket.on('poll_created', (payload) => {
-      setPolls((prev) => [payload.poll, ...prev])
+    // Listen Emergency SOS Alarms broadcast
+    socket.on('sos_broadcast', (data) => {
+      haptics.sosTriggered()
+      setSosActiveInfo(data)
+      import('../utils/sounds.js').then((m) => m.playSosAlarm?.()).catch(() => {})
     })
 
-    // Listen expense logs updates
-    socket.on('expense_updated', (payload) => {
-      setExpenses((prev) => [payload.expense, ...prev])
-    })
-
-    // Listen expense settlements
-    socket.on('split_settled', (payload) => {
-      setExpenses((prev) =>
-        prev.map((e) => {
-          const updatedSplits = e.Splits?.map((s) => (s.id === payload.splitId ? payload.split : s))
-          return { ...e, Splits: updatedSplits }
-        })
-      )
-    })
-
-    // Listen emergency SOS broadcasts
-    socket.on('sos_triggered', (payload) => {
-      setSosActiveInfo(payload)
-      setTimeout(() => setSosActiveInfo(null), 10000)
-    })
-
-    // Listen hosts action drops
-    socket.on('member_removed', (payload) => {
-      if (payload.userId === user?.id) {
-        toast.error('You have been removed from this trip by the host.')
-        navigate('/feed')
-      } else {
-        setMembers((prev) => prev.filter((m) => m.userId !== payload.userId))
-      }
-    })
-
+    // Cleanup sockets on unmount
     return () => {
+      socket.emit('leave_room', { roomId })
       socket.disconnect()
     }
-  }, [onboardingComplete, roomId, user, navigate])
+  }, [roomId, onboardingComplete, user?.id, activity])
 
-  const handleTabChange = (tabName) => {
-    haptics.tabSwitch()
-    setActiveTab(tabName)
-    sessionStorage.setItem(`active_tab_${roomId}`, tabName)
+  // Save active tab in session storage
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    sessionStorage.setItem(`active_tab_${roomId}`, tab)
   }
 
-  // Socket triggers dispatchers
-  const handleSendMessage = (text) => {
-    const tempMsg = {
-      id: `temp-${Date.now()}`,
-      sender_id: user?.id,
-      message_text: text,
-      message_type: 'chat',
-      created_at: new Date().toISOString(),
-      status: 'sending',
-      Sender: {
-        id: user?.id,
-        trust_score: user?.trustScore || 80,
-        Profile: {
-          name: user?.name || 'Explorer',
-          avatar_url: user?.avatarUrl || null
-        }
-      }
-    }
-    setMessages((prev) => [...prev, tempMsg])
-    if (socketRef.current) {
-      socketRef.current.emit('send_message', { roomId, content: text })
-    }
-  }
-
-  const handleToggleChecklistItem = (index, isChecked) => {
-    if (socketRef.current) {
-      socketRef.current.emit('checklist_update', { roomId, itemIndex: index, isChecked })
-    }
-  }
-
-  const handleVotePoll = (pollId, optionIndex) => {
-    if (socketRef.current) {
-      socketRef.current.emit('poll_vote', { roomId, pollId, optionIndex })
-    }
-  }
-
-  const handleSOSTrigger = (coords) => {
-    if (!navigator.onLine) {
-      setSosError('SOS failed — no internet connection. Call emergency services directly on 112.')
-      setSosModalOpen(false)
-      return
-    }
-
-    setSosError('')
-
-    if (socketRef.current) {
-      haptics.sos()
-      socketRef.current.emit('sos_trigger', {
-        roomId,
-        latitude: coords.latitude,
-        longitude: coords.longitude
-      })
-    }
-    setSosModalOpen(false)
-    setMySosSent(true)
-    setTimeout(() => {
-      setMySosSent(false)
-    }, 10000)
-  }
-
-  // Production API handlers bindings
-  const handleAddExpense = async (data) => {
-    try {
-      const res = await apiRequest(`/trip-rooms/${roomId}/expenses`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      })
-      if (res.ok) {
-        const json = await res.json()
-        setExpenses((prev) => [json.data, ...prev])
-        toast.success('Expense added.')
-      }
-    } catch (err) {
-      toast.error('Failed to save expense record.')
-    }
-  }
-
-  const handleSettleSplit = async (splitId) => {
-    try {
-      const res = await apiRequest(`/trip-rooms/${roomId}/expenses/splits/${splitId}/settle`, {
-        method: 'POST'
-      })
-      if (res.ok) {
-        const json = await res.json()
-        setExpenses((prev) =>
-          prev.map((e) => {
-            const updatedSplits = e.Splits?.map((s) => (s.id === splitId ? json.data : s))
-            return { ...e, Splits: updatedSplits }
-          })
-        )
-        toast.success('Split marked settled.')
-      }
-    } catch (err) {
-      toast.error('Failed settling split.')
-    }
-  }
-
-  const handleCreatePoll = async (data) => {
-    try {
-      const res = await apiRequest(`/trip-rooms/${roomId}/polls`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      })
-      if (res.ok) {
-        const json = await res.json()
-        setPolls((prev) => [json.data, ...prev])
-        toast.success('Poll created successfully!')
-      }
-    } catch (err) {
-      toast.error('Failed creating group poll.')
-    }
-  }
-
-  const handleMuteMember = async (targetUserId, hours) => {
-    try {
-      const res = await apiRequest(`/trip-rooms/${roomId}/mute/${targetUserId}`, {
-        method: 'POST',
-        body: JSON.stringify({ hours })
-      })
-      if (res.ok) {
-        toast.success(`User muted for ${hours} hours.`)
-      }
-    } catch (err) {
-      toast.error('Mute action failed.')
-    }
-  }
-
-  const handleRemoveMember = async (targetUserId) => {
-    try {
-      const res = await apiRequest(`/trip-rooms/${roomId}/remove/${targetUserId}`, {
-        method: 'POST'
-      })
-      if (res.ok) {
-        setMembers((prev) => prev.filter((m) => m.userId !== targetUserId))
-        toast.success('Member removed from room.')
-      }
-    } catch (err) {
-      toast.error('Remove action failed.')
-    }
-  }
-
+  // Completes first-time joiner briefing flow
   const handleCompleteOnboarding = async () => {
     try {
-      const res = await apiRequest(`/trip-rooms/${roomId}/onboarding-complete`, {
+      const res = await apiRequest(`/trip-rooms/${roomId}/onboarding/complete`, {
         method: 'POST'
       })
       if (res.ok) {
         setOnboardingComplete(true)
+        toast.success('Onboarding complete! Welcome to the trip.')
+      } else {
+        setOnboardingComplete(true)
       }
-    } catch (err) {
-      toast.error('Failed saving onboarding signature.')
+    } catch {
+      setOnboardingComplete(true)
     }
   }
 
+  // Messaging dispatcher
+  const handleSendMessage = (messageText) => {
+    if (!messageText.trim()) return
+
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      sender_id: user?.id,
+      message_text: messageText,
+      message_type: 'chat',
+      status: 'sending',
+      created_at: new Date().toISOString(),
+      Sender: {
+        id: user?.id,
+        trust_score: user?.trustScore || 85,
+        Profile: {
+          name: user?.name || 'Explorer',
+          avatar_url: user?.avatarUrl
+        }
+      }
+    }
+
+    setMessages((prev) => [...(Array.isArray(prev) ? prev : []), optimisticMessage])
+
+    if (socketRef.current) {
+      socketRef.current.emit('send_message', {
+        roomId,
+        messageText,
+        messageType: 'chat'
+      })
+    }
+  }
+
+  // Expense creation dispatcher
+  const handleAddExpense = async (newExp) => {
+    try {
+      const res = await apiRequest(`/trip-rooms/${roomId}/expenses`, {
+        method: 'POST',
+        body: JSON.stringify(newExp)
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setExpenses((prev) => [json.data, ...(Array.isArray(prev) ? prev : [])])
+        toast.success('Expense added successfully!')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to add expense.')
+    }
+  }
+
+  // Settle split handler
+  const handleSettleSplit = async (splitId) => {
+    try {
+      const res = await apiRequest(`/trip-rooms/${roomId}/expenses/splits/${splitId}/settle`, {
+        method: 'PATCH'
+      })
+      if (res.ok) {
+        toast.success('Split marked settled!')
+        setExpenses((prev) =>
+          (Array.isArray(prev) ? prev : []).map((exp) => ({
+            ...exp,
+            Splits: Array.isArray(exp.Splits)
+              ? exp.Splits.map((s) => (s.id === splitId ? { ...s, is_settled: true, settled_at: new Date() } : s))
+              : []
+          }))
+        )
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to settle split.')
+    }
+  }
+
+  // Packing list toggle dispatcher
+  const handleToggleChecklistItem = async (itemIndex, checked) => {
+    try {
+      const res = await apiRequest(`/trip-rooms/${roomId}/checklist/items/${itemIndex}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ checked })
+      })
+      if (res.ok) {
+        setActivity((prev) => {
+          if (!prev) return prev
+          let currentList = prev.packing_checklist || []
+          if (typeof currentList === 'string') {
+            try { currentList = JSON.parse(currentList) } catch { currentList = [] }
+          }
+          const updated = Array.isArray(currentList) ? [...currentList] : []
+          if (updated[itemIndex]) {
+            updated[itemIndex] = {
+              ...updated[itemIndex],
+              checked,
+              checked_by_id: checked ? user?.id : null
+            }
+          }
+          return { ...prev, packing_checklist: updated }
+        })
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed toggling checklist item.')
+    }
+  }
+
+  // Create Poll dispatcher
+  const handleCreatePoll = async (newPoll) => {
+    try {
+      const res = await apiRequest(`/trip-rooms/${roomId}/polls`, {
+        method: 'POST',
+        body: JSON.stringify(newPoll)
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setPolls((prev) => [json.data, ...(Array.isArray(prev) ? prev : [])])
+        toast.success('Poll created!')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed creating poll.')
+    }
+  }
+
+  // Vote on Poll dispatcher
+  const handleVotePoll = async (pollId, optionIndex) => {
+    try {
+      const res = await apiRequest(`/trip-rooms/${roomId}/polls/${pollId}/vote`, {
+        method: 'POST',
+        body: JSON.stringify({ optionIndex })
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setPolls((prev) => (Array.isArray(prev) ? prev : []).map((p) => (p.id === pollId ? json.data : p)))
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit vote.')
+    }
+  }
+
+  // Mute member action dispatcher
+  const handleMuteMember = async (memberId, durationMinutes) => {
+    try {
+      const res = await apiRequest(`/trip-rooms/${roomId}/manage/mute`, {
+        method: 'POST',
+        body: JSON.stringify({ memberId, durationMinutes })
+      })
+      if (res.ok) {
+        toast.success('Member muted successfully.')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to mute member.')
+    }
+  }
+
+  // Remove member action dispatcher
+  const handleRemoveMember = async (memberId) => {
+    try {
+      const res = await apiRequest(`/trip-rooms/${roomId}/manage/remove-member`, {
+        method: 'POST',
+        body: JSON.stringify({ memberId })
+      })
+      if (res.ok) {
+        setMembers((prev) => (Array.isArray(prev) ? prev : []).filter((m) => (m.userId || m.id) !== memberId))
+        toast.success('Member removed from trip room.')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed removing member.')
+    }
+  }
+
+  // Emergency SOS trigger dispatcher
+  const handleSOSTrigger = async () => {
+    try {
+      setSosError('')
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords
+            const res = await apiRequest(`/trip-rooms/${roomId}/sos`, {
+              method: 'POST',
+              body: JSON.stringify({ latitude, longitude })
+            })
+            if (res.ok) {
+              setMySosSent(true)
+              toast.success('Emergency SOS Alert broadcasted!')
+            } else {
+              setSosError('Network transmission failed. Please call 112 directly.')
+            }
+          },
+          () => {
+            setSosError('Unable to get GPS coordinates. Please call local authorities.')
+          }
+        )
+      }
+    } catch (err) {
+      setSosError('SOS trigger error. Please reach local emergency services.')
+    }
+  }
+
+  const isHost = Boolean(user?.id && activity && (activity.creator_id === user.id || activity.host_id === user.id))
+  const safeMessages = Array.isArray(messages) ? messages : []
+  const safeExpenses = Array.isArray(expenses) ? expenses : []
+  const safePolls = Array.isArray(polls) ? polls : []
+  const safeMembers = Array.isArray(members) ? members : []
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#10151a' }}>
+      <div className="min-h-screen bg-[#0D1512] flex items-center justify-center">
         <Spinner size="lg" />
       </div>
     )
   }
 
-  // Fallback if activity data could not be fetched
   if (!activity) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4" style={{ background: '#10151a', color: '#f3f1ea' }}>
-        <h2 className="text-xl font-bold mb-2">Trip Room Unavailable</h2>
-        <p className="text-sm text-text-secondary mb-6">Could not load this trip room's information.</p>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-6 gap-4">
+        <span className="text-4xl">⚠️</span>
+        <h2 className="text-xl font-bold text-white">Trip Room Unavailable</h2>
+        <p className="text-sm text-stone-400 max-w-md">
+          This trip could not be loaded or you do not have permission to view it.
+        </p>
         <button
           onClick={() => navigate('/feed')}
           className="px-6 py-2.5 bg-primary text-bg font-semibold rounded-xl text-sm"
@@ -457,30 +504,23 @@ const TripRoom = () => {
     )
   }
 
-  const safeMessages = Array.isArray(messages) ? messages : []
-  const safeExpenses = Array.isArray(expenses) ? expenses : []
-  const safePolls = Array.isArray(polls) ? polls : []
-  const safeMembers = Array.isArray(members) ? members : []
-
-  // Onboarding Wall Gate Check
-  if (!onboardingComplete) {
+  // Onboarding Wall Gate Check: Only non-hosts who haven't completed onboarding
+  if (!isHost && !onboardingComplete) {
     return (
       <NewJoinerOnboarding
-        tripName={activity?.title}
-        hostName={activity?.Creator?.Profile?.name || 'Leader'}
+        tripName={activity?.title || 'Trip Adventure'}
+        hostName={activity?.Creator?.Profile?.name || 'Organizer'}
         hostAvatar={activity?.Creator?.Profile?.avatar_url}
         safetyText={tripRules?.safety_briefing_text || welcomeMessage}
         rules={tripRules}
         messagesCount={safeMessages.length}
-        expensesSum={safeExpenses.reduce((sum, e) => sum + parseFloat(e?.amount || 0), 0)}
+        expensesSum={safeExpenses.reduce((sum, e) => sum + (parseFloat(e?.amount) || 0), 0)}
         pollsCount={safePolls.length}
         members={safeMembers}
         onComplete={handleCompleteOnboarding}
       />
     )
   }
-
-  const isHost = user?.id === activity?.creator_id
 
   return (
     <div className="page-container-medium">
@@ -612,7 +652,7 @@ const TripRoom = () => {
           )}
 
           {activeTab === 'info' && (
-            <InfoTab activity={activity} members={safeMembers} onMemberTap={(m) => alert(`Selected profile: ${m.name}`)} />
+            <InfoTab activity={activity} members={safeMembers} onMemberTap={(m) => alert(`Selected profile: ${m?.name || m?.User?.Profile?.name || 'Explorer'}`)} />
           )}
 
           {activeTab === 'expenses' && (
@@ -723,7 +763,7 @@ const TripRoom = () => {
             {mySosSent ? (
               <div className="flex flex-col items-center justify-center gap-0.5 animate-bounce">
                 <span style={{ fontSize: '11px' }}>✓</span>
-                <span style={{ fontSize: '6px', tracking: '-0.02em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>SENT</span>
+                <span style={{ fontSize: '6px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>SENT</span>
               </div>
             ) : (
               <span>SOS</span>

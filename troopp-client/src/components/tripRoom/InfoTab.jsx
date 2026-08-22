@@ -148,27 +148,30 @@ const WaypointRow = ({ point = {}, onCheckIn, user }) => {
               </strong>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
                 {confirmedList.length > 0 ? (
-                  confirmedList.map((name) => (
-                    <motion.div
-                      key={name}
-                      initial={{ opacity: 0, scale: 0.75, x: -10 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      transition={{ type: 'spring', stiffness: 350, damping: 20 }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: 'rgba(79,190,142,0.14)',
-                        color: '#4fbe8e',
-                        padding: '3px 10px',
-                        borderRadius: '100px',
-                        fontWeight: '700',
-                        fontSize: '11px'
-                      }}
-                    >
-                      <span>👤 {name}</span>
-                    </motion.div>
-                  ))
+                  confirmedList.map((item, idx) => {
+                    const nameStr = typeof item === 'object' ? item?.name || item?.userName || 'Member' : String(item || 'Member')
+                    return (
+                      <motion.div
+                        key={`${nameStr}-${idx}`}
+                        initial={{ opacity: 0, scale: 0.75, x: -10 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: 'rgba(79,190,142,0.14)',
+                          color: '#4fbe8e',
+                          padding: '3px 10px',
+                          borderRadius: '100px',
+                          fontWeight: '700',
+                          fontSize: '11px'
+                        }}
+                      >
+                        <span>👤 {nameStr}</span>
+                      </motion.div>
+                    )
+                  })
                 ) : (
                   <span style={{ fontStyle: 'italic', color: '#6b757c' }}>None yet</span>
                 )}
@@ -182,21 +185,24 @@ const WaypointRow = ({ point = {}, onCheckIn, user }) => {
               </strong>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
                 {pendingList.length > 0 ? (
-                  pendingList.map((name) => (
-                    <span
-                      key={name}
-                      style={{
-                        background: '#212b33',
-                        color: '#9ba6ad',
-                        padding: '3px 10px',
-                        borderRadius: '100px',
-                        fontWeight: '600',
-                        fontSize: '11px'
-                      }}
-                    >
-                      {name}
-                    </span>
-                  ))
+                  pendingList.map((item, idx) => {
+                    const nameStr = typeof item === 'object' ? item?.name || item?.userName || 'Member' : String(item || 'Member')
+                    return (
+                      <span
+                        key={`${nameStr}-${idx}`}
+                        style={{
+                          background: '#212b33',
+                          color: '#9ba6ad',
+                          padding: '3px 10px',
+                          borderRadius: '100px',
+                          fontWeight: '600',
+                          fontSize: '11px'
+                        }}
+                      >
+                        {nameStr}
+                      </span>
+                    )
+                  })
                 ) : (
                   <span style={{ color: '#4fbe8e', fontWeight: '700' }}>All Checked In! 🎉</span>
                 )}
@@ -290,6 +296,16 @@ const InfoTab = ({
     )
   }
 
+  const parseActivityDate = (dateVal) => {
+    if (!dateVal) return 'Upcoming'
+    try {
+      const d = new Date(dateVal)
+      return isNaN(d.getTime()) ? 'Upcoming' : d.toLocaleString()
+    } catch {
+      return 'Upcoming'
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: '#f3f1ea' }}>
       {/* 1. Google Maps Static/Interactive Frame Mock */}
@@ -304,7 +320,7 @@ const InfoTab = ({
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'end',
+          justifyContent: 'flex-end',
           padding: '14px',
           boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.2)'
         }}
@@ -314,7 +330,7 @@ const InfoTab = ({
           🗺️ Google Map: [Lat: {activity?.meeting_point_lat || 19.07}, Lng: {activity?.meeting_point_lng || 72.87}]
         </div>
         <div style={{ background: 'rgba(12,16,19,0.85)', backdropFilter: 'blur(6px)', padding: '8px 14px', borderRadius: '12px', zIndex: 10, display: 'flex', flexDirection: 'column', color: 'white', maxWidth: '85%', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <span style={{ fontSize: '9px', fontWeight: '700', uppercase: 'true', letterSpacing: '0.05em', color: '#ff6a2c' }}>Meeting Point</span>
+          <span style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#ff6a2c' }}>Meeting Point</span>
           <span style={{ fontSize: '11px', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{meetingLabel}</span>
         </div>
       </div>
@@ -337,8 +353,8 @@ const InfoTab = ({
           {activity?.destination || activity?.title || 'Trip Destination'}
         </h3>
         <p style={{ fontSize: '13px', color: '#9ba6ad', lineHeight: 1.5, marginTop: '4px' }}>
-          📅 Scheduled on: {new Date(activity?.date_time || '2026-07-15T06:00:00Z').toLocaleString()} <br />
-          💰 Estimated Budget: ₹{activity?.cost_per_person || 0} per person
+          📅 Scheduled on: {parseActivityDate(activity?.date_time)} <br />
+          💰 Estimated Budget: ₹{Number(activity?.cost_per_person || 0).toLocaleString('en-IN')} per person
         </p>
       </div>
 
@@ -351,7 +367,7 @@ const InfoTab = ({
           padding: '14px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'between',
+          justifyContent: 'space-between',
           gap: '12px'
         }}
       >
@@ -376,22 +392,31 @@ const InfoTab = ({
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', overflowX: 'auto', paddingBottom: '6px' }}>
           <AnimatePresence>
-            {safeMembers.map((m) => (
-              <motion.div
-                key={m.userId || m.id}
-                onClick={() => onMemberTap && onMemberTap(m)}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 18 }}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer', flexShrink: 0, originCenter: 'true' }}
-              >
-                <Avatar src={m.avatarUrl || m.User?.Profile?.avatar_url} name={m.name || m.User?.Profile?.name || 'Explorer'} size="sm" score={m.trustScore || m.User?.trust_score || 80} />
-                <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ba6ad', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '64px', textAlign: 'center' }}>
-                  {(m.name || m.User?.Profile?.name || 'Explorer').split(' ')[0]}
-                </span>
-              </motion.div>
-            ))}
+            {safeMembers.map((m) => {
+              const rawName = m?.name || m?.User?.Profile?.name || 'Explorer'
+              const firstName = typeof rawName === 'string' ? rawName.split(' ')[0] : 'Explorer'
+              return (
+                <motion.div
+                  key={m.userId || m.id || firstName}
+                  onClick={() => onMemberTap && onMemberTap(m)}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 350, damping: 18 }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  <Avatar
+                    src={m.avatarUrl || m.User?.Profile?.avatar_url}
+                    name={rawName}
+                    size="sm"
+                    score={m.trustScore || m.User?.trust_score || 80}
+                  />
+                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ba6ad', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '64px', textAlign: 'center' }}>
+                    {firstName}
+                  </span>
+                </motion.div>
+              )
+            })}
           </AnimatePresence>
         </div>
       </div>
@@ -415,7 +440,7 @@ const InfoTab = ({
             Broadcasts your GPS coordinates to other members every 5 minutes.
           </span>
         </div>
-        <label style={{ position: 'relative', inlineFlex: 'true', alignItems: 'center', cursor: 'pointer', width: '44px', height: '24px' }}>
+        <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', width: '44px', height: '24px' }}>
           <input
             type="checkbox"
             checked={sharing}

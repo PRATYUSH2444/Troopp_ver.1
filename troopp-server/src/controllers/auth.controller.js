@@ -27,7 +27,7 @@ const isValidEmail = (email) => {
 }
 
 // Cookie settings for refresh token
-const COOKIE_OPTIONS = {
+export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -37,7 +37,7 @@ const COOKIE_OPTIONS = {
 /**
  * Generate access and refresh tokens.
  */
-const generateTokens = (user, profileName) => {
+export const generateTokens = (user, profileName) => {
   const accessToken = jwt.sign(
     { id: user.id, email: user.email, role: user.role, name: profileName, trust_score: user.trust_score, onboarding_completed: user.onboarding_completed },
     ACCESS_SECRET,

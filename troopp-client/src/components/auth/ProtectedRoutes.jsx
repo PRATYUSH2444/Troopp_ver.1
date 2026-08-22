@@ -12,23 +12,23 @@ export const ProtectedRoute = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#0D1512] flex items-center justify-center">
         <Spinner size="lg" />
       </div>
     )
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // If user has not completed onboarding and is trying to access a protected app route
-  if (!user?.onboardingCompleted && !['/onboarding', '/suspended', '/banned'].includes(location.pathname)) {
+  // Only redirect to /onboarding if user explicitly has onboardingCompleted === false
+  if (user?.onboardingCompleted === false && !['/onboarding', '/suspended', '/banned'].includes(location.pathname)) {
     return <Navigate to="/onboarding" replace />
   }
 
   // If user has completed onboarding and is trying to access the onboarding route
-  if (user?.onboardingCompleted && location.pathname === '/onboarding') {
+  if (user?.onboardingCompleted !== false && location.pathname === '/onboarding') {
     return <Navigate to="/feed" replace />
   }
 
@@ -43,7 +43,7 @@ export const AdminRoute = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#0D1512] flex items-center justify-center">
         <Spinner size="lg" />
       </div>
     )
@@ -62,7 +62,7 @@ export const PublicOnlyRoute = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#0D1512] flex items-center justify-center">
         <Spinner size="lg" />
       </div>
     )

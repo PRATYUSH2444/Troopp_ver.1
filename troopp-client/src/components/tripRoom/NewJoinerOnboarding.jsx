@@ -124,10 +124,10 @@ const NewJoinerOnboarding = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', background: '#212b33', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }}>
                   {hostAvatar ? (
-                    <img src={hostAvatar} alt={hostName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={hostAvatar} alt={hostName || 'Host'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <span style={{ fontSize: '18px', fontWeight: '700', color: '#ff6a2c' }}>
-                      {hostName[0]}
+                      {(hostName || 'H')[0]?.toUpperCase() || 'H'}
                     </span>
                   )}
                 </div>

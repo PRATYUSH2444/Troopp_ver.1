@@ -362,9 +362,14 @@ const Onboarding = () => {
       })
 
       if (completeRes.ok) {
+        const data = await completeRes.json()
+        if (data.accessToken) {
+          const { setAccessToken } = await import('../utils/api.js')
+          setAccessToken(data.accessToken)
+        }
         toast.success('Onboarding complete! Enjoy your journeys.')
         setUser((prev) => ({ ...prev, onboardingCompleted: true }))
-        navigate('/feed')
+        navigate('/feed', { replace: true })
       } else {
         const errData = await completeRes.json()
         throw new Error(errData.error?.message || 'Onboarding completion confirmation failed.')

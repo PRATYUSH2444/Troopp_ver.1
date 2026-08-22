@@ -79,20 +79,25 @@ const ChecklistTab = ({ checklist = [], onToggleItem, members = [] }) => {
                 </div>
 
                 {/* Avatar status of who is bringing it */}
-                {isChecked && checkedByMember && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }} title={`${checkedByMember.name} is bringing this`}>
-                    <div style={{ width: '22px', height: '22px', borderRadius: '50%', overflow: 'hidden', bg: '#212b33', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justify: 'center', fontSize: '9px', fontWeight: '700', color: '#9ba6ad' }}>
-                      {checkedByMember.avatarUrl ? (
-                        <img src={checkedByMember.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        checkedByMember.name[0]
-                      )}
+                {isChecked && checkedByMember && (() => {
+                  const mName = checkedByMember?.name || checkedByMember?.User?.Profile?.name || 'Member'
+                  const mInitial = typeof mName === 'string' && mName.length > 0 ? mName[0].toUpperCase() : 'M'
+                  const mFirst = typeof mName === 'string' ? mName.split(' ')[0] : 'Member'
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }} title={`${mName} is bringing this`}>
+                      <div style={{ width: '22px', height: '22px', borderRadius: '50%', overflow: 'hidden', background: '#212b33', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: '700', color: '#9ba6ad' }}>
+                        {checkedByMember.avatarUrl || checkedByMember.User?.Profile?.avatar_url ? (
+                          <img src={checkedByMember.avatarUrl || checkedByMember.User?.Profile?.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          mInitial
+                        )}
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '64px' }}>
+                        {mFirst}
+                      </span>
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '64px' }}>
-                      {checkedByMember.name.split(' ')[0]}
-                    </span>
-                  </div>
-                )}
+                  )
+                })()}
               </motion.div>
             )
           })}

@@ -31,7 +31,8 @@ const GoogleCallback = () => {
             email: payload.email,
             role: payload.role,
             name: payload.name,
-            trustScore: payload.trust_score
+            trustScore: payload.trust_score,
+            onboardingCompleted: onboarded
           })
           setIsAuthenticated(true)
           toast.success('Successfully authenticated with Google!')
