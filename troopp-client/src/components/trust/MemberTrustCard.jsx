@@ -15,6 +15,19 @@ const MemberTrustCard = ({
   onAccept,
   onDecline
 }) => {
+  const [currentTrust, setCurrentTrust] = useState(userData?.trust_score ?? 50)
+  const [currentReliability, setCurrentReliability] = useState(userData?.reliability_score ?? 100)
+  const [isCloseHovered, setIsCloseHovered] = useState(false)
+  const [isDeclineHovered, setIsDeclineHovered] = useState(false)
+  const [isAcceptHovered, setIsAcceptHovered] = useState(false)
+
+  useEffect(() => {
+    if (userData) {
+      setCurrentTrust(userData.trust_score ?? 50)
+      setCurrentReliability(userData.reliability_score ?? 100)
+    }
+  }, [userData])
+
   if (!isOpen || !userData) return null
 
   const {
@@ -29,17 +42,6 @@ const MemberTrustCard = ({
     last_traveled_date = 'N/A',
     mutual_connections = []
   } = userData
-
-  const [currentTrust, setCurrentTrust] = useState(trust_score)
-  const [currentReliability, setCurrentReliability] = useState(reliability_score)
-  const [isCloseHovered, setIsCloseHovered] = useState(false)
-  const [isDeclineHovered, setIsDeclineHovered] = useState(false)
-  const [isAcceptHovered, setIsAcceptHovered] = useState(false)
-
-  useEffect(() => {
-    setCurrentTrust(trust_score)
-    setCurrentReliability(reliability_score)
-  }, [userData, trust_score, reliability_score])
 
   return (
     <div style={{

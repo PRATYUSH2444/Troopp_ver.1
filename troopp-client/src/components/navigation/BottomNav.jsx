@@ -137,7 +137,14 @@ const BottomNav = ({
   const mouseX = useMotionValue(Infinity)
   const isHovered = useMotionValue(0)
 
-  // Hide inside Trip Room chat
+  const maxHeight = useMemo(
+    () => Math.max(dockHeight, magnification + 8),
+    [magnification, dockHeight]
+  )
+  const heightRow = useTransform(isHovered, [0, 1], [panelHeight, maxHeight])
+  const height = useSpring(heightRow, spring)
+
+  // Hide inside Trip Room chat (must be evaluated AFTER all hooks to satisfy React Rules of Hooks)
   if (location.pathname.startsWith('/trip-rooms/')) return null
 
   const navLinks = [
@@ -187,13 +194,6 @@ const BottomNav = ({
       )
     }
   ]
-
-  const maxHeight = useMemo(
-    () => Math.max(dockHeight, magnification + 8),
-    [magnification, dockHeight]
-  )
-  const heightRow = useTransform(isHovered, [0, 1], [panelHeight, maxHeight])
-  const height = useSpring(heightRow, spring)
 
   return (
     <AnimatePresence>

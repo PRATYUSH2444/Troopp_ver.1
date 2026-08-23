@@ -78,31 +78,45 @@ const Feed = () => {
     const serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
     const token = getAccessToken()
     
-    const socket = io(serverUrl, {
-      auth: { token }
-    })
-    socketRef.current = socket
+    let socket
+    try {
+      socket = io(serverUrl, {
+        auth: { token }
+      })
+      socketRef.current = socket
 
-    socket.on('connect', () => {
-      setSocketConnected(true)
-    })
+      socket.on('connect', () => {
+        setSocketConnected(true)
+      })
 
-    socket.on('disconnect', () => {
-      setSocketConnected(false)
-    })
+      socket.on('disconnect', () => {
+        setSocketConnected(false)
+      })
 
-    socket.on('activity_updated', (updatedActivity) => {
-      setActivities((prev) =>
-        prev.map((act) =>
-          act.id === updatedActivity.id
-            ? { ...act, ...updatedActivity }
-            : act
+      socket.on('connect_error', (err) => {
+        console.warn('Feed socket connection notice:', err?.message)
+      })
+
+      socket.on('activity_updated', (updatedActivity) => {
+        setActivities((prev) =>
+          prev.map((act) =>
+            act.id === updatedActivity.id
+              ? { ...act, ...updatedActivity }
+              : act
+          )
         )
-      )
-    })
+      })
+    } catch (err) {
+      console.warn('Feed socket init notice:', err)
+    }
 
     return () => {
-      socket.disconnect()
+      try {
+        socket?.disconnect()
+      } catch (err) {
+        console.warn('Feed socket disconnect notice:', err)
+      }
+      socketRef.current = null
     }
   }, [isAuthenticated])
 
