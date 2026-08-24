@@ -350,7 +350,7 @@ const AdminActivities = () => {
                   <td style={{ padding: '16px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                       <button
-                        onClick={() => navigate(`/trip-rooms/${a.id}`)}
+                        onClick={() => navigate(`/activities/${a.id}`)}
                         style={{
                           height: '32px',
                           padding: '0 12px',
@@ -366,7 +366,7 @@ const AdminActivities = () => {
                         onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface)' }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface-raised)' }}
                       >
-                        Enter Room 💬
+                        View Trip 👁️
                       </button>
                       {a.status === 'active' && (
                         <button
