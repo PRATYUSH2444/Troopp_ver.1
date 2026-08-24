@@ -215,11 +215,11 @@ export const searchUsers = async (filters = {}, page = 1, limit = 50) => {
     where.account_status = filters.account_status
   }
 
-  if (filters.search) {
+  if (filters.search && filters.search.trim().length > 0) {
     const term = `%${filters.search.trim()}%`
     where[Op.or] = [
-      { email: { [Op.iLike || Op.like]: term } },
-      { phone: { [Op.iLike || Op.like]: term } }
+      { email: { [Op.iLike]: term } },
+      { phone: { [Op.iLike]: term } }
     ]
   }
 
@@ -227,9 +227,10 @@ export const searchUsers = async (filters = {}, page = 1, limit = 50) => {
     where,
     limit,
     offset,
+    distinct: true,
     include: [
-      { model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'] },
-      { model: City, attributes: ['name'] }
+      { model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'], required: false },
+      { model: City, as: 'City', attributes: ['name'], required: false }
     ],
     order: [['createdAt', 'DESC']]
   })
@@ -261,8 +262,8 @@ export const searchUsers = async (filters = {}, page = 1, limit = 50) => {
 export const getUserDetail = async (userId) => {
   const user = await User.findByPk(userId, {
     include: [
-      { model: Profile, as: 'Profile' },
-      { model: City, attributes: ['name'] }
+      { model: Profile, as: 'Profile', required: false },
+      { model: City, as: 'City', attributes: ['name'], required: false }
     ]
   })
   if (!user) {
@@ -562,7 +563,7 @@ export const getActivities = async (filters = {}, page = 1, limit = 50) => {
   if (filters.city_id) {
     where.city_id = filters.city_id
   }
-  if (filters.search) {
+  if (filters.search && filters.search.trim().length > 0) {
     where.title = { [Op.iLike]: `%${filters.search.trim()}%` }
   }
 
