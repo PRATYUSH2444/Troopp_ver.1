@@ -73,11 +73,11 @@ Activity.belongsTo(User, { foreignKey: 'creator_id', as: 'Creator' })
 Activity.belongsTo(User, { foreignKey: 'host_id', as: 'Host' })
 
 // 5. Activity & ActivityMember
-Activity.hasMany(ActivityMember, { foreignKey: 'activity_id', onDelete: 'CASCADE' })
-ActivityMember.belongsTo(Activity, { foreignKey: 'activity_id' })
+Activity.hasMany(ActivityMember, { foreignKey: 'activity_id', as: 'ActivityMembers', onDelete: 'CASCADE' })
+ActivityMember.belongsTo(Activity, { foreignKey: 'activity_id', as: 'Activity' })
 
-User.hasMany(ActivityMember, { foreignKey: 'user_id', onDelete: 'CASCADE' })
-ActivityMember.belongsTo(User, { foreignKey: 'user_id' })
+User.hasMany(ActivityMember, { foreignKey: 'user_id', as: 'ActivityMemberships', onDelete: 'CASCADE' })
+ActivityMember.belongsTo(User, { foreignKey: 'user_id', as: 'User' })
 
 // 6. Activity & TripRoom & Messages
 Activity.hasOne(TripRoom, { foreignKey: 'activity_id', onDelete: 'CASCADE' })
@@ -231,10 +231,10 @@ User.hasMany(IPBlock, { foreignKey: 'blocked_by' })
 IPBlock.belongsTo(User, { foreignKey: 'blocked_by', as: 'AdminBlocker' })
 
 // 22. Activity Reports
-Activity.hasMany(ActivityReport, { foreignKey: 'activity_id', onDelete: 'CASCADE' })
-ActivityReport.belongsTo(Activity, { foreignKey: 'activity_id' })
+Activity.hasMany(ActivityReport, { foreignKey: 'activity_id', as: 'ActivityReports', onDelete: 'CASCADE' })
+ActivityReport.belongsTo(Activity, { foreignKey: 'activity_id', as: 'Activity' })
 
-User.hasMany(ActivityReport, { foreignKey: 'reporter_id' })
+User.hasMany(ActivityReport, { foreignKey: 'reporter_id', as: 'ActivityReportsFiled' })
 ActivityReport.belongsTo(User, { foreignKey: 'reporter_id', as: 'Reporter' })
 
 // 23. TOS Acceptance

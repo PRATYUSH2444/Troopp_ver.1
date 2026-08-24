@@ -1,12 +1,14 @@
 import * as adminService from './admin.service.js'
-import AdminLog from '../../models/AdminLog.js'
-import IPBlock from '../../models/IPBlock.js'
-import Report from '../../models/Report.js'
-import ActivityReport from '../../models/ActivityReport.js'
-import User from '../../models/User.js'
-import Profile from '../../models/Profile.js'
-import Activity from '../../models/Activity.js'
-import City from '../../models/City.js'
+import {
+  AdminLog,
+  IPBlock,
+  Report,
+  ActivityReport,
+  User,
+  Profile,
+  Activity,
+  City
+} from '../../models/index.js'
 
 /**
  * REST Controllers wrapping administrative actions.

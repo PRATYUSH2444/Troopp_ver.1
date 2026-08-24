@@ -1,18 +1,20 @@
 import { Op } from 'sequelize'
 import crypto from 'crypto'
-import sequelize from '../../config/db.js'
-import User from '../../models/User.js'
-import Profile from '../../models/Profile.js'
-import City from '../../models/City.js'
-import Activity from '../../models/Activity.js'
-import ActivityMember from '../../models/ActivityMember.js'
-import Report from '../../models/Report.js'
-import ActivityReport from '../../models/ActivityReport.js'
-import AdminLog from '../../models/AdminLog.js'
-import IPBlock from '../../models/IPBlock.js'
-import TokenBlacklist from '../../models/TokenBlacklist.js'
-import TrustScoreLog from '../../models/TrustScoreLog.js'
-import CheckInLog from '../../models/CheckInLog.js'
+import {
+  sequelize,
+  User,
+  Profile,
+  City,
+  Activity,
+  ActivityMember,
+  Report,
+  ActivityReport,
+  AdminLog,
+  IPBlock,
+  TokenBlacklist,
+  TrustScoreLog,
+  CheckInLog
+} from '../../models/index.js'
 import { AppError } from '../../middleware/errorHandler.middleware.js'
 import * as notificationService from '../notifications/notification.service.js'
 import * as trustService from '../trust/trust.service.js'
@@ -56,120 +58,148 @@ export const logAdminAction = async (adminId, action, targetId, targetType, deta
  * Aggregates all system KPI metrics, 30-day registration/trust trends, and city breakdowns.
  */
 export const getDashboard = async () => {
-  const totalUsers = await User.count()
-  const activeTrips = await Activity.count({ where: { status: 'active' } })
-  
-  const pendingReports = (await Report.count({ where: { status: 'pending' } })) +
-                         (await ActivityReport.count({ where: { status: 'pending' } }))
-
-  // Today start time
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
-  const newSignupsToday = await User.count({ where: { createdAt: { [Op.gte]: todayStart } } })
-
-  const avgTrustScoreRaw = await User.mean('trust_score')
-  const avgTrustScore = avgTrustScoreRaw ? parseFloat(avgTrustScoreRaw.toFixed(1)) : 50
-
-  // 1. Dynamic 30-day registration trend buckets
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29)
-  thirtyDaysAgo.setHours(0, 0, 0, 0)
-
-  const dateMap = {}
-  const trustMap = {}
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-    dateMap[label] = 0
-    trustMap[label] = []
-  }
-
   try {
-    const recentUsers = await User.findAll({
-      where: { createdAt: { [Op.gte]: thirtyDaysAgo } },
-      attributes: ['id', 'trust_score', 'createdAt'],
-      raw: true
-    })
-
-    recentUsers.forEach((u) => {
-      const d = new Date(u.createdAt)
-      const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-      if (dateMap[label] !== undefined) {
-        dateMap[label] += 1
-      }
-    })
-
-    const recentTrustLogs = await TrustScoreLog.findAll({
-      where: { createdAt: { [Op.gte]: thirtyDaysAgo } },
-      attributes: ['new_score', 'createdAt'],
-      raw: true
-    })
-
-    recentTrustLogs.forEach((log) => {
-      const d = new Date(log.createdAt)
-      const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-      if (trustMap[label]) {
-        trustMap[label].push(log.new_score)
-      }
-    })
-  } catch (chartErr) {
-    logger.warn('Dynamic chart calculation notice:', chartErr?.message)
-  }
-
-  const signupHistory = Object.keys(dateMap).map((date) => ({
-    date,
-    count: dateMap[date]
-  }))
-
-  let runningAvg = avgTrustScore
-  const trustScoreHistory = Object.keys(trustMap).map((date) => {
-    if (trustMap[date].length > 0) {
-      const sum = trustMap[date].reduce((acc, v) => acc + v, 0)
-      runningAvg = parseFloat((sum / trustMap[date].length).toFixed(1))
-    }
-    return {
-      date,
-      avgScore: runningAvg
-    }
-  })
-
-  // 2. City breakdown data
-  const cities = await City.findAll()
-  const cityBreakdown = []
-  for (const c of cities) {
-    const userCount = await User.count({ where: { city_id: c.id } })
-    const activeCount = await Activity.count({ where: { city_id: c.id, status: 'active' } })
-    const completedCount = await Activity.count({ where: { city_id: c.id, status: 'completed' } })
-
-    let reportedRatio = 0
-    if (userCount > 0) {
-      const reportedCount = await Report.count({
-        include: [{ model: User, as: 'ReportedUser', where: { city_id: c.id } }]
-      })
-      reportedRatio = parseFloat(((reportedCount / userCount) * 100).toFixed(1))
-    }
-
-    cityBreakdown.push({
-      city: c.name,
-      users: userCount,
-      activeTrips: activeCount,
-      completedTrips: completedCount,
-      reportedUsersPct: reportedRatio
-    })
-  }
-
-  return {
-    kpis: {
+    const [
       totalUsers,
       activeTrips,
-      pendingReports,
+      pendingUserReports,
+      pendingActReports,
       newSignupsToday,
-      avgTrustScore
-    },
-    signupHistory,
-    trustScoreHistory,
-    cityBreakdown
+      avgTrustScoreRaw
+    ] = await Promise.all([
+      User.count().catch(() => 0),
+      Activity.count({ where: { status: 'active' } }).catch(() => 0),
+      Report.count({ where: { status: 'pending' } }).catch(() => 0),
+      ActivityReport.count({ where: { status: 'pending' } }).catch(() => 0),
+      User.count({
+        where: {
+          createdAt: {
+            [Op.gte]: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        }
+      }).catch(() => 0),
+      User.aggregate('trust_score', 'AVG').catch(() => null)
+    ])
+
+    const pendingReports = (pendingUserReports || 0) + (pendingActReports || 0)
+    const avgTrustScore = avgTrustScoreRaw != null ? parseFloat(Number(avgTrustScoreRaw).toFixed(1)) : 50
+
+    // 1. Dynamic 30-day registration trend buckets
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29)
+    thirtyDaysAgo.setHours(0, 0, 0, 0)
+
+    const dateMap = {}
+    const trustMap = {}
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+      dateMap[label] = 0
+      trustMap[label] = []
+    }
+
+    try {
+      const [recentUsers, recentTrustLogs] = await Promise.all([
+        User.findAll({
+          where: { createdAt: { [Op.gte]: thirtyDaysAgo } },
+          attributes: ['id', 'trust_score', 'createdAt'],
+          raw: true
+        }).catch(() => []),
+        TrustScoreLog.findAll({
+          where: { createdAt: { [Op.gte]: thirtyDaysAgo } },
+          attributes: ['new_score', 'createdAt'],
+          raw: true
+        }).catch(() => [])
+      ])
+
+      recentUsers.forEach((u) => {
+        const d = new Date(u.createdAt)
+        const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+        if (dateMap[label] !== undefined) {
+          dateMap[label] += 1
+        }
+      })
+
+      recentTrustLogs.forEach((log) => {
+        const d = new Date(log.createdAt)
+        const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+        if (trustMap[label]) {
+          trustMap[label].push(log.new_score)
+        }
+      })
+    } catch (chartErr) {
+      logger.warn('Dynamic chart calculation notice:', chartErr?.message)
+    }
+
+    const signupHistory = Object.keys(dateMap).map((date) => ({
+      date,
+      count: dateMap[date]
+    }))
+
+    let runningAvg = avgTrustScore
+    const trustScoreHistory = Object.keys(trustMap).map((date) => {
+      if (trustMap[date].length > 0) {
+        const sum = trustMap[date].reduce((acc, v) => acc + v, 0)
+        runningAvg = parseFloat((sum / trustMap[date].length).toFixed(1))
+      }
+      return {
+        date,
+        avgScore: runningAvg
+      }
+    })
+
+    // 2. City breakdown data
+    let cityBreakdown = []
+    try {
+      const cities = await City.findAll()
+      for (const c of cities) {
+        const [userCount, activeCount, completedCount] = await Promise.all([
+          User.count({ where: { city_id: c.id } }).catch(() => 0),
+          Activity.count({ where: { city_id: c.id, status: 'active' } }).catch(() => 0),
+          Activity.count({ where: { city_id: c.id, status: 'completed' } }).catch(() => 0)
+        ])
+
+        let reportedRatio = 0
+        if (userCount > 0) {
+          try {
+            const reportedCount = await Report.count({
+              include: [{ model: User, as: 'ReportedUser', where: { city_id: c.id } }],
+              distinct: true
+            }).catch(() => 0)
+            reportedRatio = parseFloat(((reportedCount / userCount) * 100).toFixed(1))
+          } catch (repErr) {
+            reportedRatio = 0
+          }
+        }
+
+        cityBreakdown.push({
+          city: c.name,
+          users: userCount,
+          activeTrips: activeCount,
+          completedTrips: completedCount,
+          reportedUsersPct: reportedRatio
+        })
+      }
+    } catch (cityErr) {
+      logger.warn('City breakdown calculation error:', cityErr?.message)
+    }
+
+    return {
+      kpis: {
+        totalUsers,
+        activeTrips,
+        pendingReports,
+        newSignupsToday,
+        avgTrustScore
+      },
+      signupHistory,
+      trustScoreHistory,
+      cityBreakdown
+    }
+  } catch (error) {
+    logger.error('Error in getDashboard service:', error)
+    throw error
   }
 }
 
@@ -539,7 +569,7 @@ export const getActivities = async (filters = {}, page = 1, limit = 50) => {
         include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'] }]
       },
       { model: City, attributes: ['name'] },
-      { model: ActivityMember, attributes: ['id', 'status', 'user_id'] }
+      { model: ActivityMember, as: 'ActivityMembers', attributes: ['id', 'status', 'user_id'] }
     ],
     order: [['createdAt', 'DESC']]
   })
