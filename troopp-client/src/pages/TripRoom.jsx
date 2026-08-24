@@ -104,7 +104,10 @@ const TripRoom = () => {
 
         if (msgRes.status === 'fulfilled' && msgRes.value?.ok) {
           const msgJson = await msgRes.value.json()
-          setMessages(Array.isArray(msgJson.data) ? msgJson.data : [])
+          const rawMsgs = Array.isArray(msgJson.data) 
+            ? msgJson.data 
+            : (Array.isArray(msgJson.data?.rows) ? msgJson.data.rows : [])
+          setMessages(rawMsgs)
         }
         if (expRes.status === 'fulfilled' && expRes.value?.ok) {
           const expJson = await expRes.value.json()
@@ -176,18 +179,21 @@ const TripRoom = () => {
     // Listen incoming new messages
     socket.on('new_message', (payload) => {
       if (payload.sender_id !== user?.id) {
-        haptics.newMessage()
+        haptics.newMessage?.()
       }
       setMessages((prev) => {
+        const arr = Array.isArray(prev) ? prev : []
+        if (arr.some((m) => m.id === payload.id)) return arr
+
         if (payload.sender_id === user?.id) {
-          const idx = (Array.isArray(prev) ? prev : []).findIndex((m) => m.status === 'sending' && m.message_text === payload.message_text)
+          const idx = arr.findIndex((m) => m.status === 'sending' && m.message_text === payload.message_text)
           if (idx !== -1) {
-            const updated = [...prev]
+            const updated = [...arr]
             updated[idx] = { ...payload, status: 'sent' }
             return updated
           }
         }
-        return [...(Array.isArray(prev) ? prev : []), payload]
+        return [...arr, payload]
       })
     })
 
@@ -323,8 +329,9 @@ const TripRoom = () => {
     if (socketRef.current) {
       socketRef.current.emit('send_message', {
         roomId,
+        content: messageText,
         messageText,
-        messageType: 'chat'
+        messageType: 'text'
       })
     }
   }

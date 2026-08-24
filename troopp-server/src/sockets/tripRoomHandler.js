@@ -113,9 +113,12 @@ const registerTripRoomHandlers = (io, socket) => {
   })
 
   // 2. SEND MESSAGE EVENT
-  socket.on('send_message', async (payload) => {
+  socket.on('send_message', async (payload = {}) => {
     try {
-      const { roomId, content } = payload
+      const roomId = payload.roomId || payload.trip_room_id
+      const content = payload.content || payload.messageText || payload.message_text
+      const messageType = payload.messageType || payload.message_type || 'text'
+
       if (!roomId || !content) {
         return socket.emit('error', { code: 'BAD_REQUEST', message: 'Room ID and message body are required.' })
       }
@@ -148,7 +151,7 @@ const registerTripRoomHandlers = (io, socket) => {
       const msg = await Message.create({
         trip_room_id: roomId,
         sender_id: userId,
-        message_type: 'text',
+        message_type: messageType,
         message_text: content,
         created_at: new Date(),
         updated_at: new Date()
@@ -162,8 +165,8 @@ const registerTripRoomHandlers = (io, socket) => {
         trip_room_id: roomId,
         sender_id: userId,
         message_text: content,
-        message_type: 'text',
-        created_at: msg.created_at,
+        message_type: messageType,
+        created_at: msg.created_at || msg.createdAt,
         Sender: {
           id: userId,
           trust_score: senderUser?.trust_score || 50,
@@ -174,7 +177,7 @@ const registerTripRoomHandlers = (io, socket) => {
         }
       }
 
-      // Broadcast to room
+      // Broadcast to room (including sender)
       io.to(roomId).emit('new_message', messagePayload)
     } catch (error) {
       logger.error('Error sending message socket:', error)
@@ -183,9 +186,10 @@ const registerTripRoomHandlers = (io, socket) => {
   })
 
   // 3. SEND ANNOUNCEMENT EVENT (Host only)
-  socket.on('send_announcement', async (payload) => {
+  socket.on('send_announcement', async (payload = {}) => {
     try {
-      const { roomId, content } = payload
+      const roomId = payload.roomId || payload.trip_room_id
+      const content = payload.content || payload.messageText || payload.message_text
       if (!roomId || !content) {
         return socket.emit('error', { code: 'BAD_REQUEST', message: 'Room ID and announcement body required.' })
       }
@@ -364,13 +368,22 @@ const registerTripRoomHandlers = (io, socket) => {
   })
 
   // 7. TYPING EPHEMERAL EVENT
-  socket.on('typing_start', (payload) => {
-    const { roomId } = payload
+  socket.on('typing_start', (payload = {}) => {
+    const roomId = payload.roomId || payload.trip_room_id
     if (!roomId) return
 
     socket.to(roomId).emit('user_typing', {
       userId,
       userName: socket.user?.Profile?.name || 'Someone'
+    })
+  })
+
+  socket.on('typing_stop', (payload = {}) => {
+    const roomId = payload.roomId || payload.trip_room_id
+    if (!roomId) return
+
+    socket.to(roomId).emit('user_stop_typing', {
+      userId
     })
   })
 

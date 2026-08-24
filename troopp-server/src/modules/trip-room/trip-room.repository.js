@@ -25,7 +25,7 @@ export const getMessagesPaginated = async (roomId, limit = 50, offset = 0) => {
     where: { trip_room_id: roomId },
     limit: parseInt(limit),
     offset: parseInt(offset),
-    order: [['created_at', 'DESC']],
+    order: [['created_at', 'ASC']],
     include: [
       {
         model: User,
