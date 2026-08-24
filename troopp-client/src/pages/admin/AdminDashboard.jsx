@@ -1,65 +1,63 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Spinner from '../../components/common/Spinner.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * Administrative KPI and Analytics Dashboard.
- * Overhauled to match the premium dark moody theme.
+ * Connected directly to real PostgreSQL database aggregations and real-time WebSockets.
  */
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [dashboardData, setDashboardData] = useState(null)
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
     try {
-      // Mock API dispatch: axios.get('/api/v1/admin/dashboard')
-      await new Promise((r) => setTimeout(r, 400)) // Latency simulation
-
-      setDashboardData({
-        kpis: {
-          totalUsers: 1420,
-          activeTrips: 45,
-          pendingReports: 3,
-          newSignupsToday: 18,
-          avgTrustScore: 78.2
-        },
-        signupHistory: [
-          { date: '06/20', count: 8 },
-          { date: '06/25', count: 12 },
-          { date: '06/30', count: 15 },
-          { date: '07/05', count: 18 }
-        ],
-        trustScoreHistory: [
-          { date: '06/20', avgScore: 74.5 },
-          { date: '06/25', avgScore: 75.8 },
-          { date: '06/30', avgScore: 77.1 },
-          { date: '07/05', avgScore: 78.2 }
-        ],
-        cityBreakdown: [
-          { city: 'Mumbai', users: 620, activeTrips: 18, completedTrips: 84, reportedUsersPct: 1.2 },
-          { city: 'Pune', users: 480, activeTrips: 15, completedTrips: 62, reportedUsersPct: 0.8 },
-          { city: 'Bangalore', users: 320, activeTrips: 12, completedTrips: 41, reportedUsersPct: 2.1 }
-        ]
-      })
+      const res = await apiRequest('/admin/dashboard')
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`)
+      }
+      const json = await res.json()
+      if (json.success && json.data) {
+        setDashboardData(json.data)
+      } else {
+        throw new Error(json.message || 'Failed to retrieve dashboard metrics')
+      }
     } catch (err) {
       console.error('Failed retrieving admin dashboard metrics:', err)
+      if (!dashboardData) {
+        setError(err.message || 'Unable to connect to administration database.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [dashboardData])
 
   useEffect(() => {
     fetchDashboardData()
-    // Auto-refresh metrics every 60 seconds
-    const interval = setInterval(fetchDashboardData, 60000)
-    return () => clearInterval(interval)
-  }, [])
 
-  if (loading) {
+    // Listen to real-time events broadcasted by AdminLayout
+    const handleLiveUpdate = () => {
+      fetchDashboardData(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+
+    // Periodic background sync every 60 seconds
+    const interval = setInterval(() => fetchDashboardData(true), 60000)
+    return () => {
+      window.removeEventListener('admin:live_update', handleLiveUpdate)
+      clearInterval(interval)
+    }
+  }, [fetchDashboardData])
+
+  if (loading && !dashboardData) {
     return (
       <div 
         style={{
-          minHeight: '100vh',
+          minHeight: '80vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -72,7 +70,46 @@ const AdminDashboard = () => {
     )
   }
 
-  const { kpis, signupHistory, trustScoreHistory, cityBreakdown } = dashboardData
+  if (error && !dashboardData) {
+    return (
+      <div 
+        style={{
+          minHeight: '60vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          color: 'var(--text-primary)',
+          textAlign: 'center'
+        }}
+      >
+        <div style={{ fontSize: '36px' }}>⚠️</div>
+        <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#f3f1ea' }}>Failed to Load Dashboard</h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '400px', margin: 0 }}>{error}</p>
+        <button
+          onClick={() => fetchDashboardData()}
+          style={{
+            height: '38px',
+            padding: '0 20px',
+            background: 'var(--accent)',
+            color: '#1a0e08',
+            fontWeight: '700',
+            borderRadius: '10px',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          Retry Connection
+        </button>
+      </div>
+    )
+  }
+
+  const kpis = dashboardData?.kpis || { totalUsers: 0, activeTrips: 0, pendingReports: 0, newSignupsToday: 0, avgTrustScore: 50 }
+  const signupHistory = dashboardData?.signupHistory || []
+  const trustScoreHistory = dashboardData?.trustScoreHistory || []
+  const cityBreakdown = dashboardData?.cityBreakdown || []
 
   return (
     <div 

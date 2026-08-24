@@ -207,10 +207,55 @@ export const getAdminLogs = async (req, res, next) => {
   }
 }
 
+export const getActivities = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 50
+    const list = await adminService.getActivities(req.query, page, limit)
+    res.status(200).json({
+      success: true,
+      data: list.rows,
+      total: list.count,
+      page,
+      limit
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const getAnalytics = async (req, res, next) => {
+  try {
+    const days = parseInt(req.query.days) || 30
+    const data = await adminService.getAnalytics(days)
+    res.status(200).json({ success: true, data })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const getBroadcasts = async (req, res, next) => {
+  try {
+    const data = await adminService.getBroadcasts()
+    res.status(200).json({ success: true, data })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const getAdmins = async (req, res, next) => {
+  try {
+    const data = await adminService.getAdmins()
+    res.status(200).json({ success: true, data })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const promoteToAdmin = async (req, res, next) => {
   try {
-    const { userId } = req.body
-    const user = await adminService.promoteToAdmin(req.user.id, userId)
+    const { userId, email } = req.body
+    const user = await adminService.promoteToAdmin(req.user.id, userId || email)
     res.status(200).json({ success: true, message: 'User promoted to administrator.', data: user })
   } catch (error) {
     next(error)
@@ -226,3 +271,4 @@ export const demoteAdmin = async (req, res, next) => {
     next(error)
   }
 }
+

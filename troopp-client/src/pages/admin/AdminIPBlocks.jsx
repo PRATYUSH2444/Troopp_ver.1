@@ -1,72 +1,96 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import Spinner from '../../components/common/Spinner.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * IP Block list and ban override panel.
- * Overhauled to match the premium dark moody theme.
+ * Connected directly to real PostgreSQL database and real-time WebSockets.
  */
 const AdminIPBlocks = () => {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [blocks, setBlocks] = useState([])
   
   // Form parameters
   const [ip, setIp] = useState('')
   const [reason, setReason] = useState('')
   const [expiry, setExpiry] = useState('')
+  const [adding, setAdding] = useState(false)
 
-  const fetchIPBlocks = async () => {
+  const fetchIPBlocks = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
     try {
-      // Mock API list: axios.get('/api/v1/admin/ip-blocks')
-      await new Promise((r) => setTimeout(r, 400))
+      const res = await apiRequest('/admin/ip-blocks')
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+      const json = await res.json()
 
-      setBlocks([
-        {
-          id: 'block-1',
-          ip_address: '192.168.1.120',
-          reason: 'DDoS attempts and socket request spamming.',
-          blocked_by: 'Admin Priya',
-          expires_at: null,
-          createdAt: '2026-07-06T11:00:00Z'
-        }
-      ])
+      if (json.success && Array.isArray(json.data)) {
+        setBlocks(json.data)
+      } else {
+        throw new Error(json.message || 'Failed retrieving IP blocks')
+      }
     } catch (err) {
       console.error('Failed retrieving IP blocks:', err)
+      if (blocks.length === 0) {
+        setError(err.message || 'Unable to connect to firewall service.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [blocks.length])
 
   useEffect(() => {
     fetchIPBlocks()
-  }, [])
+
+    const handleLiveUpdate = () => {
+      fetchIPBlocks(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+    return () => window.removeEventListener('admin:live_update', handleLiveUpdate)
+  }, [fetchIPBlocks])
 
   const handleAddBlock = async (e) => {
     e.preventDefault()
-    if (!ip.trim() || !reason.trim()) return
+    if (!ip.trim() || !reason.trim()) {
+      toast.error('Please specify the IP address and ban justification.')
+      return
+    }
 
+    setAdding(true)
     try {
-      // Mock API add: axios.post('/api/v1/admin/ip-blocks', { ip, reason, expiresAt: expiry || null })
-      await new Promise((r) => setTimeout(r, 350))
+      const res = await apiRequest('/admin/ip-blocks', {
+        method: 'POST',
+        body: JSON.stringify({ ip: ip.trim(), reason: reason.trim(), expiresAt: expiry || null })
+      })
 
-      alert('IP blocked successfully.')
+      if (!res.ok) throw new Error('Failed to block IP')
+
+      toast.success(`IP address ${ip.trim()} blocked successfully.`)
       setIp('')
       setReason('')
       setExpiry('')
-      fetchIPBlocks()
+      fetchIPBlocks(true)
     } catch (err) {
-      console.error('Failed adding IP block:', err)
+      toast.error(err.message || 'Failed adding IP block.')
+    } finally {
+      setAdding(false)
     }
   }
 
-  const handleRemoveBlock = async (blockId) => {
-    try {
-      // Mock API remove: axios.delete(`/api/v1/admin/ip-blocks/${blockId}`)
-      await new Promise((r) => setTimeout(r, 300))
+  const handleRemoveBlock = async (blockId, ipAddr) => {
+    if (!window.confirm(`Are you sure you want to unblock IP ${ipAddr || ''}?`)) return
 
-      alert('IP block removed.')
+    try {
+      const res = await apiRequest(`/admin/ip-blocks/${blockId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to remove block')
+
+      toast.success('IP address unblocked successfully.')
       setBlocks((prev) => prev.filter((b) => b.id !== blockId))
+      fetchIPBlocks(true)
     } catch (err) {
-      console.error('Failed removing IP block:', err)
+      toast.error(err.message || 'Failed removing IP block.')
     }
   }
 
@@ -278,7 +302,7 @@ const AdminIPBlocks = () => {
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                         <button
-                          onClick={() => handleRemoveBlock(b.id)}
+                          onClick={() => handleRemoveBlock(b.id, b.ip_address)}
                           style={{
                             height: '30px',
                             padding: '0 12px',
@@ -294,15 +318,15 @@ const AdminIPBlocks = () => {
                           onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--danger-soft)' }}
                           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                         >
-                          Remove Block
+                          Unblock ⤬
                         </button>
                       </td>
                     </tr>
                   ))}
                   {blocks.length === 0 && (
                     <tr>
-                      <td colSpan="5" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-tertiary)', fontWeight: '700' }}>
-                        No active IP blocks blacklists.
+                      <td colSpan="5" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                        No blacklisted IP addresses. Platform firewall is clean.
                       </td>
                     </tr>
                   )}

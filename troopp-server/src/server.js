@@ -54,6 +54,12 @@ io.on('connection', (socket) => {
   logger.info(`Socket connection established: ${socket.id} (User: ${socket.user?.id})`)
   registerTripRoomHandlers(io, socket)
 
+  // Admin Room Subscription (server-verified role only)
+  if (socket.user?.role === 'admin') {
+    socket.join('admin:room')
+    logger.info(`Admin socket ${socket.id} (User: ${socket.user.id}) joined admin:room`)
+  }
+
   // Community Room Subscriptions
   socket.on('community:join_post', (postId) => {
     socket.join(`post:${postId}`)

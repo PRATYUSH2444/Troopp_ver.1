@@ -1,69 +1,105 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import Spinner from '../../components/common/Spinner.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * Administrative Push Broadcast Center. Sends targeted push alerts.
- * Overhauled to match the premium dark moody theme.
+ * Connected directly to real PostgreSQL database and real-time WebSockets.
  */
 const AdminBroadcast = () => {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [history, setHistory] = useState([])
+  const [cities, setCities] = useState([])
   
   // Form parameters
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [target, setTarget] = useState('all') // 'all' | 'city'
   const [selectedCity, setSelectedCity] = useState('')
+  const [sending, setSending] = useState(false)
 
   // Confirmation Modal
   const [confirmOpen, setConfirmOpen] = useState(false)
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
     try {
-      // Mock API list: axios.get('/api/v1/admin/broadcasts')
-      await new Promise((r) => setTimeout(r, 400))
-
-      setHistory([
-        {
-          id: 'bc-1',
-          title: 'Monsoon Trek Safety Advisory',
-          target: 'All Users',
-          recipientsCount: 1420,
-          sentBy: 'Admin Priya',
-          sentAt: '2026-07-06T10:00:00Z'
-        },
-        {
-          id: 'bc-2',
-          title: 'Mumbai Central Track Disruptions Warning',
-          target: 'Mumbai City Only',
-          recipientsCount: 620,
-          sentBy: 'Admin Raj',
-          sentAt: '2026-07-04T15:30:00Z'
-        }
+      const [histRes, citiesRes] = await Promise.all([
+        apiRequest('/admin/broadcasts'),
+        apiRequest('/cities')
       ])
+
+      if (histRes.ok) {
+        const histJson = await histRes.json()
+        if (histJson.success && Array.isArray(histJson.data)) {
+          setHistory(histJson.data)
+        }
+      }
+
+      if (citiesRes.ok) {
+        const citiesJson = await citiesRes.json()
+        if (citiesJson.success && Array.isArray(citiesJson.data)) {
+          setCities(citiesJson.data)
+        }
+      }
     } catch (err) {
-      console.error('Failed retrieving broadcasts history:', err)
+      console.error('Failed retrieving broadcasts data:', err)
+      if (history.length === 0) {
+        setError(err.message || 'Unable to load broadcast records.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [history.length])
 
   useEffect(() => {
     fetchHistory()
-  }, [])
+
+    const handleLiveUpdate = () => {
+      fetchHistory(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+    return () => window.removeEventListener('admin:live_update', handleLiveUpdate)
+  }, [fetchHistory])
 
   const handleSendBroadcast = async () => {
-    try {
-      // Mock API post: axios.post('/api/v1/admin/broadcast', { title, body, target, cityId: selectedCity })
-      await new Promise((r) => setTimeout(r, 450))
+    if (!title.trim() || !body.trim()) {
+      toast.error('Please fill in both title and message body.')
+      return
+    }
 
-      alert('Broadcast push notifications sent successfully.')
+    if (target === 'city' && !selectedCity) {
+      toast.error('Please choose a target city.')
+      return
+    }
+
+    setSending(true)
+    try {
+      const res = await apiRequest('/admin/broadcast', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: title.trim(),
+          body: body.trim(),
+          target,
+          cityId: selectedCity || null
+        })
+      })
+
+      if (!res.ok) throw new Error('Broadcast delivery failed')
+
+      toast.success('Broadcast push notifications dispatched successfully!')
       setConfirmOpen(false)
       setTitle('')
       setBody('')
-      fetchHistory()
+      setSelectedCity('')
+      fetchHistory(true)
     } catch (err) {
-      console.error('Failed sending broadcast:', err)
+      toast.error(err.message || 'Failed sending broadcast.')
+    } finally {
+      setSending(false)
     }
   }
 
@@ -233,8 +269,11 @@ const AdminBroadcast = () => {
                   }}
                 >
                   <option value="" style={{ background: '#1a2129', color: '#f3f1ea' }}>Select Target City</option>
-                  <option value="city-1" style={{ background: '#1a2129', color: '#f3f1ea' }}>Mumbai</option>
-                  <option value="city-2" style={{ background: '#1a2129', color: '#f3f1ea' }}>Pune</option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.id} style={{ background: '#1a2129', color: '#f3f1ea' }}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               )}
             </div>

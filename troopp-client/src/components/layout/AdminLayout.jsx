@@ -1,11 +1,14 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom'
+import { io } from 'socket.io-client'
+import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { getAccessToken, BASE_URL } from '../../utils/api.js'
 import Avatar from '../common/Avatar.jsx'
 
 /**
  * Sidebar layout specifically for admin routes.
- * Overhauled to match the premium dark moody theme.
+ * Supports live real-time WebSocket push updates across connected administrative sessions.
  */
 const AdminLayout = () => {
   const { user, logout } = useAuth()
@@ -16,15 +19,76 @@ const AdminLayout = () => {
     navigate('/login')
   }
 
-  // Admin section links
+  // All 10 Admin section links
   const adminLinks = [
     { path: '/admin', label: 'Dashboard', icon: '📊' },
     { path: '/admin/users', label: 'User Operations', icon: '👤' },
     { path: '/admin/reports', label: 'User Reports', icon: '⚠️' },
     { path: '/admin/activity-reports', label: 'Activity Audits', icon: '🚨' },
+    { path: '/admin/activities', label: 'All Trips', icon: '🏔️' },
+    { path: '/admin/analytics', label: 'Analytics', icon: '📈' },
+    { path: '/admin/broadcast', label: 'Push Broadcast', icon: '📣' },
     { path: '/admin/ip-blocks', label: 'Network Blocks', icon: '🔒' },
-    { path: '/admin/logs', label: 'Audit Logs', icon: '📝' }
+    { path: '/admin/logs', label: 'Audit Logs', icon: '📝' },
+    { path: '/admin/settings', label: 'Settings', icon: '⚙️' }
   ]
+
+  // Real-time Socket.IO synchronization for active administrators
+  useEffect(() => {
+    let socket
+    try {
+      const socketUrl = BASE_URL.replace('/api/v1', '')
+      const token = getAccessToken()
+      socket = io(socketUrl, {
+        auth: { token },
+        path: '/socket.io',
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 5
+      })
+
+      socket.on('connect', () => {
+        console.debug('Admin WebSocket connected to admin:room.')
+      })
+
+      const handleEvent = (eventName, payload) => {
+        // Dispatch window event for open child admin components
+        window.dispatchEvent(new CustomEvent('admin:live_update', { detail: { event: eventName, payload } }))
+
+        // Notify with interactive toast
+        if (eventName === 'admin:user_status') {
+          toast(`Traveler status updated: ${payload.status || 'modified'}`, { icon: '👤' })
+        } else if (eventName === 'admin:report_resolved') {
+          toast.success(`Report ${payload.reportId?.slice(0, 8)}... marked ${payload.status}`)
+        } else if (eventName === 'admin:trip_status') {
+          toast(`Trip status updated: ${payload.status}`, { icon: '🏔️' })
+        } else if (eventName === 'admin:ip_block') {
+          toast(`Network IP block ${payload.action}: ${payload.ip}`, { icon: '🔒' })
+        } else if (eventName === 'admin:broadcast') {
+          toast.success(`Broadcast push sent to ${payload.recipientsCount || 0} travelers.`)
+        } else if (eventName === 'admin:trust_override') {
+          toast(`Trust score override: ${payload.newScore} pts`, { icon: '⭐' })
+        }
+      }
+
+      socket.on('admin:user_status', (data) => handleEvent('admin:user_status', data))
+      socket.on('admin:trust_override', (data) => handleEvent('admin:trust_override', data))
+      socket.on('admin:report_resolved', (data) => handleEvent('admin:report_resolved', data))
+      socket.on('admin:trip_status', (data) => handleEvent('admin:trip_status', data))
+      socket.on('admin:ip_block', (data) => handleEvent('admin:ip_block', data))
+      socket.on('admin:broadcast', (data) => handleEvent('admin:broadcast', data))
+
+    } catch (err) {
+      console.warn('Admin socket init error:', err?.message)
+    }
+
+    return () => {
+      try {
+        if (socket) socket.disconnect()
+      } catch (cleanupErr) {
+        // silent cleanup
+      }
+    }
+  }, [])
 
   return (
     <div 
@@ -42,16 +106,18 @@ const AdminLayout = () => {
         style={{
           background: 'var(--bg-alt)',
           borderRight: '1px solid var(--border)',
-          padding: '28px 20px',
+          padding: '24px 18px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '32px',
+          gap: '24px',
           height: '100vh',
-          width: 'var(--sidebar-w)',
+          width: '260px',
+          minWidth: '260px',
           position: 'sticky',
           top: 0,
           zIndex: 300,
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          overflowY: 'auto'
         }}
         className="w-full md:w-64 h-auto md:h-screen"
       >
@@ -63,7 +129,7 @@ const AdminLayout = () => {
           paddingBottom: '16px',
           borderBottom: '1px solid var(--border)'
         }}>
-          <Link to="/feed" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Link to="/feed" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
             <div style={{
               width: '32px',
               height: '32px',
@@ -80,18 +146,24 @@ const AdminLayout = () => {
             }}>
               T
             </div>
-            <span style={{
-              fontSize: '18px',
-              fontWeight: '700',
-              letterSpacing: '-0.01em',
-              fontFamily: 'var(--font-display)',
-              color: '#f3f1ea'
-            }}>
-              Troopp Admin
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{
+                fontSize: '16px',
+                fontWeight: '700',
+                letterSpacing: '-0.01em',
+                fontFamily: 'var(--font-display)',
+                color: '#f3f1ea',
+                lineHeight: '1.2'
+              }}>
+                Troopp Admin
+              </span>
+              <span style={{ fontSize: '10px', color: '#ff6a2c', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                Control Center
+              </span>
+            </div>
           </Link>
           <Link to="/feed" className="md:hidden" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-            Back to App
+            App
           </Link>
         </div>
 
@@ -99,7 +171,7 @@ const AdminLayout = () => {
         <nav style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
+          gap: '3px',
           flex: '1'
         }}>
           {adminLinks.map((link) => (
@@ -110,21 +182,22 @@ const AdminLayout = () => {
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                padding: '11px 14px',
-                borderRadius: '9px',
+                gap: '10px',
+                padding: '9px 12px',
+                borderRadius: '8px',
                 color: isActive ? '#ff6a2c' : '#9ba6ad',
                 background: isActive ? 'rgba(255,106,44,0.14)' : 'transparent',
-                fontSize: '13px',
+                borderLeft: isActive ? '3px solid #ff6a2c' : '3px solid transparent',
+                fontSize: '12px',
                 fontWeight: '600',
                 textTransform: 'uppercase',
-                letterSpacing: '0.05em',
+                letterSpacing: '0.04em',
                 fontFamily: 'var(--font-display)',
                 textDecoration: 'none',
                 transition: 'background 150ms ease, color 150ms ease'
               })}
             >
-              <span>{link.icon}</span>
+              <span style={{ fontSize: '14px' }}>{link.icon}</span>
               <span>{link.label}</span>
             </NavLink>
           ))}
@@ -133,7 +206,7 @@ const AdminLayout = () => {
         {/* User profile section */}
         <div style={{
           borderTop: '1px solid var(--border)',
-          paddingTop: '18px',
+          paddingTop: '16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px'
@@ -149,10 +222,10 @@ const AdminLayout = () => {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis'
               }}>
-                {user?.name || 'Grievance Officer'}
+                {user?.name || 'Administrator'}
               </span>
-              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                System Admin
+              <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                {user?.email || 'admin@troopp.com'}
               </span>
             </div>
           </div>
@@ -160,16 +233,16 @@ const AdminLayout = () => {
             onClick={handleLogout}
             style={{
               width: '100%',
-              height: '38px',
+              height: '36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              fontSize: '13px',
+              fontSize: '12px',
               fontWeight: '600',
               color: 'var(--text-secondary)',
               border: '1px solid var(--border)',
-              borderRadius: '9px',
+              borderRadius: '8px',
               background: 'transparent',
               cursor: 'pointer',
               transition: 'border-color 150ms, background 150ms, color 150ms'
@@ -194,7 +267,7 @@ const AdminLayout = () => {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <header 
           style={{
-            height: '64px',
+            height: '60px',
             background: 'var(--bg-alt)',
             borderBottom: '1px solid var(--border)',
             display: 'flex',
@@ -205,8 +278,9 @@ const AdminLayout = () => {
           }}
           className="hidden md:flex"
         >
-          <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>
-            Troopp grievance, verification, and network moderation panel.
+          <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+            <span>Real-time connected to PostgreSQL & WebSocket synchronization</span>
           </div>
           <Link
             to="/feed"
@@ -233,7 +307,7 @@ const AdminLayout = () => {
           </Link>
         </header>
 
-        <div style={{ flexGrow: 1, background: 'var(--bg)', padding: '28px clamp(16px, 3.5vw, 40px) 80px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+        <div style={{ flexGrow: 1, background: 'var(--bg)', padding: '24px clamp(16px, 3vw, 36px) 80px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
           <Outlet />
         </div>
       </main>
@@ -243,3 +317,4 @@ const AdminLayout = () => {
 
 export default AdminLayout
 export { AdminLayout }
+

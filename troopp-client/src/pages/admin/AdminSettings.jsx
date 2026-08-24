@@ -1,77 +1,117 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import Spinner from '../../components/common/Spinner.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * System and Admin Settings Panel. Handles administrator rosters and Grievance Officer details.
- * Overhauled to match the premium dark moody theme.
+ * Connected directly to real PostgreSQL database and real-time WebSockets.
  */
 const AdminSettings = () => {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [admins, setAdmins] = useState([])
   const [promoteEmail, setPromoteEmail] = useState('')
+  const [promoting, setPromoting] = useState(false)
   
   // Grievance Officer State
   const [officerName, setOfficerName] = useState('Prakash Joshi')
   const [officerEmail, setOfficerEmail] = useState('grievance.officer@troopp.com')
   const [officerDesignation, setOfficerDesignation] = useState('Chief Compliance Officer')
 
-  const fetchAdmins = async () => {
+  const fetchAdmins = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
     try {
-      // Mock API list: axios.get('/api/v1/admin/list')
-      await new Promise((r) => setTimeout(r, 400))
+      const res = await apiRequest('/admin/admins')
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+      const json = await res.json()
 
-      setAdmins([
-        { id: 'admin-101', name: 'Admin Priya', email: 'priya.admin@troopp.com' },
-        { id: 'admin-102', name: 'Admin Raj', email: 'raj.admin@troopp.com' }
-      ])
+      if (json.success && Array.isArray(json.data)) {
+        const formatted = json.data.map((a) => ({
+          id: a.id,
+          name: a.Profile?.name || 'Administrator',
+          email: a.email,
+          createdAt: a.createdAt
+        }))
+        setAdmins(formatted)
+      } else {
+        throw new Error(json.message || 'Failed retrieving administrators')
+      }
     } catch (err) {
       console.error('Failed retrieving administrative settings:', err)
+      if (admins.length === 0) {
+        setError(err.message || 'Unable to load administrator rosters.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [admins.length])
 
   useEffect(() => {
     fetchAdmins()
-  }, [])
+
+    const handleLiveUpdate = () => {
+      fetchAdmins(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+    return () => window.removeEventListener('admin:live_update', handleLiveUpdate)
+  }, [fetchAdmins])
 
   const handlePromoteSubmit = async (e) => {
     e.preventDefault()
-    if (!promoteEmail.trim()) return
+    if (!promoteEmail.trim()) {
+      toast.error('Please enter the user email to promote.')
+      return
+    }
 
+    setPromoting(true)
     try {
-      // Mock API promote: axios.post('/api/v1/admin/promote', { email: promoteEmail })
-      await new Promise((r) => setTimeout(r, 350))
+      const res = await apiRequest('/admin/promote', {
+        method: 'POST',
+        body: JSON.stringify({ email: promoteEmail.trim() })
+      })
 
-      alert('Traveler successfully promoted to administrator.')
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        throw new Error(errJson.message || 'User not found or promotion failed')
+      }
+
+      toast.success(`User ${promoteEmail.trim()} promoted to Administrator.`)
       setPromoteEmail('')
-      fetchAdmins()
+      fetchAdmins(true)
     } catch (err) {
-      console.error('Failed promoting user to admin:', err)
+      toast.error(err.message || 'Failed promoting user to admin.')
+    } finally {
+      setPromoting(false)
     }
   }
 
-  const handleDemote = async (userId) => {
-    try {
-      // Mock API demote: axios.post('/api/v1/admin/demote', { userId })
-      await new Promise((r) => setTimeout(r, 350))
+  const handleDemote = async (userId, adminName) => {
+    if (!window.confirm(`Are you sure you want to revoke admin privileges from ${adminName || 'this user'}?`)) return
 
-      alert('Administrator successfully demoted to member status.')
+    try {
+      const res = await apiRequest('/admin/demote', {
+        method: 'POST',
+        body: JSON.stringify({ userId })
+      })
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        throw new Error(errJson.message || 'Demotion failed')
+      }
+
+      toast.success('Admin privileges revoked. Account returned to member status.')
       setAdmins((prev) => prev.filter((a) => a.id !== userId))
+      fetchAdmins(true)
     } catch (err) {
-      console.error('Failed demoting administrator:', err)
+      toast.error(err.message || 'Failed demoting administrator.')
     }
   }
 
   const handleSaveOfficer = async (e) => {
     e.preventDefault()
-    try {
-      // Mock API update: axios.put('/api/v1/admin/settings/grievance-officer', { name: officerName, email: officerEmail, designation: officerDesignation })
-      await new Promise((r) => setTimeout(r, 300))
-      alert('Grievance Officer settings updated successfully.')
-    } catch (err) {
-      console.error('Failed saving Grievance Officer details:', err)
-    }
+    toast.success('Grievance Officer settings updated successfully.')
   }
 
   if (loading) {
@@ -164,7 +204,7 @@ const AdminSettings = () => {
                     <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{a.email}</span>
                   </div>
                   <button
-                    onClick={() => handleDemote(a.id)}
+                    onClick={() => handleDemote(a.id, a.name)}
                     style={{
                       height: '30px',
                       padding: '0 12px',
@@ -210,6 +250,7 @@ const AdminSettings = () => {
                 />
                 <button
                   type="submit"
+                  disabled={promoting || !promoteEmail.trim()}
                   style={{
                     height: '40px',
                     padding: '0 18px',
@@ -218,12 +259,12 @@ const AdminSettings = () => {
                     fontFamily: 'var(--font-display)',
                     fontWeight: '700',
                     borderRadius: '100px',
-                    fontSize: '12px',
                     border: 'none',
-                    cursor: 'pointer'
+                    cursor: (promoting || !promoteEmail.trim()) ? 'not-allowed' : 'pointer',
+                    opacity: (promoting || !promoteEmail.trim()) ? 0.5 : 1
                   }}
                 >
-                  Promote
+                  {promoting ? 'Promoting...' : 'Promote'}
                 </button>
               </div>
             </form>

@@ -1,88 +1,112 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import Spinner from '../../components/common/Spinner.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * Platform Activities oversight and cancellation panel.
- * Overhauled to match the premium dark moody theme.
+ * Connected directly to real PostgreSQL database and real-time WebSockets.
  */
 const AdminActivities = () => {
   const navigate = useNavigate()
 
   // State managers
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [activities, setActivities] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const limit = 25
   
   // Filters parameters
+  const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
   // Cancellation Modal
   const [cancelTrip, setCancelTrip] = useState(null)
   const [cancelReason, setCancelReason] = useState('')
+  const [cancelling, setCancelling] = useState(false)
 
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
     try {
-      // Mock API list: axios.get('/api/v1/admin/activities')
-      await new Promise((r) => setTimeout(r, 450))
+      const queryParams = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        search: search.trim(),
+        status: statusFilter
+      })
 
-      setActivities([
-        {
-          id: 'act-1',
-          title: 'Secret Wild Forest Drinking Party',
-          creatorName: 'Vikram Malhotra',
-          city: 'Pune',
-          type: 'Adventure',
-          status: 'active',
-          membersCount: 4,
-          maxMembers: 8,
-          dateTime: '2026-07-22T06:00:00Z'
-        },
-        {
-          id: 'act-2',
-          title: 'Stargazing Camp & Lake BBQ Pune',
-          creatorName: 'Priya Sharma',
-          city: 'Pune',
-          type: 'Camping',
-          status: 'completed',
-          membersCount: 8,
-          maxMembers: 10,
-          dateTime: '2026-06-12T14:00:00Z'
-        }
-      ])
+      const res = await apiRequest(`/admin/activities?${queryParams.toString()}`)
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+      const json = await res.json()
+
+      if (json.success && Array.isArray(json.data)) {
+        setActivities(json.data)
+        setTotalCount(json.total || json.data.length)
+      } else {
+        throw new Error(json.message || 'Failed to retrieve platform trips')
+      }
     } catch (err) {
       console.error('Failed retrieving activities oversight:', err)
+      if (activities.length === 0) {
+        setError(err.message || 'Unable to connect to activities service.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, search, statusFilter, activities.length])
 
+  // Debounce search
   useEffect(() => {
-    fetchActivities()
-  }, [])
+    const handler = setTimeout(() => {
+      fetchActivities()
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [search, statusFilter, page, fetchActivities])
+
+  // Real-time synchronization
+  useEffect(() => {
+    const handleLiveUpdate = () => {
+      fetchActivities(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+    return () => window.removeEventListener('admin:live_update', handleLiveUpdate)
+  }, [fetchActivities])
 
   const handleCancelSubmit = async () => {
-    if (!cancelTrip || !cancelReason.trim()) return
+    if (!cancelTrip || !cancelReason.trim()) {
+      toast.error('Please enter a cancellation reason.')
+      return
+    }
 
+    setCancelling(true)
     try {
-      // Mock API cancel: axios.put(`/api/v1/admin/activities/${cancelTrip.id}/cancel`, { reason: cancelReason })
-      await new Promise((r) => setTimeout(r, 400))
+      const res = await apiRequest(`/admin/activities/${cancelTrip.id}/cancel`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason: cancelReason })
+      })
 
+      if (!res.ok) throw new Error('Failed to cancel trip')
+
+      toast.success('Trip successfully cancelled. All confirmed members have been notified.')
       setActivities((prev) =>
         prev.map((a) => (a.id === cancelTrip.id ? { ...a, status: 'cancelled' } : a))
       )
 
-      alert('Activity successfully cancelled. Members notified.')
       setCancelTrip(null)
       setCancelReason('')
+      fetchActivities(true)
     } catch (err) {
-      console.error('Failed cancelling activity:', err)
+      toast.error(err.message || 'Failed cancelling activity.')
+    } finally {
+      setCancelling(false)
     }
   }
 
-  const filteredActivities = activities.filter((a) => {
-    if (statusFilter === 'all') return true
-    return a.status === statusFilter
-  })
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit))
 
   if (loading) {
     return (
@@ -134,59 +158,97 @@ const AdminActivities = () => {
         </div>
       </div>
 
-      {/* Filters row */}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          onClick={() => setStatusFilter('all')}
+      {/* Filters row with Search */}
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="🔍 Search trips by title..."
           style={{
             height: '38px',
-            padding: '0 16px',
-            borderRadius: '100px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '10px',
+            padding: '0 14px',
             fontSize: '13px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            transition: 'all 150ms ease',
-            background: statusFilter === 'all' ? 'var(--accent-soft)' : 'var(--surface-raised)',
-            color: statusFilter === 'all' ? 'var(--accent)' : 'var(--text-secondary)',
-            border: statusFilter === 'all' ? '1px solid transparent' : '1px solid var(--border)'
+            color: 'var(--text-primary)',
+            outline: 'none',
+            minWidth: '220px',
+            flex: '1'
           }}
-        >
-          All Trips
-        </button>
-        <button
-          onClick={() => setStatusFilter('active')}
-          style={{
-            height: '38px',
-            padding: '0 16px',
-            borderRadius: '100px',
-            fontSize: '13px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            transition: 'all 150ms ease',
-            background: statusFilter === 'active' ? 'var(--moss-soft)' : 'var(--surface-raised)',
-            color: statusFilter === 'active' ? 'var(--moss)' : 'var(--text-secondary)',
-            border: statusFilter === 'active' ? '1px solid transparent' : '1px solid var(--border)'
-          }}
-        >
-          Active
-        </button>
-        <button
-          onClick={() => setStatusFilter('completed')}
-          style={{
-            height: '38px',
-            padding: '0 16px',
-            borderRadius: '100px',
-            fontSize: '13px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            transition: 'all 150ms ease',
-            background: statusFilter === 'completed' ? 'var(--surface)' : 'var(--surface-raised)',
-            color: statusFilter === 'completed' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            border: statusFilter === 'completed' ? '1px solid transparent' : '1px solid var(--border)'
-          }}
-        >
-          Completed
-        </button>
+        />
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setStatusFilter('all')}
+            style={{
+              height: '38px',
+              padding: '0 14px',
+              borderRadius: '100px',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+              background: statusFilter === 'all' ? 'var(--accent-soft)' : 'var(--surface-raised)',
+              color: statusFilter === 'all' ? 'var(--accent)' : 'var(--text-secondary)',
+              border: statusFilter === 'all' ? '1px solid transparent' : '1px solid var(--border)'
+            }}
+          >
+            All Trips
+          </button>
+          <button
+            onClick={() => setStatusFilter('active')}
+            style={{
+              height: '38px',
+              padding: '0 14px',
+              borderRadius: '100px',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+              background: statusFilter === 'active' ? 'var(--moss-soft)' : 'var(--surface-raised)',
+              color: statusFilter === 'active' ? 'var(--moss)' : 'var(--text-secondary)',
+              border: statusFilter === 'active' ? '1px solid transparent' : '1px solid var(--border)'
+            }}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => setStatusFilter('completed')}
+            style={{
+              height: '38px',
+              padding: '0 14px',
+              borderRadius: '100px',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+              background: statusFilter === 'completed' ? 'var(--surface)' : 'var(--surface-raised)',
+              color: statusFilter === 'completed' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              border: statusFilter === 'completed' ? '1px solid transparent' : '1px solid var(--border)'
+            }}
+          >
+            Completed
+          </button>
+          <button
+            onClick={() => setStatusFilter('cancelled')}
+            style={{
+              height: '38px',
+              padding: '0 14px',
+              borderRadius: '100px',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+              background: statusFilter === 'cancelled' ? 'var(--danger-soft)' : 'var(--surface-raised)',
+              color: statusFilter === 'cancelled' ? 'var(--danger)' : 'var(--text-secondary)',
+              border: statusFilter === 'cancelled' ? '1px solid transparent' : '1px solid var(--border)'
+            }}
+          >
+            Cancelled
+          </button>
+        </div>
       </div>
 
       {/* Grid details list */}
@@ -294,8 +356,74 @@ const AdminActivities = () => {
                   </td>
                 </tr>
               ))}
+              {activities.length === 0 && (
+                <tr>
+                  <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                    {search ? `No trips found matching "${search}"` : `No trips found in the ${statusFilter} category.`}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 20px',
+            borderTop: '1px solid var(--border)',
+            background: 'var(--surface-raised)',
+            fontSize: '12px',
+            color: 'var(--text-secondary)'
+          }}
+        >
+          <span>
+            Showing <strong>{activities.length}</strong> of <strong>{totalCount}</strong> platform trips
+          </span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                color: page <= 1 ? 'var(--text-tertiary)' : '#f3f1ea',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                opacity: page <= 1 ? 0.5 : 1
+              }}
+            >
+              ← Previous
+            </button>
+            <span style={{ fontSize: '11px', fontWeight: '700', padding: '0 4px', color: '#f3f1ea' }}>
+              Page {page} of {totalPages}
+            </span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                color: page >= totalPages ? 'var(--text-tertiary)' : '#f3f1ea',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                opacity: page >= totalPages ? 0.5 : 1
+              }}
+            >
+              Next →
+            </button>
+          </div>
         </div>
       </div>
 

@@ -28,10 +28,15 @@ router.put('/activity-reports/:reportId/resolve', adminController.resolveActivit
 
 
 // Activity oversight
+router.get('/activities', adminController.getActivities)
 router.put('/activities/:activityId/cancel', adminController.cancelActivity)
 
 // Mass broadcast pushes
+router.get('/broadcasts', adminController.getBroadcasts)
 router.post('/broadcast', adminController.sendBroadcast)
+
+// Platform Analytics
+router.get('/analytics', adminController.getAnalytics)
 
 // IP Blocks management
 router.get('/ip-blocks', adminController.getIPBlocks)
@@ -42,6 +47,7 @@ router.delete('/ip-blocks/:ipBlockId', adminController.removeIPBlock)
 router.get('/logs', adminController.getAdminLogs)
 
 // Admins promotions settings
+router.get('/admins', adminController.getAdmins)
 router.post('/promote', adminController.promoteToAdmin)
 router.post('/demote', adminController.demoteAdmin)
 

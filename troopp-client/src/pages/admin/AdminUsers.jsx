@@ -1,18 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import Spinner from '../../components/common/Spinner.jsx'
 import Avatar from '../../components/common/Avatar.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * Traveler Administration Console. Filters, paginates, bans, suspends, and exports traveler accounts logs.
- * Overhauled to match the premium dark moody theme.
+ * Connected directly to real PostgreSQL database and real-time WebSockets.
  */
 const AdminUsers = () => {
   const navigate = useNavigate()
 
   // State managers
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [users, setUsers] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const limit = 25
   const [selectedUserIds, setSelectedUserIds] = useState([])
   
   // Filters parameters
@@ -20,50 +26,59 @@ const AdminUsers = () => {
   const [statusFilter, setStatusFilter] = useState('all')
   const [verifyFilter, setVerifyFilter] = useState('all')
 
-  const fetchUsers = async () => {
-    try {
-      // Mock API list: axios.get('/api/v1/admin/users')
-      await new Promise((r) => setTimeout(r, 450))
+  // Bulk Broadcast Modal State
+  const [broadcastOpen, setBroadcastOpen] = useState(false)
+  const [broadcastTitle, setBroadcastTitle] = useState('')
+  const [broadcastBody, setBroadcastBody] = useState('')
+  const [broadcasting, setBroadcasting] = useState(false)
 
-      setUsers([
-        {
-          id: 'user-1',
-          name: 'Raj Malhotra',
-          email: 'raj@gmail.com',
-          city: 'Mumbai',
-          trustScore: 80,
-          reliabilityScore: 98,
-          account_status: 'active'
-        },
-        {
-          id: 'user-2',
-          name: 'Priya Sharma',
-          email: 'priya@gmail.com',
-          city: 'Pune',
-          trustScore: 72,
-          reliabilityScore: 95,
-          account_status: 'active'
-        },
-        {
-          id: 'user-3',
-          name: 'Vikram Malhotra',
-          email: 'vikram@gmail.com',
-          city: 'Bangalore',
-          trustScore: 55,
-          reliabilityScore: 80,
-          account_status: 'suspended'
-        }
-      ])
+  const fetchUsers = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
+    try {
+      const queryParams = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        search: search.trim(),
+        account_status: statusFilter
+      })
+
+      const res = await apiRequest(`/admin/users?${queryParams.toString()}`)
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+      const json = await res.json()
+
+      if (json.success && Array.isArray(json.data)) {
+        setUsers(json.data)
+        setTotalCount(json.total || json.data.length)
+      } else {
+        throw new Error(json.message || 'Failed to fetch users list')
+      }
     } catch (err) {
       console.error('Failed retrieving travelers list:', err)
+      if (users.length === 0) {
+        setError(err.message || 'Unable to connect to users service.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, search, statusFilter, users.length])
 
+  // Debounced search trigger
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    const handler = setTimeout(() => {
+      fetchUsers()
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [search, statusFilter, page, fetchUsers])
+
+  // Real-time synchronization
+  useEffect(() => {
+    const handleLiveUpdate = () => {
+      fetchUsers(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+    return () => window.removeEventListener('admin:live_update', handleLiveUpdate)
+  }, [fetchUsers])
 
   const handleSelectRow = (userId) => {
     setSelectedUserIds((prev) =>
@@ -72,42 +87,86 @@ const AdminUsers = () => {
   }
 
   const handleSelectAll = () => {
-    if (selectedUserIds.length === users.length) {
+    if (selectedUserIds.length === filteredUsers.length) {
       setSelectedUserIds([])
     } else {
-      setSelectedUserIds(users.map((u) => u.id))
+      setSelectedUserIds(filteredUsers.map((u) => u.id))
     }
   }
 
   const handleExportCSV = () => {
-    const selectedRows = users.filter((u) => selectedUserIds.includes(u.id))
-    const headers = ['ID', 'Name', 'Email', 'City', 'Trust Score', 'Reliability', 'Status']
-    const rows = selectedRows.map((u) => [u.id, u.name, u.email, u.city, u.trustScore, u.reliabilityScore, u.account_status])
+    const selectedRows = selectedUserIds.length > 0
+      ? users.filter((u) => selectedUserIds.includes(u.id))
+      : users
+
+    if (selectedRows.length === 0) {
+      toast.error('No traveler records available to export.')
+      return
+    }
+
+    const headers = ['ID', 'Name', 'Email', 'Phone', 'City', 'Trust Score', 'Reliability', 'Status', 'Role']
+    const rows = selectedRows.map((u) => [
+      `"${u.id}"`,
+      `"${u.name || ''}"`,
+      `"${u.email || ''}"`,
+      `"${u.phone || ''}"`,
+      `"${u.city || ''}"`,
+      u.trustScore ?? 50,
+      u.reliabilityScore ?? 100,
+      `"${u.account_status || 'active'}"`,
+      `"${u.role || 'member'}"`
+    ])
     
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
-      
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
     const encodedUri = encodeURI(csvContent)
     const link = document.createElement('a')
     link.setAttribute('href', encodedUri)
-    link.setAttribute('download', 'troopp_travelers_export.csv')
+    link.setAttribute('download', `troopp_travelers_export_${new Date().toISOString().slice(0, 10)}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    toast.success(`Exported ${selectedRows.length} traveler records.`)
   }
 
-  // Filter local rows
+  const handleSendBulkNotification = async () => {
+    if (!broadcastTitle.trim() || !broadcastBody.trim()) {
+      toast.error('Please enter notification title and message body.')
+      return
+    }
+    setBroadcasting(true)
+    try {
+      const res = await apiRequest('/admin/broadcast', {
+        method: 'POST',
+        body: JSON.stringify({
+          target: 'all',
+          title: broadcastTitle,
+          body: broadcastBody
+        })
+      })
+      if (!res.ok) throw new Error('Broadcast delivery failed')
+      toast.success('Bulk broadcast sent successfully.')
+      setBroadcastOpen(false)
+      setBroadcastTitle('')
+      setBroadcastBody('')
+      setSelectedUserIds([])
+    } catch (err) {
+      toast.error(err.message || 'Failed delivering bulk broadcast.')
+    } finally {
+      setBroadcasting(false)
+    }
+  }
+
+  // Filter local rows (for trust score tier client refinement)
   const filteredUsers = users.filter((u) => {
-    const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || u.account_status === statusFilter
     const matchesVerify =
       verifyFilter === 'all' ||
-      (verifyFilter === 'trusted' && u.trustScore >= 75) ||
-      (verifyFilter === 'explorer' && u.trustScore >= 50)
+      (verifyFilter === 'trusted' && (u.trustScore || 50) >= 75) ||
+      (verifyFilter === 'explorer' && (u.trustScore || 50) >= 50)
 
-    return matchesSearch && matchesStatus && matchesVerify
+    return matchesVerify
   })
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit))
 
   if (loading) {
     return (
@@ -238,7 +297,7 @@ const AdminUsers = () => {
           </span>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={() => alert(`Bulk Notification sent to ${selectedUserIds.length} users.`)}
+              onClick={() => setBroadcastOpen(true)}
               style={{
                 height: '34px',
                 padding: '0 14px',
@@ -394,10 +453,179 @@ const AdminUsers = () => {
                   </td>
                 </tr>
               ))}
+              {filteredUsers.length === 0 && (
+                <tr>
+                  <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                    {search ? `No travelers found matching "${search}"` : 'No traveler accounts match the current filter.'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 20px',
+            borderTop: '1px solid var(--border)',
+            background: 'var(--surface-raised)',
+            fontSize: '12px',
+            color: 'var(--text-secondary)'
+          }}
+        >
+          <span>
+            Showing <strong>{filteredUsers.length}</strong> of <strong>{totalCount}</strong> travelers
+          </span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                color: page <= 1 ? 'var(--text-tertiary)' : '#f3f1ea',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                opacity: page <= 1 ? 0.5 : 1
+              }}
+            >
+              ← Previous
+            </button>
+            <span style={{ fontSize: '11px', fontWeight: '700', padding: '0 4px', color: '#f3f1ea' }}>
+              Page {page} of {totalPages}
+            </span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                color: page >= totalPages ? 'var(--text-tertiary)' : '#f3f1ea',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                opacity: page >= totalPages ? 0.5 : 1
+              }}
+            >
+              Next →
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Bulk Broadcast Modal */}
+      {broadcastOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '420px',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <h4 style={{ fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#f3f1ea', margin: 0, fontFamily: 'var(--font-display)' }}>
+              Send Broadcast Push Notification
+            </h4>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+              This notification will be delivered to travelers across the platform via push and in-app alerts.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Alert Title</span>
+              <input
+                type="text"
+                value={broadcastTitle}
+                onChange={(e) => setBroadcastTitle(e.target.value)}
+                placeholder="e.g. Weather Advisory: Monsoon Trek Safety"
+                style={{
+                  height: '38px',
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '0 12px',
+                  color: '#f3f1ea',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
+              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Message Body</span>
+              <textarea
+                rows={3}
+                value={broadcastBody}
+                onChange={(e) => setBroadcastBody(e.target.value)}
+                placeholder="Enter alert description..."
+                style={{
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '10px',
+                  color: '#f3f1ea',
+                  resize: 'none',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <button
+                disabled={broadcasting}
+                onClick={() => setBroadcastOpen(false)}
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={broadcasting || !broadcastTitle.trim() || !broadcastBody.trim()}
+                onClick={handleSendBulkNotification}
+                style={{
+                  flex: 1,
+                  height: '38px',
+                  background: 'var(--accent)',
+                  color: '#1a0e08',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  opacity: (!broadcastTitle.trim() || !broadcastBody.trim() || broadcasting) ? 0.5 : 1
+                }}
+              >
+                {broadcasting ? 'Sending...' : 'Send Broadcast'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

@@ -1,61 +1,69 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Spinner from '../../components/common/Spinner.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * Administrative Audit Logs. Immutable records of administrative actions.
- * Overhauled to match the premium dark moody theme.
+ * Connected directly to real PostgreSQL database and real-time WebSockets.
  */
 const AdminLogs = () => {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [logs, setLogs] = useState([])
   const [actionFilter, setActionFilter] = useState('all')
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
     try {
-      // Mock API list: axios.get('/api/v1/admin/logs')
-      await new Promise((r) => setTimeout(r, 450))
+      const res = await apiRequest('/admin/logs')
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+      const json = await res.json()
 
-      setLogs([
-        {
-          id: 'log-1',
-          createdAt: '2026-07-06T11:00:00Z',
-          adminName: 'Admin Priya',
-          action: 'add_ip_block',
-          target_type: 'ip_block',
-          target_id: 'block-1',
-          details: 'IP: 192.168.1.120. Reason: DDoS attempts and socket request spamming.'
-        },
-        {
-          id: 'log-2',
-          createdAt: '2026-07-06T10:00:00Z',
-          adminName: 'Admin Priya',
-          action: 'approve_verification',
-          target_type: 'user',
-          target_id: 'user-3',
-          details: 'KYC approved for Vikram Malhotra.'
-        }
-      ])
+      if (json.success && Array.isArray(json.data)) {
+        const formatted = json.data.map((l) => ({
+          id: l.id,
+          createdAt: l.createdAt,
+          adminName: l.Admin?.Profile?.name || l.Admin?.email || 'Platform Admin',
+          action: l.action,
+          target_type: l.target_type,
+          target_id: l.target_id,
+          details: typeof l.details === 'object' ? JSON.stringify(l.details) : (l.details || '—')
+        }))
+        setLogs(formatted)
+      } else {
+        throw new Error(json.message || 'Failed fetching admin audit logs')
+      }
     } catch (err) {
       console.error('Failed retrieving administrative audit logs:', err)
+      if (logs.length === 0) {
+        setError(err.message || 'Unable to connect to audit log service.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [logs.length])
 
   useEffect(() => {
     fetchLogs()
-  }, [])
+
+    const handleLiveUpdate = () => {
+      fetchLogs(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+    return () => window.removeEventListener('admin:live_update', handleLiveUpdate)
+  }, [fetchLogs])
 
   const filteredLogs = logs.filter((l) => {
     if (actionFilter === 'all') return true
     return l.action === actionFilter
   })
 
-  if (loading) {
+  if (loading && logs.length === 0) {
     return (
       <div 
         style={{
-          minHeight: '100vh',
+          minHeight: '80vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

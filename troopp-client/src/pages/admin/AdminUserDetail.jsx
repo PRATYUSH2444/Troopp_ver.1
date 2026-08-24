@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import toast from 'react-hot-toast'
 import Spinner from '../../components/common/Spinner.jsx'
 import Avatar from '../../components/common/Avatar.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * Detailed administration view for specific traveler profiles.
- * Executes bans, suspensions, and manual trust override inputs.
- * Overhauled to match the premium dark moody theme.
+ * Executes bans, suspensions, unsuspensions, and manual trust override inputs.
+ * Connected directly to real PostgreSQL database and real-time WebSockets.
  */
 const AdminUserDetail = () => {
   const { id: userId } = useParams()
@@ -15,6 +17,7 @@ const AdminUserDetail = () => {
 
   // State managers
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [userData, setUserData] = useState(null)
   
   // Modals state
@@ -29,87 +32,121 @@ const AdminUserDetail = () => {
   const [overrideScore, setOverrideScore] = useState('50')
   const [overrideReason, setOverrideReason] = useState('')
 
-  const fetchUserData = async () => {
-    try {
-      // Mock API detail: axios.get(`/api/v1/admin/users/${userId}`)
-      await new Promise((r) => setTimeout(r, 500))
+  const [actionLoading, setActionLoading] = useState(false)
 
-      setUserData({
-        user: {
-          id: userId,
-          name: 'Raj Malhotra',
-          email: 'raj@gmail.com',
-          phone: '+91 9876543210',
-          city: 'Mumbai',
-          trustScore: 80,
-          reliabilityScore: 98,
-          account_status: 'active',
-          bio: 'Avid monsoon trekker and campfire enthusiast.'
-        },
-        scoreHistory: [
-          { date: '06/01', score: 50 },
-          { date: '06/10', score: 65 },
-          { date: '06/20', score: 77 },
-          { date: '07/01', score: 80 }
-        ],
-        trustLogs: [
-          { id: '1', reason: 'profile_completed', delta: 15, createdAt: '2026-06-10T10:00:00Z' },
-          { id: '2', reason: 'rating_positive', delta: 3, createdAt: '2026-06-20T18:00:00Z' },
-          { id: '3', reason: 'rating_positive', delta: 3, createdAt: '2026-07-01T15:30:00Z' }
-        ],
-        trips: [
-          { id: 'trip-1', title: 'Harishchandragad Monsoon Trek', date: '2026-07-15T06:00:00Z', role: 'creator', status: 'upcoming' },
-          { id: 'trip-2', title: 'Rajmachi Stargazing Camp', date: '2026-06-12T14:00:00Z', role: 'member', status: 'completed' }
-        ],
-        reportsFiled: [],
-        reportsReceived: [
-          { id: 'rep-1', reporterName: 'Anon Traveler', reason: 'Late arrival', details: 'Arrived 1 hour late at the railway station.', status: 'resolved' }
-        ]
-      })
+  const fetchUserData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
+    try {
+      const res = await apiRequest(`/admin/users/${userId}`)
+      if (!res.ok) throw new Error(`User not found (Status: ${res.status})`)
+      const json = await res.json()
+      if (json.success && json.data) {
+        setUserData(json.data)
+      } else {
+        throw new Error(json.message || 'Failed retrieving user profile')
+      }
     } catch (err) {
       console.error('Failed retrieving traveler detail profile:', err)
+      if (!userData) {
+        setError(err.message || 'Unable to load traveler account details.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId, userData])
 
   useEffect(() => {
     fetchUserData()
-  }, [userId])
+
+    const handleLiveUpdate = () => {
+      fetchUserData(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+    return () => window.removeEventListener('admin:live_update', handleLiveUpdate)
+  }, [fetchUserData])
 
   const handleSuspendSubmit = async () => {
+    if (!suspendReason.trim()) {
+      toast.error('Please enter a reason for suspension.')
+      return
+    }
+    setActionLoading(true)
     try {
-      // Mock API suspend: axios.put(`/api/v1/admin/users/${userId}/suspend`, { days: suspendDays, reason: suspendReason })
-      await new Promise((r) => setTimeout(r, 400))
+      const res = await apiRequest(`/admin/users/${userId}/suspend`, {
+        method: 'PUT',
+        body: JSON.stringify({ days: suspendDays, reason: suspendReason })
+      })
+      if (!res.ok) throw new Error('Failed to suspend user')
+      toast.success(`User suspended for ${suspendDays} days.`)
       setSuspendOpen(false)
-      alert(`User suspended for ${suspendDays} days.`)
-      fetchUserData()
+      setSuspendReason('')
+      fetchUserData(true)
     } catch (err) {
-      console.error('Failed suspending user:', err)
+      toast.error(err.message || 'Failed suspending user.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleUnsuspend = async () => {
+    if (!window.confirm('Are you sure you want to lift the suspension for this user?')) return
+    setActionLoading(true)
+    try {
+      const res = await apiRequest(`/admin/users/${userId}/unsuspend`, { method: 'PUT' })
+      if (!res.ok) throw new Error('Failed to restore user')
+      toast.success('User suspension lifted successfully.')
+      fetchUserData(true)
+    } catch (err) {
+      toast.error(err.message || 'Failed lifting suspension.')
+    } finally {
+      setActionLoading(false)
     }
   }
 
   const handleBanSubmit = async () => {
+    if (!banReason.trim()) {
+      toast.error('Please enter a justification for permanent ban.')
+      return
+    }
+    setActionLoading(true)
     try {
-      // Mock API ban: axios.put(`/api/v1/admin/users/${userId}/ban`, { reason: banReason })
-      await new Promise((r) => setTimeout(r, 400))
+      const res = await apiRequest(`/admin/users/${userId}/ban`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason: banReason })
+      })
+      if (!res.ok) throw new Error('Failed to ban user')
+      toast.success('User permanently banned.')
       setBanOpen(false)
-      alert('User permanently banned.')
-      navigate('/admin/users')
+      setBanReason('')
+      fetchUserData(true)
     } catch (err) {
-      console.error('Failed banning user:', err)
+      toast.error(err.message || 'Failed banning user.')
+    } finally {
+      setActionLoading(false)
     }
   }
 
   const handleOverrideSubmit = async () => {
+    if (!overrideReason.trim()) {
+      toast.error('Please enter a reason for trust score override.')
+      return
+    }
+    setActionLoading(true)
     try {
-      // Mock API override: axios.put(`/api/v1/admin/users/${userId}/override-trust`, { newScore: overrideScore, reason: overrideReason })
-      await new Promise((r) => setTimeout(r, 400))
+      const res = await apiRequest(`/admin/users/${userId}/override-trust`, {
+        method: 'PUT',
+        body: JSON.stringify({ newScore: overrideScore, reason: overrideReason })
+      })
+      if (!res.ok) throw new Error('Failed to override trust score')
+      toast.success(`Trust score overridden to ${overrideScore} pts.`)
       setOverrideOpen(false)
-      alert('Trust score updated successfully.')
-      fetchUserData()
+      setOverrideReason('')
+      fetchUserData(true)
     } catch (err) {
-      console.error('Failed overriding trust score:', err)
+      toast.error(err.message || 'Failed overriding trust score.')
+    } finally {
+      setActionLoading(false)
     }
   }
 
@@ -250,46 +287,75 @@ const AdminUserDetail = () => {
             <h4 style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '0 0 6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '8px' }}>
               Moderation Commands
             </h4>
-            <button
-              onClick={() => setSuspendOpen(true)}
-              style={{
-                height: '42px',
-                width: '100%',
-                background: 'var(--amber)',
-                color: '#1a0e08',
-                borderRadius: '10px',
-                fontSize: '13px',
-                fontWeight: '700',
-                fontFamily: 'var(--font-display)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'opacity 150ms'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-            >
-              ⚠️ Temporarily Suspend User
-            </button>
-            <button
-              onClick={() => setBanOpen(true)}
-              style={{
-                height: '42px',
-                width: '100%',
-                background: 'var(--danger)',
-                color: 'white',
-                borderRadius: '10px',
-                fontSize: '13px',
-                fontWeight: '700',
-                fontFamily: 'var(--font-display)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'opacity 150ms'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-            >
-              🚫 Permanently Ban Account
-            </button>
+            {user.account_status === 'suspended' ? (
+              <button
+                disabled={actionLoading}
+                onClick={handleUnsuspend}
+                style={{
+                  height: '42px',
+                  width: '100%',
+                  background: 'var(--moss)',
+                  color: '#1a0e08',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  fontFamily: 'var(--font-display)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'opacity 150ms'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+              >
+                ✅ Lift Account Suspension
+              </button>
+            ) : (
+              <button
+                disabled={actionLoading || user.account_status === 'banned'}
+                onClick={() => setSuspendOpen(true)}
+                style={{
+                  height: '42px',
+                  width: '100%',
+                  background: 'var(--amber)',
+                  color: '#1a0e08',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  fontFamily: 'var(--font-display)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'opacity 150ms',
+                  opacity: user.account_status === 'banned' ? 0.4 : 1
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+              >
+                ⚠️ Temporarily Suspend User
+              </button>
+            )}
+            {user.account_status !== 'banned' && (
+              <button
+                disabled={actionLoading}
+                onClick={() => setBanOpen(true)}
+                style={{
+                  height: '42px',
+                  width: '100%',
+                  background: 'var(--danger)',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  fontFamily: 'var(--font-display)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'opacity 150ms'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+              >
+                🚫 Permanently Ban Account
+              </button>
+            )}
             <button
               onClick={() => {
                 setOverrideScore(user.trustScore.toString())

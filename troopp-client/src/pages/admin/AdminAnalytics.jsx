@@ -1,56 +1,56 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Spinner from '../../components/common/Spinner.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * Detailed Platform Analytics and Visualizations.
- * Overhauled to match the premium dark moody theme.
+ * Connected directly to real PostgreSQL database and real-time WebSockets.
  */
 const AdminAnalytics = () => {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [analyticsData, setAnalyticsData] = useState(null)
   const [dateRange, setDateRange] = useState('30')
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
     try {
-      // Mock API list: axios.get('/api/v1/admin/analytics')
-      await new Promise((r) => setTimeout(r, 450))
+      const res = await apiRequest(`/admin/analytics?days=${dateRange}`)
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+      const json = await res.json()
 
-      setAnalyticsData({
-        dauHistory: [
-          { date: '06/20', dau: 180 },
-          { date: '06/25', dau: 210 },
-          { date: '06/30', dau: 240 },
-          { date: '07/05', dau: 310 }
-        ],
-        tripsHistory: [
-          { date: '06/20', count: 5 },
-          { date: '06/25', count: 8 },
-          { date: '06/30', count: 12 },
-          { date: '07/05', count: 18 }
-        ],
-        cityComparison: [
-          { city: 'Mumbai', signups: 120, trips: 18, completionRate: 94 },
-          { city: 'Pune', signups: 98, trips: 15, completionRate: 91 },
-          { city: 'Bangalore', signups: 84, trips: 12, completionRate: 88 }
-        ]
-      })
+      if (json.success && json.data) {
+        setAnalyticsData(json.data)
+      } else {
+        throw new Error(json.message || 'Failed fetching analytics data')
+      }
     } catch (err) {
       console.error('Failed retrieving admin analytics:', err)
+      if (!analyticsData) {
+        setError(err.message || 'Unable to connect to analytics service.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [dateRange, analyticsData])
 
   useEffect(() => {
     fetchAnalytics()
-  }, [dateRange])
 
-  if (loading) {
+    const handleLiveUpdate = () => {
+      fetchAnalytics(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+    return () => window.removeEventListener('admin:live_update', handleLiveUpdate)
+  }, [fetchAnalytics])
+
+  if (loading && !analyticsData) {
     return (
       <div 
         style={{
-          minHeight: '100vh',
+          minHeight: '80vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -63,7 +63,35 @@ const AdminAnalytics = () => {
     )
   }
 
-  const { dauHistory, tripsHistory, cityComparison } = analyticsData
+  if (error && !analyticsData) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-primary)' }}>
+        <span style={{ fontSize: '36px' }}>📊</span>
+        <h3 style={{ margin: '12px 0 6px', color: '#f3f1ea' }}>Failed to Load Analytics</h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{error}</p>
+        <button
+          onClick={() => fetchAnalytics()}
+          style={{
+            marginTop: '12px',
+            height: '38px',
+            padding: '0 20px',
+            background: 'var(--accent)',
+            color: '#1a0e08',
+            fontWeight: '700',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  const dauHistory = analyticsData?.dauHistory || []
+  const tripsHistory = analyticsData?.tripsHistory || []
+  const cityComparison = analyticsData?.cityComparison || []
 
   return (
     <div 

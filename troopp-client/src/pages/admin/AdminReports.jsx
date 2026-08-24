@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import Spinner from '../../components/common/Spinner.jsx'
+import { apiRequest } from '../../utils/api.js'
 
 /**
  * Administrative Grievance Reports Queue. Reviews reported traveler profiles.
- * Overhauled to match the premium dark moody theme.
+ * Connected directly to real PostgreSQL database and real-time WebSockets.
  */
 const AdminReports = () => {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [reports, setReports] = useState([])
   const [statusFilter, setStatusFilter] = useState('pending')
   
@@ -14,65 +17,87 @@ const AdminReports = () => {
   const [activeReport, setActiveReport] = useState(null)
   const [actionType, setActionType] = useState('') // 'resolve' | 'dismiss'
   const [resolutionNote, setResolutionNote] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
+    setError(null)
     try {
-      // Mock API: axios.get('/api/v1/admin/reports')
-      await new Promise((r) => setTimeout(r, 400))
+      const res = await apiRequest('/admin/reports')
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+      const json = await res.json()
 
-      setReports([
-        {
-          id: 'rep-101',
-          reporterName: 'Priya Sharma',
-          reportedName: 'Vikram Malhotra',
-          reportedUserId: 'user-3',
-          reason: 'Harassment / Verbal Abuse',
-          details: 'Used offensive language in the chat room when splits were being discussed.',
-          createdAt: '2026-07-06T15:30:00Z',
-          status: 'pending'
-        },
-        {
-          id: 'rep-102',
-          reporterName: 'Rohan Mehta',
-          reportedName: 'Vikram Malhotra',
-          reportedUserId: 'user-3',
-          reason: 'No-Show / Reliability Hit',
-          details: 'Did not show up at Pune Central meeting point. Left the group waiting.',
-          createdAt: '2026-07-05T09:00:00Z',
-          status: 'pending'
-        }
-      ])
+      if (json.success && Array.isArray(json.data)) {
+        const formatted = json.data.map((r) => ({
+          id: r.id,
+          reporterName: r.Reporter?.Profile?.name || 'Explorer',
+          reportedName: r.ReportedUser?.Profile?.name || 'Traveler',
+          reportedUserId: r.reported_user_id,
+          reason: r.reason,
+          details: r.details,
+          createdAt: r.createdAt,
+          status: r.status
+        }))
+        setReports(formatted)
+      } else {
+        throw new Error(json.message || 'Failed fetching reports')
+      }
     } catch (err) {
       console.error('Failed retrieving reports queue:', err)
+      if (reports.length === 0) {
+        setError(err.message || 'Unable to connect to reports queue.')
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [reports.length])
 
   useEffect(() => {
     fetchReports()
-  }, [])
+
+    const handleLiveUpdate = () => {
+      fetchReports(true)
+    }
+    window.addEventListener('admin:live_update', handleLiveUpdate)
+    return () => window.removeEventListener('admin:live_update', handleLiveUpdate)
+  }, [fetchReports])
 
   const handleActionSubmit = async () => {
-    if (!activeReport || !resolutionNote.trim()) return
+    if (!activeReport || !resolutionNote.trim()) {
+      toast.error('Please enter resolution notes.')
+      return
+    }
 
+    setSubmitting(true)
     try {
-      // Mock API dispatch: axios.put(`/api/v1/admin/reports/${activeReport.id}/resolve`, { status: actionType === 'resolve' ? 'resolved' : 'dismissed', resolutionNote })
-      await new Promise((r) => setTimeout(r, 350))
+      const decision = actionType === 'resolve' ? 'resolved' : 'dismissed'
+      const res = await apiRequest(`/admin/reports/${activeReport.id}/resolve`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          status: decision,
+          resolutionNote
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to submit resolution')
+
+      toast.success(`Report successfully marked as ${actionType === 'resolve' ? 'Valid (Penalties Applied)' : 'Dismissed'}.`)
 
       setReports((prev) =>
         prev.map((r) =>
           r.id === activeReport.id
-            ? { ...r, status: actionType === 'resolve' ? 'resolved' : 'dismissed' }
+            ? { ...r, status: decision }
             : r
         )
       )
 
-      alert(`Report successfully marked as ${actionType === 'resolve' ? 'Valid' : 'Dismissed'}.`)
       setActiveReport(null)
       setResolutionNote('')
+      fetchReports(true)
     } catch (err) {
-      console.error('Failed resolving report:', err)
+      toast.error(err.message || 'Failed resolving report.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -320,6 +345,13 @@ const AdminReports = () => {
                   </td>
                 </tr>
               ))}
+              {filteredReports.length === 0 && (
+                <tr>
+                  <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                    No reports found in the {statusFilter} queue.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
