@@ -319,7 +319,7 @@ const AdminActivities = () => {
               </tr>
             </thead>
             <tbody style={{ divideY: '1px solid rgba(255,255,255,0.04)' }}>
-              {filteredActivities.map((a) => (
+              {activities.map((a) => (
                 <tr 
                   key={a.id} 
                   style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 150ms' }}
