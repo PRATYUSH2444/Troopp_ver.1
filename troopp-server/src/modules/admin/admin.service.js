@@ -549,27 +549,37 @@ export const getActivities = async (filters = {}, page = 1, limit = 50) => {
   const where = {}
 
   if (filters.status && filters.status !== 'all') {
-    where.status = filters.status
+    if (filters.status === 'active') {
+      where.status = { [Op.in]: ['open', 'full'] }
+    } else if (filters.status === 'completed') {
+      where.status = 'completed'
+    } else if (filters.status === 'cancelled') {
+      where.status = 'cancelled'
+    } else {
+      where.status = filters.status
+    }
   }
   if (filters.city_id) {
     where.city_id = filters.city_id
   }
   if (filters.search) {
-    where.title = { [Op.iLike || Op.like]: `%${filters.search.trim()}%` }
+    where.title = { [Op.iLike]: `%${filters.search.trim()}%` }
   }
 
   const result = await Activity.findAndCountAll({
     where,
     limit,
     offset,
+    distinct: true,
     include: [
       {
         model: User,
         as: 'Creator',
-        include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'] }]
+        required: false,
+        include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'], required: false }]
       },
-      { model: City, attributes: ['name'] },
-      { model: ActivityMember, as: 'ActivityMembers', attributes: ['id', 'status', 'user_id'] }
+      { model: City, as: 'City', attributes: ['name'], required: false },
+      { model: ActivityMember, as: 'ActivityMembers', attributes: ['id', 'status', 'user_id'], required: false }
     ],
     order: [['createdAt', 'DESC']]
   })
@@ -587,7 +597,7 @@ export const getActivities = async (filters = {}, page = 1, limit = 50) => {
       status: act.status,
       membersCount: confirmedCount,
       maxMembers: act.max_group_size || 5,
-      dateTime: act.start_date || act.createdAt,
+      dateTime: act.date_time || act.createdAt,
       createdAt: act.createdAt
     }
   })

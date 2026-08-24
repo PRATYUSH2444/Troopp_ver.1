@@ -62,11 +62,11 @@ User.hasOne(NotificationPreference, { foreignKey: 'user_id', onDelete: 'CASCADE'
 NotificationPreference.belongsTo(User, { foreignKey: 'user_id' })
 
 // 4. City, User & Activity
-City.hasMany(User, { foreignKey: 'city_id' })
-User.belongsTo(City, { foreignKey: 'city_id' })
+City.hasMany(User, { foreignKey: 'city_id', as: 'Users' })
+User.belongsTo(City, { foreignKey: 'city_id', as: 'City' })
 
-City.hasMany(Activity, { foreignKey: 'city_id' })
-Activity.belongsTo(City, { foreignKey: 'city_id' })
+City.hasMany(Activity, { foreignKey: 'city_id', as: 'Activities' })
+Activity.belongsTo(City, { foreignKey: 'city_id', as: 'City' })
 
 User.hasMany(Activity, { foreignKey: 'creator_id', as: 'CreatedActivities' })
 Activity.belongsTo(User, { foreignKey: 'creator_id', as: 'Creator' })
