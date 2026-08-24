@@ -51,13 +51,11 @@ const AdminActivities = () => {
       }
     } catch (err) {
       console.error('Failed retrieving activities oversight:', err)
-      if (activities.length === 0) {
-        setError(err.message || 'Unable to connect to activities service.')
-      }
+      setError(err.message || 'Unable to connect to activities service.')
     } finally {
       setLoading(false)
     }
-  }, [page, search, statusFilter, activities.length])
+  }, [page, search, statusFilter])
 
   // Debounce search
   useEffect(() => {

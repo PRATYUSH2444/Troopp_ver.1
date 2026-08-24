@@ -55,13 +55,11 @@ const AdminUsers = () => {
       }
     } catch (err) {
       console.error('Failed retrieving travelers list:', err)
-      if (users.length === 0) {
-        setError(err.message || 'Unable to connect to users service.')
-      }
+      setError(err.message || 'Unable to connect to users service.')
     } finally {
       setLoading(false)
     }
-  }, [page, search, statusFilter, users.length])
+  }, [page, search, statusFilter])
 
   // Debounced search trigger
   useEffect(() => {
