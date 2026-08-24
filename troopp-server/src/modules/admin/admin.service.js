@@ -256,7 +256,7 @@ export const searchUsers = async (filters = {}, page = 1, limit = 50) => {
     where.account_status = filters.account_status
   }
 
-  if (filters.search && filters.search.trim().length > 0) {
+  if (filters.search && typeof filters.search === 'string' && filters.search.trim().length > 0) {
     const term = `%${filters.search.trim()}%`
     where[Op.or] = [
       { email: { [Op.iLike]: term } },
@@ -264,20 +264,22 @@ export const searchUsers = async (filters = {}, page = 1, limit = 50) => {
     ]
   }
 
-  const result = await User.findAndCountAll({
-    where,
-    limit,
-    offset,
-    distinct: true,
-    include: [
-      { model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'], required: false },
-      { model: City, as: 'City', attributes: ['name'], required: false }
-    ],
-    order: [['createdAt', 'DESC']]
-  })
+  const [users, count] = await Promise.all([
+    User.findAll({
+      where,
+      limit,
+      offset,
+      include: [
+        { model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'], required: false },
+        { model: City, as: 'City', attributes: ['name'], required: false }
+      ],
+      order: [['createdAt', 'DESC']]
+    }),
+    User.count({ where })
+  ])
 
   // Format users list for frontend
-  const formattedUsers = result.rows.map((u) => ({
+  const formattedUsers = users.map((u) => ({
     id: u.id,
     name: u.Profile?.name || 'Explorer',
     avatar_url: u.Profile?.avatar_url || null,
@@ -293,7 +295,7 @@ export const searchUsers = async (filters = {}, page = 1, limit = 50) => {
 
   return {
     rows: formattedUsers,
-    count: result.count
+    count
   }
 }
 
@@ -678,29 +680,31 @@ export const getActivities = async (filters = {}, page = 1, limit = 50) => {
   if (filters.city_id) {
     where.city_id = filters.city_id
   }
-  if (filters.search && filters.search.trim().length > 0) {
+  if (filters.search && typeof filters.search === 'string' && filters.search.trim().length > 0) {
     where.title = { [Op.iLike]: `%${filters.search.trim()}%` }
   }
 
-  const result = await Activity.findAndCountAll({
-    where,
-    limit,
-    offset,
-    distinct: true,
-    include: [
-      {
-        model: User,
-        as: 'Creator',
-        required: false,
-        include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'], required: false }]
-      },
-      { model: City, as: 'City', attributes: ['name'], required: false },
-      { model: ActivityMember, as: 'ActivityMembers', attributes: ['id', 'status', 'user_id'], required: false }
-    ],
-    order: [['createdAt', 'DESC']]
-  })
+  const [activitiesList, count] = await Promise.all([
+    Activity.findAll({
+      where,
+      limit,
+      offset,
+      include: [
+        {
+          model: User,
+          as: 'Creator',
+          required: false,
+          include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'], required: false }]
+        },
+        { model: City, as: 'City', attributes: ['name'], required: false },
+        { model: ActivityMember, as: 'ActivityMembers', attributes: ['id', 'status', 'user_id'], required: false }
+      ],
+      order: [['createdAt', 'DESC']]
+    }),
+    Activity.count({ where })
+  ])
 
-  const activities = result.rows.map((act) => {
+  const activities = activitiesList.map((act) => {
     const confirmedCount = act.ActivityMembers?.filter((m) => m.status === 'confirmed')?.length || 0
     return {
       id: act.id,
@@ -720,7 +724,7 @@ export const getActivities = async (filters = {}, page = 1, limit = 50) => {
 
   return {
     rows: activities,
-    count: result.count
+    count
   }
 }
 
