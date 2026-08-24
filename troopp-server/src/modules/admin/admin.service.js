@@ -44,7 +44,7 @@ export const getCachedCities = async () => {
     return memoryCityCache.data
   }
 
-  const cities = await City.findAll({ order: [['name', 'ASC']] })
+  const cities = await City.findAll({ order: [['city_name', 'ASC']] })
   
   if (isRedisHealthy() && redis) {
     try {
@@ -96,82 +96,73 @@ export const logAdminAction = async (adminId, action, targetId, targetType, deta
 }
 
 /**
- * Aggregates all system KPI metrics, 30-day registration/trust trends, and city breakdowns.
+ * Aggregates real-time KPIs and 30-day growth trajectories from PostgreSQL.
  */
 export const getDashboard = async () => {
   try {
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    thirtyDaysAgo.setHours(0, 0, 0, 0)
+
+    // 1. High-level metric counts
     const [
       totalUsers,
       activeTrips,
-      pendingUserReports,
-      pendingActReports,
+      pendingReports,
       newSignupsToday,
-      avgTrustScoreRaw
+      avgTrustScoreResult,
+      recentUsers
     ] = await Promise.all([
       User.count().catch(() => 0),
-      Activity.count({ where: { status: 'active' } }).catch(() => 0),
-      Report.count({ where: { status: 'pending' } }).catch(() => 0),
-      ActivityReport.count({ where: { status: 'pending' } }).catch(() => 0),
-      User.count({
+      Activity.count({
         where: {
-          createdAt: {
-            [Op.gte]: new Date(new Date().setHours(0, 0, 0, 0))
-          }
+          status: { [Op.in]: ['open', 'full'] }
         }
       }).catch(() => 0),
-      User.aggregate('trust_score', 'AVG').catch(() => null)
+      Report.count({
+        where: { status: 'pending' }
+      }).catch(() => 0),
+      User.count({
+        where: {
+          createdAt: { [Op.gte]: todayStart }
+        }
+      }).catch(() => 0),
+      User.aggregate('trust_score', 'AVG').catch(() => 50),
+      User.findAll({
+        where: {
+          createdAt: { [Op.gte]: thirtyDaysAgo }
+        },
+        attributes: ['id', 'trust_score', 'createdAt'],
+        order: [['createdAt', 'ASC']]
+      }).catch(() => [])
     ])
 
-    const pendingReports = (pendingUserReports || 0) + (pendingActReports || 0)
-    const avgTrustScore = avgTrustScoreRaw != null ? parseFloat(Number(avgTrustScoreRaw).toFixed(1)) : 50
+    const avgTrustScore = avgTrustScoreResult ? parseFloat(Number(avgTrustScoreResult).toFixed(1)) : 50
 
-    // 1. Dynamic 30-day registration trend buckets
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29)
-    thirtyDaysAgo.setHours(0, 0, 0, 0)
-
+    // Build 30-day day buckets
     const dateMap = {}
     const trustMap = {}
     for (let i = 29; i >= 0; i--) {
       const d = new Date()
       d.setDate(d.getDate() - i)
-      const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-      dateMap[label] = 0
-      trustMap[label] = []
+      const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+      dateMap[dateStr] = 0
+      trustMap[dateStr] = []
     }
 
-    try {
-      const [recentUsers, recentTrustLogs] = await Promise.all([
-        User.findAll({
-          where: { createdAt: { [Op.gte]: thirtyDaysAgo } },
-          attributes: ['id', 'trust_score', 'createdAt'],
-          raw: true
-        }).catch(() => []),
-        TrustScoreLog.findAll({
-          where: { createdAt: { [Op.gte]: thirtyDaysAgo } },
-          attributes: ['new_score', 'createdAt'],
-          raw: true
-        }).catch(() => [])
-      ])
-
-      recentUsers.forEach((u) => {
-        const d = new Date(u.createdAt)
-        const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-        if (dateMap[label] !== undefined) {
-          dateMap[label] += 1
+    recentUsers.forEach((u) => {
+      const d = new Date(u.createdAt)
+      const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+      if (dateMap[dateStr] !== undefined) {
+        dateMap[dateStr]++
+        if (u.trust_score !== null && u.trust_score !== undefined) {
+          trustMap[dateStr].push(u.trust_score)
         }
-      })
-
-      recentTrustLogs.forEach((log) => {
-        const d = new Date(log.createdAt)
-        const label = `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-        if (trustMap[label]) {
-          trustMap[label].push(log.new_score)
-        }
-      })
-    } catch (chartErr) {
-      logger.warn('Dynamic chart calculation notice:', chartErr?.message)
-    }
+      }
+    })
 
     const signupHistory = Object.keys(dateMap).map((date) => ({
       date,
@@ -215,7 +206,7 @@ export const getDashboard = async () => {
         }
 
         cityBreakdown.push({
-          city: c.name,
+          city: c.city_name || c.name || 'Global',
           users: userCount,
           activeTrips: activeCount,
           completedTrips: completedCount,
@@ -271,7 +262,7 @@ export const searchUsers = async (filters = {}, page = 1, limit = 50) => {
       offset,
       include: [
         { model: Profile, as: 'Profile', attributes: ['name', 'avatar_url', 'gender'], required: false },
-        { model: City, as: 'City', attributes: ['name'], required: false }
+        { model: City, as: 'City', attributes: ['id', 'city_name', 'state'], required: false }
       ],
       order: [['createdAt', 'DESC']]
     }),
@@ -285,7 +276,7 @@ export const searchUsers = async (filters = {}, page = 1, limit = 50) => {
     avatar_url: u.Profile?.avatar_url || null,
     email: u.email,
     phone: u.phone,
-    city: u.City?.name || 'Global',
+    city: u.City?.city_name || u.City?.name || 'Global',
     trustScore: u.trust_score,
     reliabilityScore: u.reliability_score,
     account_status: u.account_status,
@@ -306,7 +297,7 @@ export const getUserDetail = async (userId) => {
   const user = await User.findByPk(userId, {
     include: [
       { model: Profile, as: 'Profile', required: false },
-      { model: City, as: 'City', attributes: ['name'], required: false }
+      { model: City, as: 'City', attributes: ['id', 'city_name', 'state'], required: false }
     ]
   })
   if (!user) {
@@ -373,11 +364,13 @@ export const getUserDetail = async (userId) => {
       email: user.email,
       phone: user.phone,
       bio: user.Profile?.bio || '',
-      city: user.City?.name || 'Global',
+      city: user.City?.city_name || user.City?.name || 'Global',
       trustScore: user.trust_score,
       reliabilityScore: user.reliability_score,
       account_status: user.account_status,
       role: user.role,
+      scoreFrozen: user.score_frozen,
+      suspensionUntil: user.suspension_until,
       createdAt: user.createdAt
     },
     scoreHistory,
@@ -696,7 +689,7 @@ export const getActivities = async (filters = {}, page = 1, limit = 50) => {
           required: false,
           include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'], required: false }]
         },
-        { model: City, as: 'City', attributes: ['name'], required: false },
+        { model: City, as: 'City', attributes: ['id', 'city_name', 'state'], required: false },
         { model: ActivityMember, as: 'ActivityMembers', attributes: ['id', 'status', 'user_id'], required: false }
       ],
       order: [['createdAt', 'DESC']]
@@ -712,7 +705,7 @@ export const getActivities = async (filters = {}, page = 1, limit = 50) => {
       description: act.description,
       creatorName: act.Creator?.Profile?.name || 'Organizer',
       creatorAvatar: act.Creator?.Profile?.avatar_url || null,
-      city: act.City?.name || 'Global',
+      city: act.City?.city_name || act.City?.name || 'Global',
       type: act.type || 'Adventure',
       status: act.status,
       membersCount: confirmedCount,
