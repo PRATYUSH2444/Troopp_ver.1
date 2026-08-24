@@ -13,6 +13,7 @@ import Avatar from '../common/Avatar.jsx'
 const AdminLayout = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -51,10 +52,8 @@ const AdminLayout = () => {
       })
 
       const handleEvent = (eventName, payload) => {
-        // Dispatch window event for open child admin components
         window.dispatchEvent(new CustomEvent('admin:live_update', { detail: { event: eventName, payload } }))
 
-        // Notify with interactive toast
         if (eventName === 'admin:user_status') {
           toast(`Traveler status updated: ${payload.status || 'modified'}`, { icon: '👤' })
         } else if (eventName === 'admin:report_resolved') {
@@ -97,11 +96,84 @@ const AdminLayout = () => {
         display: 'flex',
         flexDirection: 'row',
         background: 'var(--bg)',
-        color: 'var(--text-primary)'
+        color: 'var(--text-primary)',
+        width: '100%',
+        maxWidth: '100vw',
+        overflowX: 'hidden'
       }}
-      className="flex-col md:flex-row"
     >
-      {/* 1. LEFT ADMIN SIDEBAR */}
+      {/* 📱 MOBILE TOP HEADER BAR (< 768px) */}
+      <div 
+        className="md:hidden"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '56px',
+          background: 'var(--bg-alt)',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 16px',
+          zIndex: 400
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#f3f1ea',
+              fontSize: '20px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '6px'
+            }}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
+          <span style={{ fontSize: '15px', fontWeight: '700', fontFamily: 'var(--font-display)', color: '#f3f1ea' }}>
+            Troopp <span style={{ color: 'var(--accent)' }}>Admin</span>
+          </span>
+        </div>
+        <Link
+          to="/feed"
+          style={{
+            fontSize: '11px',
+            fontWeight: '600',
+            color: 'var(--accent)',
+            textDecoration: 'none',
+            border: '1px solid rgba(255,106,44,0.3)',
+            padding: '4px 10px',
+            borderRadius: '100px'
+          }}
+        >
+          App Feed
+        </Link>
+      </div>
+
+      {/* 📱 MOBILE BACKDROP & DRAWER */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="md:hidden"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 450
+          }}
+        />
+      )}
+
+      {/* 1. LEFT ADMIN SIDEBAR (Desktop fixed + Mobile Drawer) */}
       <aside 
         style={{
           background: 'var(--bg-alt)',
@@ -115,11 +187,12 @@ const AdminLayout = () => {
           minWidth: '260px',
           position: 'sticky',
           top: 0,
-          zIndex: 300,
+          zIndex: 500,
           boxSizing: 'border-box',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          transition: 'transform 200ms ease'
         }}
-        className="w-full md:w-64 h-auto md:h-screen"
+        className={`fixed md:sticky top-0 left-0 bottom-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
         {/* Brand */}
         <div style={{
@@ -162,9 +235,19 @@ const AdminLayout = () => {
               </span>
             </div>
           </Link>
-          <Link to="/feed" className="md:hidden" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-            App
-          </Link>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="md:hidden"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              fontSize: '16px',
+              cursor: 'pointer'
+            }}
+          >
+            ✕
+          </button>
         </div>
 
         {/* Links */}
@@ -179,6 +262,7 @@ const AdminLayout = () => {
               key={link.path}
               to={link.path}
               end={link.path === '/admin'}
+              onClick={() => setMobileMenuOpen(false)}
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
@@ -264,7 +348,7 @@ const AdminLayout = () => {
       </aside>
 
       {/* 2. ADMIN PORTAL CONTENT */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <main className="pt-[56px] md:pt-0" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <header 
           style={{
             height: '60px',
