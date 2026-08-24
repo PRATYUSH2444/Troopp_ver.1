@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { authGuard, adminOnly } from '../../middleware/auth.middleware.js'
+import { adminBroadcastLimiter } from '../../middleware/rateLimit.middleware.js'
 import * as adminController from './admin.controller.js'
 
 const router = Router()
@@ -33,7 +34,7 @@ router.put('/activities/:activityId/cancel', adminController.cancelActivity)
 
 // Mass broadcast pushes
 router.get('/broadcasts', adminController.getBroadcasts)
-router.post('/broadcast', adminController.sendBroadcast)
+router.post('/broadcast', adminBroadcastLimiter, adminController.sendBroadcast)
 
 // Platform Analytics
 router.get('/analytics', adminController.getAnalytics)

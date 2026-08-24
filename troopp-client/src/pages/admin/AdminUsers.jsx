@@ -318,20 +318,18 @@ const AdminUsers = () => {
       {/* Bulk action alert bar */}
       {selectedUserIds.length > 0 && (
         <div 
+          className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between"
           style={{
             background: 'var(--accent-soft)',
             border: '1px solid rgba(255,106,44,0.3)',
             padding: '12px 16px',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
+            borderRadius: '12px'
           }}
         >
           <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--accent)' }}>
             {selectedUserIds.length} Travelers selected for bulk action
           </span>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
               onClick={() => setBroadcastOpen(true)}
               style={{
@@ -380,7 +378,7 @@ const AdminUsers = () => {
         }}
       >
         <div className="overflow-x-auto">
-          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+          <table className="min-w-[700px]" style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
             <thead 
               style={{
                 fontSize: '11px',

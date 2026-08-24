@@ -36,7 +36,7 @@ export const protect = async (req, res, next) => {
     const secret = process.env.JWT_ACCESS_SECRET
     let decoded
     try {
-      decoded = jwt.verify(token, secret)
+      decoded = jwt.verify(token, secret, { algorithms: ['HS256'] })
     } catch (err) {
       if (err.name === 'TokenExpiredError') {
         return next(new AppError('Session expired. Please request token refresh.', 401, 'JWT_EXPIRED'))
@@ -171,7 +171,7 @@ export const resolveUserOptional = async (req, res, next) => {
     const secret = process.env.JWT_ACCESS_SECRET
     let decoded
     try {
-      decoded = jwt.verify(token, secret)
+      decoded = jwt.verify(token, secret, { algorithms: ['HS256'] })
     } catch (err) {
       return next()
     }

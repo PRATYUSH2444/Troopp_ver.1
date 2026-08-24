@@ -415,7 +415,7 @@ const AdminBroadcast = () => {
           Campaign Broadcast Dispatch Logs
         </h4>
         <div className="overflow-x-auto">
-          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+          <table className="min-w-[600px]" style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
             <thead 
               style={{
                 fontSize: '11px',

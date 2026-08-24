@@ -265,3 +265,12 @@ export const discoverySearchLimiter = createLimiter({
   message: 'Too many search requests. Please wait a minute before searching or filtering again.',
   code: 'RATE_LIMIT_DISCOVERY_SEARCH'
 })
+
+// 16. Admin Broadcast Limiter: 5 push broadcasts per 15 minutes per admin
+export const adminBroadcastLimiter = createLimiter({
+  prefix: 'rl:abroad:',
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: 'Broadcast push rate limit reached. Please wait before sending another broadcast campaign.',
+  code: 'RATE_LIMIT_ADMIN_BROADCAST'
+})

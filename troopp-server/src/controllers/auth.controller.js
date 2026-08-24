@@ -398,7 +398,7 @@ export const refresh = async (req, res, next) => {
     // Verify token
     let decoded
     try {
-      decoded = jwt.verify(refreshToken, REFRESH_SECRET)
+      decoded = jwt.verify(refreshToken, REFRESH_SECRET, { algorithms: ['HS256'] })
     } catch (err) {
       return next(new AppError('Refresh token expired or invalid. Please login again.', 401, 'REFRESH_TOKEN_EXPIRED'))
     }
@@ -523,7 +523,7 @@ export const resetPassword = async (req, res, next) => {
     // 1. Verify Reset JWT
     let decoded
     try {
-      decoded = jwt.verify(token, RESET_SECRET)
+      decoded = jwt.verify(token, RESET_SECRET, { algorithms: ['HS256'] })
       if (decoded.type !== 'reset') {
         return next(new AppError('Invalid password reset token.', 400, 'INVALID_RESET_TOKEN'))
       }

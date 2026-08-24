@@ -172,7 +172,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         
         {/* KPI: Total Users */}
         <div 
@@ -336,7 +336,7 @@ const AdminDashboard = () => {
           City breakdown breakdown metrics
         </h4>
         <div className="overflow-x-auto">
-          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+          <table className="min-w-[580px]" style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-primary)', fontWeight: '700' }}>
                 <th style={{ paddingBottom: '12px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>City Name</th>

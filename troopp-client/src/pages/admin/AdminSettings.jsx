@@ -265,7 +265,7 @@ const AdminSettings = () => {
             {/* Promote Form */}
             <form onSubmit={handlePromoteSubmit} style={{ marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)' }}>Promote Traveler to Admin</span>
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <input
                   type="email"
                   required

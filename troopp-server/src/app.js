@@ -89,10 +89,26 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Input Sanitizer: Strips HTML and trims strings globally
+// Robust Input Sanitizer: Neutralizes XSS, event handlers, javascript: protocols, and null bytes
+const sanitizeString = (str) => {
+  if (typeof str !== 'string') return str
+  return str
+    .replace(/\0/g, '') // Null byte injection removal
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Full script tags
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Iframes
+    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, '')
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+    .replace(/\bon\w+\s*=\s*(['"]).*?\1/gi, '') // Inline event handlers like onerror="...", onload="..."
+    .replace(/\bon\w+\s*=\s*[^>\s]+/gi, '') // Unquoted event handlers like onerror=alert(1)
+    .replace(/javascript:\s*/gi, '') // javascript: pseudo-protocol
+    .replace(/data:\s*text\/html/gi, '')
+    .replace(/<[^>]*>/g, '') // Strip remaining HTML tags
+    .trim()
+}
+
 const sanitizeInput = (val) => {
   if (typeof val === 'string') {
-    return val.replace(/<[^>]*>/g, '').trim()
+    return sanitizeString(val)
   }
   if (Array.isArray(val)) {
     return val.map(sanitizeInput)
@@ -100,6 +116,8 @@ const sanitizeInput = (val) => {
   if (typeof val === 'object' && val !== null) {
     const sanitized = {}
     for (const key in val) {
+      // Prevent prototype pollution
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue
       sanitized[key] = sanitizeInput(val[key])
     }
     return sanitized

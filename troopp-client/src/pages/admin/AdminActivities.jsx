@@ -215,7 +215,7 @@ const AdminActivities = () => {
           }}
         />
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setStatusFilter('all')}
             style={{
@@ -298,7 +298,7 @@ const AdminActivities = () => {
         }}
       >
         <div className="overflow-x-auto">
-          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+          <table className="min-w-[700px]" style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
             <thead 
               style={{
                 fontSize: '11px',

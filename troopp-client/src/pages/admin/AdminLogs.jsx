@@ -183,7 +183,7 @@ const AdminLogs = () => {
         }}
       >
         <div className="overflow-x-auto">
-          <table style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
+          <table className="min-w-[650px]" style={{ width: '100%', textAlign: 'left', fontSize: '13px', color: 'var(--text-secondary)' }}>
             <thead 
               style={{
                 fontSize: '11px',
