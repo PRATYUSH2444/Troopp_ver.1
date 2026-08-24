@@ -107,11 +107,11 @@ const AdminReports = () => {
     return r.status === statusFilter
   })
 
-  if (loading) {
+  if (loading && reports.length === 0) {
     return (
       <div 
         style={{
-          minHeight: '100vh',
+          minHeight: '80vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -120,6 +120,42 @@ const AdminReports = () => {
         }}
       >
         <Spinner size="lg" />
+      </div>
+    )
+  }
+
+  if (error && reports.length === 0) {
+    return (
+      <div 
+        style={{
+          minHeight: '60vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          color: 'var(--text-primary)',
+          textAlign: 'center'
+        }}
+      >
+        <div style={{ fontSize: '36px' }}>⚠️</div>
+        <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#f3f1ea' }}>Failed to Load Reports</h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '400px', margin: 0 }}>{error}</p>
+        <button
+          onClick={() => fetchReports()}
+          style={{
+            height: '38px',
+            padding: '0 20px',
+            background: 'var(--accent)',
+            color: '#1a0e08',
+            fontWeight: '700',
+            borderRadius: '10px',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          Retry Connection
+        </button>
       </div>
     )
   }
