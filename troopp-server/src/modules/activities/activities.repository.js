@@ -402,6 +402,7 @@ export const getAllByCity = async (filters = {}, pagination = {}, requestingUser
       },
       {
         model: ActivityMember,
+        as: 'ActivityMembers',
         attributes: ['id', 'status', 'user_id'],
         include: [
           {

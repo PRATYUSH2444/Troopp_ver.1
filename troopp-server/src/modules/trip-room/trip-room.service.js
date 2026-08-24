@@ -184,7 +184,7 @@ export const markTripStarted = async (activityId, hostId) => {
     include: [
       {
         model: ActivityMember,
-        as: 'Members',
+        as: 'ActivityMembers',
         where: { status: 'confirmed' },
         include: [
           {
