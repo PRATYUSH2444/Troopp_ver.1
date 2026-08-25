@@ -36,13 +36,11 @@ const AdminLogs = () => {
       }
     } catch (err) {
       console.error('Failed retrieving administrative audit logs:', err)
-      if (logs.length === 0) {
-        setError(err.message || 'Unable to connect to audit log service.')
-      }
+      setError(err.message || 'Unable to connect to audit log service.')
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }, [logs.length])
+  }, [])
 
   useEffect(() => {
     fetchLogs()

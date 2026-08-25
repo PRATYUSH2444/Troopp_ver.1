@@ -33,13 +33,11 @@ const AdminIPBlocks = () => {
       }
     } catch (err) {
       console.error('Failed retrieving IP blocks:', err)
-      if (blocks.length === 0) {
-        setError(err.message || 'Unable to connect to firewall service.')
-      }
+      setError(err.message || 'Unable to connect to firewall service.')
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }, [blocks.length])
+  }, [])
 
   useEffect(() => {
     fetchIPBlocks()

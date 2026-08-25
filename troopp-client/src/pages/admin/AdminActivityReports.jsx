@@ -45,13 +45,11 @@ const AdminActivityReports = () => {
       }
     } catch (err) {
       console.error('Failed retrieving activity reports:', err)
-      if (reports.length === 0) {
-        setError(err.message || 'Unable to connect to activity reports service.')
-      }
+      setError(err.message || 'Unable to connect to activity reports service.')
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }, [reports.length])
+  }, [])
 
   useEffect(() => {
     fetchReports()

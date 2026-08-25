@@ -47,13 +47,11 @@ const AdminBroadcast = () => {
       }
     } catch (err) {
       console.error('Failed retrieving broadcasts data:', err)
-      if (history.length === 0) {
-        setError(err.message || 'Unable to load broadcast records.')
-      }
+      setError(err.message || 'Unable to load broadcast records.')
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }, [history.length])
+  }, [])
 
   useEffect(() => {
     fetchHistory()

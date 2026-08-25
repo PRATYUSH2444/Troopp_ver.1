@@ -421,7 +421,7 @@ const AdminUsers = () => {
                     />
                   </td>
                   <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Avatar size="sm" name={u.name} score={u.trustScore} />
+                    <Avatar size="sm" src={u.avatar_url} name={u.name} score={u.trustScore} />
                     <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                       <span style={{ fontWeight: '700', color: '#f3f1ea', fontSize: '13px' }}>{u.name}</span>
                       <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{u.email}</span>

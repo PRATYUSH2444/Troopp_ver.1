@@ -40,13 +40,11 @@ const AdminSettings = () => {
       }
     } catch (err) {
       console.error('Failed retrieving administrative settings:', err)
-      if (admins.length === 0) {
-        setError(err.message || 'Unable to load administrator rosters.')
-      }
+      setError(err.message || 'Unable to load administrator rosters.')
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }, [admins.length])
+  }, [])
 
   useEffect(() => {
     fetchAdmins()

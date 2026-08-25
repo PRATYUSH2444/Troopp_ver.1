@@ -28,13 +28,11 @@ const AdminAnalytics = () => {
       }
     } catch (err) {
       console.error('Failed retrieving admin analytics:', err)
-      if (!analyticsData) {
-        setError(err.message || 'Unable to connect to analytics service.')
-      }
+      setError(err.message || 'Unable to connect to analytics service.')
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }, [dateRange, analyticsData])
+  }, [dateRange])
 
   useEffect(() => {
     fetchAnalytics()

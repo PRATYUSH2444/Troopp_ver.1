@@ -44,13 +44,11 @@ const AdminReports = () => {
       }
     } catch (err) {
       console.error('Failed retrieving reports queue:', err)
-      if (reports.length === 0) {
-        setError(err.message || 'Unable to connect to reports queue.')
-      }
+      setError(err.message || 'Unable to connect to reports queue.')
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }, [reports.length])
+  }, [])
 
   useEffect(() => {
     fetchReports()

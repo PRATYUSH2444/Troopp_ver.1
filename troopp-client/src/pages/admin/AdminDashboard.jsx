@@ -28,13 +28,11 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       console.error('Failed retrieving admin dashboard metrics:', err)
-      if (!dashboardData) {
-        setError(err.message || 'Unable to connect to administration database.')
-      }
+      setError(err.message || 'Unable to connect to administration database.')
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }, [dashboardData])
+  }, [])
 
   useEffect(() => {
     fetchDashboardData()
