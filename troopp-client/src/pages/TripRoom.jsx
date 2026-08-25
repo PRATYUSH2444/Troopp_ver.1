@@ -94,6 +94,11 @@ const TripRoom = () => {
   const [flashType, setFlashType] = useState(null)
 
   const socketRef = useRef(null)
+  const activeTabRef = useRef(activeTab)
+
+  useEffect(() => {
+    activeTabRef.current = activeTab
+  }, [activeTab])
 
   // 1. Fetch initial configuration and onboarding status check
   useEffect(() => {
@@ -150,7 +155,7 @@ const TripRoom = () => {
 
         // 3. Fetch initial tab records safely in parallel
         const [msgRes, expRes, pollRes, healthRes] = await Promise.allSettled([
-          apiRequest(`/trip-rooms/${roomId}/messages?limit=30`),
+          apiRequest(`/trip-rooms/${roomId}/messages?limit=50`),
           apiRequest(`/trip-rooms/${roomId}/expenses`),
           apiRequest(`/trip-rooms/${roomId}/polls`),
           apiRequest(`/trip-rooms/${roomId}/health`)
@@ -204,8 +209,7 @@ const TripRoom = () => {
 
   // 2. Initialize real-time WebSockets connections with WhatsApp parity
   useEffect(() => {
-    const isUserHost = Boolean(user?.id && activity && (activity.creator_id === user.id || activity.host_id === user.id))
-    if (!onboardingComplete && !isUserHost) return
+    if (!roomId || !user?.id) return
 
     const serverUrl = import.meta.env.VITE_SOCKET_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api/v1', '') : 'http://localhost:3000')
     const token = getAccessToken()
@@ -275,7 +279,7 @@ const TripRoom = () => {
         haptics.newMessage?.()
         // Auto-ack delivery
         socket.emit('message_delivered_ack', { roomId, messageIds: [payload.id] })
-        if (activeTab === 'chat') {
+        if (activeTabRef.current === 'chat') {
           socket.emit('message_read_ack', { roomId, messageIds: [payload.id] })
         }
       }
@@ -438,7 +442,7 @@ const TripRoom = () => {
       }
       socketRef.current = null
     }
-  }, [roomId, onboardingComplete, user?.id, activity, activeTab])
+  }, [roomId, user?.id])
 
   // Tab navigation
   const handleTabChange = (tab) => {

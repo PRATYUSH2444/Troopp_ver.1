@@ -84,10 +84,25 @@ const registerTripRoomHandlers = (io, socket) => {
       })
       const excludedIds = deletedForMe.map((d) => d.message_id)
 
+      // Resolve actual TripRoom ID
+      let tripRoom = await TripRoom.findOne({ where: { activity_id: roomId } })
+      if (!tripRoom) {
+        tripRoom = await TripRoom.findByPk(roomId)
+      }
+      if (!tripRoom) {
+        tripRoom = await TripRoom.create({
+          activity_id: roomId,
+          room_name: 'Trip Room Chat',
+          status: 'active',
+          chat_enabled: true
+        })
+      }
+      const roomIds = [tripRoom.id, roomId]
+
       // Fetch last 50 messages from DB (latest 50, chronologically ordered)
       const messages = await Message.findAll({
         where: {
-          trip_room_id: roomId,
+          trip_room_id: { [Op.in]: roomIds },
           ...(excludedIds.length > 0 ? { id: { [Op.notIn]: excludedIds } } : {})
         },
         limit: 50,
@@ -248,8 +263,20 @@ const registerTripRoomHandlers = (io, socket) => {
       }
 
       // Check trip rules & room status
-      const tripRoom = await TripRoom.findOne({ where: { activity_id: roomId } })
-      if (!tripRoom || tripRoom.status === 'archived') {
+      let tripRoom = await TripRoom.findOne({ where: { activity_id: roomId } })
+      if (!tripRoom) {
+        tripRoom = await TripRoom.findByPk(roomId)
+      }
+      if (!tripRoom) {
+        tripRoom = await TripRoom.create({
+          activity_id: roomId,
+          room_name: 'Trip Room Chat',
+          status: 'active',
+          chat_enabled: true
+        })
+      }
+
+      if (tripRoom.status === 'archived') {
         return socket.emit('error', { code: 'ROOM_ARCHIVED', message: 'This room has been archived.' })
       }
 
@@ -267,9 +294,9 @@ const registerTripRoomHandlers = (io, socket) => {
         }
       }
 
-      // Insert message
+      // Insert message with tripRoom.id to satisfy PostgreSQL foreign key constraint
       const msg = await Message.create({
-        trip_room_id: roomId,
+        trip_room_id: tripRoom.id,
         sender_id: userId,
         message_type: messageType,
         message_text: content || '',

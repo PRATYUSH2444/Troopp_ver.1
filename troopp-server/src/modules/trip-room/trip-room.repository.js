@@ -27,10 +27,27 @@ import {
  * Handles all database operations for real-time Trip Rooms with full WhatsApp parity.
  */
 
+// Helper: Resolve TripRoom record by activity_id or trip_room_id
+export const resolveTripRoom = async (roomId) => {
+  let tripRoom = await TripRoom.findOne({ where: { activity_id: roomId } })
+  if (!tripRoom) {
+    tripRoom = await TripRoom.findByPk(roomId)
+  }
+  if (!tripRoom) {
+    tripRoom = await TripRoom.create({
+      activity_id: roomId,
+      room_name: 'Trip Room Chat',
+      status: 'active',
+      chat_enabled: true
+    })
+  }
+  return tripRoom
+}
+
 // 1. MESSAGES CRUD & CURSOR PAGINATION
 export const getMessagesPaginated = async (roomId, options = {}) => {
   const {
-    limit = 30,
+    limit = 50,
     before = null,
     after = null,
     offset = 0,
@@ -47,9 +64,13 @@ export const getMessagesPaginated = async (roomId, options = {}) => {
     excludedIds = deletedForMe.map((d) => d.message_id)
   }
 
-  // 2. Build where clause
+  // 2. Resolve actual TripRoom ID
+  const tripRoom = await resolveTripRoom(roomId)
+  const roomIds = tripRoom ? [tripRoom.id, roomId] : [roomId]
+
+  // 3. Build where clause
   const whereClause = {
-    trip_room_id: roomId
+    trip_room_id: { [Op.in]: roomIds }
   }
 
   if (excludedIds.length > 0) {
@@ -155,8 +176,11 @@ export const searchMessages = async (roomId, query, requestingUserId = null) => 
     excludedIds = deletedForMe.map((d) => d.message_id)
   }
 
+  const tripRoom = await resolveTripRoom(roomId)
+  const roomIds = tripRoom ? [tripRoom.id, roomId] : [roomId]
+
   const whereClause = {
-    trip_room_id: roomId,
+    trip_room_id: { [Op.in]: roomIds },
     deleted_for: { [Op.ne]: 'everyone' },
     message_text: { [Op.iLike]: `%${query.trim()}%` }
   }
@@ -193,8 +217,11 @@ export const getMediaGallery = async (roomId, mediaType = 'all', requestingUserI
     excludedIds = deletedForMe.map((d) => d.message_id)
   }
 
+  const tripRoom = await resolveTripRoom(roomId)
+  const roomIds = tripRoom ? [tripRoom.id, roomId] : [roomId]
+
   const whereClause = {
-    trip_room_id: roomId,
+    trip_room_id: { [Op.in]: roomIds },
     deleted_for: { [Op.ne]: 'everyone' }
   }
 
@@ -239,12 +266,15 @@ export const getMediaGallery = async (roomId, mediaType = 'all', requestingUserI
 
 // 4. STARRED MESSAGES
 export const getStarredMessages = async (roomId, userId) => {
+  const tripRoom = await resolveTripRoom(roomId)
+  const roomIds = tripRoom ? [tripRoom.id, roomId] : [roomId]
+
   const stars = await MessageStar.findAll({
     where: { user_id: userId },
     include: [
       {
         model: Message,
-        where: { trip_room_id: roomId, deleted_for: { [Op.ne]: 'everyone' } },
+        where: { trip_room_id: { [Op.in]: roomIds }, deleted_for: { [Op.ne]: 'everyone' } },
         include: [
           {
             model: User,
@@ -270,8 +300,10 @@ export const forwardMessage = async (messageId, targetRoomId, userId) => {
   const original = await Message.findByPk(messageId)
   if (!original) return null
 
+  const targetRoom = await resolveTripRoom(targetRoomId)
+
   return await Message.create({
-    trip_room_id: targetRoomId,
+    trip_room_id: targetRoom.id,
     sender_id: userId,
     message_type: original.message_type,
     message_text: original.message_text,
