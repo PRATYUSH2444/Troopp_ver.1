@@ -18,6 +18,47 @@ import NewJoinerOnboarding from '../components/tripRoom/NewJoinerOnboarding.jsx'
 import SOSConfirmModal from '../components/safety/SOSConfirmModal.jsx'
 import Spinner from '../components/common/Spinner.jsx'
 
+class TripRoomErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('TripRoom ErrorBoundary caught error:', error, errorInfo)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '32px 24px', textAlign: 'center', background: '#1a2129', borderRadius: '20px', border: '1px solid rgba(255,84,112,0.3)', margin: '24px auto', maxWidth: '600px' }}>
+          <span style={{ fontSize: '36px' }}>⚠️</span>
+          <h3 style={{ color: '#ff5470', fontSize: '18px', fontWeight: '800', marginTop: '12px' }}>Trip Room View Error</h3>
+          <p style={{ color: '#9ba6ad', fontSize: '13px', marginTop: '6px', lineHeight: 1.5 }}>
+            {this.state.error?.message || 'An unexpected error occurred while loading this trip room.'}
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              style={{ background: '#ff6a2c', color: '#1a0e08', border: 'none', borderRadius: '100px', padding: '10px 20px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => window.location.href = '/activities'}
+              style={{ background: '#212b33', color: '#f3f1ea', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '100px', padding: '10px 20px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
+            >
+              Back to Trips
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 const TripRoom = () => {
   const { id: roomId } = useParams()
   const { user } = useAuth()
@@ -940,5 +981,11 @@ const TripRoom = () => {
   )
 }
 
-export default TripRoom
-export { TripRoom }
+const TripRoomWithBoundary = (props) => (
+  <TripRoomErrorBoundary>
+    <TripRoom {...props} />
+  </TripRoomErrorBoundary>
+)
+
+export default TripRoomWithBoundary
+export { TripRoomWithBoundary as TripRoom }
