@@ -65,13 +65,11 @@ export const getMessagesPaginated = async (roomId, options = {}) => {
     whereClause.created_at = { [Op.gt]: new Date(after) }
   }
 
-  const orderDirection = before ? 'DESC' : 'ASC'
-
   const { rows, count } = await Message.findAndCountAll({
     where: whereClause,
     limit: parseInt(limit, 10),
     ...(offset && !before && !after ? { offset: parseInt(offset, 10) } : {}),
-    order: [['created_at', orderDirection]],
+    order: [['created_at', 'DESC']],
     include: [
       {
         model: User,
@@ -129,8 +127,9 @@ export const getMessagesPaginated = async (roomId, options = {}) => {
     ]
   })
 
-  // If we fetched older messages with DESC order, re-sort ascending for client chat view
-  const formattedRows = (before ? rows.reverse() : rows).map((m) => {
+  // Reverse DESC slice so returned messages are strictly ascending (oldest -> newest) for chat UI
+  const chronologicalRows = [...rows].reverse()
+  const formattedRows = chronologicalRows.map((m) => {
     const plain = m.toJSON()
     plain.is_starred = Boolean(plain.Stars && plain.Stars.length > 0)
     return plain

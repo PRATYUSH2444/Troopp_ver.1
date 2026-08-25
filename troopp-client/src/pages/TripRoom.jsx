@@ -18,6 +18,7 @@ import NewJoinerOnboarding from '../components/tripRoom/NewJoinerOnboarding.jsx'
 import SOSConfirmModal from '../components/safety/SOSConfirmModal.jsx'
 import Spinner from '../components/common/Spinner.jsx'
 import Avatar from '../components/common/Avatar.jsx'
+import { encryptMessageText, decryptMessageText, decryptMessagesList } from '../utils/e2ee.js'
 
 class TripRoomErrorBoundary extends React.Component {
   constructor(props) {
@@ -162,8 +163,17 @@ const TripRoom = () => {
           const rows = Array.isArray(msgJson.data)
             ? msgJson.data
             : (Array.isArray(msgJson.data?.rows) ? msgJson.data.rows : [])
-          setMessages(rows)
-          setHasMoreOlder(Boolean(msgJson.data?.hasMore))
+          const decryptedRows = await decryptMessagesList(rows, roomId)
+          if (isMounted) {
+            setMessages((prev) => {
+              const existingMap = new Map((prev || []).map((m) => [m.id, m]))
+              decryptedRows.forEach((r) => existingMap.set(r.id, r))
+              const merged = Array.from(existingMap.values())
+              merged.sort((a, b) => new Date(a.created_at || a.createdAt || 0) - new Date(b.created_at || b.createdAt || 0))
+              return merged
+            })
+            setHasMoreOlder(Boolean(msgJson.data?.hasMore))
+          }
         }
         if (expRes.status === 'fulfilled' && expRes.value?.ok) {
           const expJson = await expRes.value.json()
@@ -224,14 +234,16 @@ const TripRoom = () => {
     })
 
     // Listen room joins responses
-    socket.on('room_joined', (data) => {
+    socket.on('room_joined', async (data) => {
       if (data.messages && Array.isArray(data.messages)) {
+        const decryptedMessages = await decryptMessagesList(data.messages, roomId)
         setMessages((prev) => {
-          const existingIds = new Set((prev || []).map((m) => m.id))
-          const merged = [...(prev || [])]
-          data.messages.forEach((m) => {
-            if (!existingIds.has(m.id)) merged.push(m)
+          const existingMap = new Map((prev || []).map((m) => [m.id, m]))
+          decryptedMessages.forEach((m) => {
+            existingMap.set(m.id, { ...existingMap.get(m.id), ...m })
           })
+          const merged = Array.from(existingMap.values())
+          merged.sort((a, b) => new Date(a.created_at || a.createdAt || 0) - new Date(b.created_at || b.createdAt || 0))
           return merged
         })
       }
@@ -252,7 +264,13 @@ const TripRoom = () => {
     })
 
     // Listen incoming new messages
-    socket.on('new_message', (payload) => {
+    socket.on('new_message', async (payload) => {
+      let decryptedText = payload.message_text
+      if (payload.message_text && payload.message_text.startsWith('troopp:e2ee:v1:')) {
+        decryptedText = await decryptMessageText(payload.message_text, roomId)
+      }
+      const processed = { ...payload, message_text: decryptedText }
+
       if (payload.sender_id !== user?.id) {
         haptics.newMessage?.()
         // Auto-ack delivery
@@ -267,14 +285,14 @@ const TripRoom = () => {
         if (arr.some((m) => m.id === payload.id)) return arr
 
         if (payload.sender_id === user?.id) {
-          const idx = arr.findIndex((m) => m.status === 'sending' && (m.client_temp_id === payload.client_temp_id || m.message_text === payload.message_text))
+          const idx = arr.findIndex((m) => m.status === 'sending' && (m.client_temp_id === payload.client_temp_id || m.message_text === payload.message_text || m.message_text === decryptedText))
           if (idx !== -1) {
             const updated = [...arr]
-            updated[idx] = { ...payload, status: 'sent' }
+            updated[idx] = { ...processed, status: 'sent' }
             return updated
           }
         }
-        return [...arr, payload]
+        return [...arr, processed]
       })
     })
 
@@ -348,22 +366,17 @@ const TripRoom = () => {
 
     // Listen member joins & presence updates
     socket.on('member_joined', (payload) => {
-      const joinMsg = {
-        id: `join-${Date.now()}`,
-        sender_id: payload.userId,
-        message_text: `${payload.name || 'A traveler'} joined the trip room!`,
-        message_type: 'member_joined_system',
-        created_at: new Date().toISOString()
+      if (payload.userId !== user?.id) {
+        setFlashType('join')
+        import('../utils/sounds.js').then((m) => m.playJoinApproved?.()).catch(() => {})
+        timers.push(setTimeout(() => setFlashType(null), 800))
       }
-      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), joinMsg])
-
-      setFlashType('join')
-      import('../utils/sounds.js').then((m) => m.playJoinApproved?.()).catch(() => {})
-      timers.push(setTimeout(() => setFlashType(null), 800))
 
       setMembers((prev) => {
         const arr = Array.isArray(prev) ? prev : []
-        if (arr.some((m) => (m.userId || m.id) === payload.userId)) return arr
+        if (arr.some((m) => (m.userId || m.id) === payload.userId)) {
+          return arr.map((m) => ((m.userId || m.id) === payload.userId ? { ...m, isOnline: true } : m))
+        }
         return [
           ...arr,
           {
@@ -445,7 +458,14 @@ const TripRoom = () => {
       if (res.ok) {
         const json = await res.json()
         const olderRows = json.data?.rows || []
-        setMessages((prev) => [...olderRows, ...(Array.isArray(prev) ? prev : [])])
+        const decryptedOlder = await decryptMessagesList(olderRows, roomId)
+        setMessages((prev) => {
+          const existingMap = new Map((prev || []).map((m) => [m.id, m]))
+          decryptedOlder.forEach((r) => existingMap.set(r.id, r))
+          const merged = Array.from(existingMap.values())
+          merged.sort((a, b) => new Date(a.created_at || a.createdAt || 0) - new Date(b.created_at || b.createdAt || 0))
+          return merged
+        })
         setHasMoreOlder(Boolean(json.data?.hasMore))
       }
     } catch (err) {
@@ -481,7 +501,7 @@ const TripRoom = () => {
   }
 
   // Send Rich Message
-  const handleSendMessage = (messageText, options = {}) => {
+  const handleSendMessage = async (messageText, options = {}) => {
     const { messageType = 'text', media = null, locationData = null, contactData = null, replyToId = null, clientTempId } = options
     const tempId = clientTempId || `temp-${Date.now()}`
 
@@ -510,11 +530,21 @@ const TripRoom = () => {
 
     setMessages((prev) => [...(Array.isArray(prev) ? prev : []), optimisticMessage])
 
+    // Encrypt client-side if text message
+    let payloadText = messageText
+    if (messageType === 'text' && messageText) {
+      try {
+        payloadText = await encryptMessageText(messageText, roomId)
+      } catch (err) {
+        console.warn('E2EE encryption fallback to plain text:', err)
+      }
+    }
+
     if (socketRef.current) {
       socketRef.current.emit('send_message', {
         roomId,
-        content: messageText,
-        messageText,
+        content: payloadText,
+        messageText: payloadText,
         messageType,
         media,
         locationData,

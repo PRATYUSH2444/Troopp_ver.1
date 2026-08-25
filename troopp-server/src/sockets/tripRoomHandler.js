@@ -84,14 +84,14 @@ const registerTripRoomHandlers = (io, socket) => {
       })
       const excludedIds = deletedForMe.map((d) => d.message_id)
 
-      // Fetch last 50 messages from DB
+      // Fetch last 50 messages from DB (latest 50, chronologically ordered)
       const messages = await Message.findAll({
         where: {
           trip_room_id: roomId,
           ...(excludedIds.length > 0 ? { id: { [Op.notIn]: excludedIds } } : {})
         },
         limit: 50,
-        order: [['created_at', 'ASC']],
+        order: [['created_at', 'DESC']],
         include: [
           {
             model: User,
@@ -153,8 +153,9 @@ const registerTripRoomHandlers = (io, socket) => {
         ]
       })
 
-      // Format messages with is_starred boolean
-      const formattedMessages = messages.map((m) => {
+      // Format messages with is_starred boolean and chronologically ascending
+      const chronologicalMessages = [...messages].reverse()
+      const formattedMessages = chronologicalMessages.map((m) => {
         const plain = m.toJSON()
         plain.is_starred = Boolean(plain.Stars && plain.Stars.length > 0)
         return plain

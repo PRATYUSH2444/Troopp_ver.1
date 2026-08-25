@@ -502,6 +502,15 @@ const ChatTab = ({
             </button>
           </div>
         )}
+        {/* End-to-End Encryption Notice */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 8px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,193,7,0.06)', border: '1px solid rgba(255,193,7,0.15)', borderRadius: '10px', padding: '5px 12px', maxWidth: '340px', textAlign: 'center' }}>
+            <span style={{ fontSize: '12px' }}>🔒</span>
+            <span style={{ fontSize: '10.5px', color: '#ffc94d', fontWeight: '600', lineHeight: 1.3 }}>
+              Messages are end-to-end encrypted. No one outside this trip room can read them.
+            </span>
+          </div>
+        </div>
 
         {safeMessages.length === 0 ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '8px', opacity: 0.8 }}>
