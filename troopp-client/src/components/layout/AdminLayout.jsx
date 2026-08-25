@@ -104,92 +104,39 @@ const AdminLayout = () => {
     >
       {/* 📱 MOBILE TOP HEADER BAR (< 768px) */}
       <div 
-        className="md:hidden"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '56px',
-          background: 'var(--bg-alt)',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 16px',
-          zIndex: 400
-        }}
+        className="md:hidden flex items-center justify-between fixed top-0 left-0 right-0 h-14 bg-[var(--bg-alt)] border-b border-[var(--border)] px-4 z-40"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#f3f1ea',
-              fontSize: '20px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '6px'
-            }}
+            className="bg-transparent border-0 text-[#f3f1ea] text-xl cursor-pointer flex items-center justify-center p-1.5"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? '✕' : '☰'}
           </button>
-          <span style={{ fontSize: '15px', fontWeight: '700', fontFamily: 'var(--font-display)', color: '#f3f1ea' }}>
-            Troopp <span style={{ color: 'var(--accent)' }}>Admin</span>
+          <span className="text-sm font-bold font-display text-[#f3f1ea]">
+            Troopp <span className="text-[var(--accent)]">Admin</span>
           </span>
         </div>
         <Link
           to="/feed"
-          style={{
-            fontSize: '11px',
-            fontWeight: '600',
-            color: 'var(--accent)',
-            textDecoration: 'none',
-            border: '1px solid rgba(255,106,44,0.3)',
-            padding: '4px 10px',
-            borderRadius: '100px'
-          }}
+          className="text-xs font-semibold text-[var(--accent)] no-underline border border-[rgba(255,106,44,0.3)] px-2.5 py-1 rounded-full"
         >
           App Feed
         </Link>
       </div>
 
-      {/* 📱 MOBILE BACKDROP & DRAWER */}
+      {/* 📱 MOBILE BACKDROP */}
       {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="md:hidden"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.65)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 450
-          }}
+          className="fixed inset-0 bg-black/65 backdrop-blur-sm z-[90] md:hidden"
         />
       )}
 
-      {/* 1. LEFT ADMIN SIDEBAR (Desktop fixed + Mobile Drawer) */}
+      {/* 1. LEFT ADMIN SIDEBAR (Desktop sticky + Mobile Drawer) */}
       <aside 
-        style={{
-          background: 'var(--bg-alt)',
-          borderRight: '1px solid var(--border)',
-          padding: '24px 18px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px',
-          height: '100vh',
-          width: '260px',
-          minWidth: '260px',
-          boxSizing: 'border-box',
-          overflowY: 'auto',
-          transition: 'transform 200ms ease'
-        }}
-        className={`fixed md:sticky top-0 left-0 bottom-0 z-50 md:z-auto ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        className={`fixed md:sticky top-0 left-0 bottom-0 z-[100] md:z-auto h-screen w-[260px] min-w-[260px] bg-[var(--bg-alt)] border-r border-[var(--border)] p-6 flex flex-col gap-6 box-border overflow-y-auto transition-transform duration-200 ease-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
         {/* Brand */}
         <div style={{
