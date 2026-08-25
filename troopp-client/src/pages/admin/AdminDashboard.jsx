@@ -122,20 +122,12 @@ const AdminDashboard = () => {
       }}
     >
       {/* Top Header */}
-      <div 
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid var(--border)',
-          paddingBottom: '16px'
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+        <div className="flex flex-col min-w-0">
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
             Administrative Panel
           </span>
-          <h2 style={{ fontSize: '22px', fontWeight: '700', fontFamily: 'var(--font-display)', margin: '4px 0 0 0', color: '#f3f1ea' }}>
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-[#f3f1ea] m-0 mt-0.5 truncate">
             Control Center Overview
           </h2>
         </div>
@@ -144,28 +136,11 @@ const AdminDashboard = () => {
             setLoading(true)
             fetchDashboardData()
           }}
-          style={{
-            height: '40px',
-            padding: '0 16px',
-            background: 'var(--surface-raised)',
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            fontSize: '13px',
-            fontWeight: '600',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            transition: 'background 150ms, border-color 150ms'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--surface)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--surface-raised)'
-            e.currentTarget.style.borderColor = 'var(--border)'
-          }}
+          className="h-9 sm:h-10 px-3.5 sm:px-4 bg-[var(--surface-raised)] hover:bg-[var(--surface)] border border-[var(--border)] hover:border-white/20 rounded-xl text-xs sm:text-sm font-semibold text-[var(--text-secondary)] hover:text-[#f3f1ea] cursor-pointer flex items-center gap-2 shrink-0 transition-all active:scale-95"
+          title="Refresh dashboard data"
         >
-          🔄 Refresh
+          <span className="text-sm">🔄</span>
+          <span className="hidden sm:inline font-semibold">Refresh</span>
         </button>
       </div>
 

@@ -106,21 +106,37 @@ const AdminLayout = () => {
       <div 
         className="md:hidden flex items-center justify-between fixed top-0 left-0 right-0 h-14 bg-[var(--bg-alt)] border-b border-[var(--border)] px-4 z-40"
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="bg-transparent border-0 text-[#f3f1ea] text-xl cursor-pointer flex items-center justify-center p-1.5"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-[#f3f1ea] bg-[var(--surface-raised)] border border-[var(--border)] active:scale-95 transition-transform cursor-pointer"
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? '✕' : '☰'}
+            {mobileMenuOpen ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            )}
           </button>
-          <span className="text-sm font-bold font-display text-[#f3f1ea]">
-            Troopp <span className="text-[var(--accent)]">Admin</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#ff6a2c] to-[#d9481a] flex items-center justify-center font-display font-bold text-xs text-white">
+              T
+            </div>
+            <span className="text-sm font-bold font-display text-[#f3f1ea]">
+              Troopp <span className="text-[var(--accent)]">Admin</span>
+            </span>
+          </div>
         </div>
         <Link
           to="/feed"
-          className="text-xs font-semibold text-[var(--accent)] no-underline border border-[rgba(255,106,44,0.3)] px-2.5 py-1 rounded-full"
+          className="text-xs font-semibold text-[var(--accent)] no-underline border border-[rgba(255,106,44,0.3)] bg-[rgba(255,106,44,0.08)] hover:bg-[rgba(255,106,44,0.16)] px-3 py-1.5 rounded-full transition-colors"
         >
           App Feed
         </Link>
@@ -130,13 +146,13 @@ const AdminLayout = () => {
       {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 bg-black/65 backdrop-blur-sm z-[90] md:hidden"
+          className="fixed inset-0 bg-black/65 backdrop-blur-sm z-[90] md:hidden transition-opacity duration-200"
         />
       )}
 
       {/* 1. LEFT ADMIN SIDEBAR (Desktop sticky + Mobile Drawer) */}
       <aside 
-        className={`fixed md:sticky top-0 left-0 bottom-0 z-[100] md:z-auto h-screen w-[260px] min-w-[260px] bg-[var(--bg-alt)] border-r border-[var(--border)] p-6 flex flex-col gap-6 box-border overflow-y-auto transition-transform duration-200 ease-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        className={`fixed md:sticky top-0 left-0 bottom-0 z-[100] md:z-auto h-screen w-[260px] min-w-[260px] bg-[var(--bg-alt)] border-r border-[var(--border)] p-6 flex flex-col gap-6 box-border overflow-y-auto transition-transform duration-200 ease-out shadow-2xl md:shadow-none ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
         {/* Brand */}
         <div style={{
@@ -181,16 +197,13 @@ const AdminLayout = () => {
           </Link>
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="md:hidden"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              fontSize: '16px',
-              cursor: 'pointer'
-            }}
+            className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[#f3f1ea] bg-[var(--surface-raised)] border border-[var(--border)] cursor-pointer"
+            aria-label="Close menu"
           >
-            ✕
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
 
