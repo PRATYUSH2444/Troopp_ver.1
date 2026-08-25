@@ -17,6 +17,7 @@ import ManageTab from '../components/tripRoom/ManageTab.jsx'
 import NewJoinerOnboarding from '../components/tripRoom/NewJoinerOnboarding.jsx'
 import SOSConfirmModal from '../components/safety/SOSConfirmModal.jsx'
 import Spinner from '../components/common/Spinner.jsx'
+import Avatar from '../components/common/Avatar.jsx'
 
 class TripRoomErrorBoundary extends React.Component {
   constructor(props) {
