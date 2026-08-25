@@ -185,14 +185,11 @@ const AdminLayout = () => {
           height: '100vh',
           width: '260px',
           minWidth: '260px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 500,
           boxSizing: 'border-box',
           overflowY: 'auto',
           transition: 'transform 200ms ease'
         }}
-        className={`fixed md:sticky top-0 left-0 bottom-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        className={`fixed md:sticky top-0 left-0 bottom-0 z-50 md:z-auto ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
         {/* Brand */}
         <div style={{
@@ -348,7 +345,7 @@ const AdminLayout = () => {
       </aside>
 
       {/* 2. ADMIN PORTAL CONTENT */}
-      <main className="pt-[56px] md:pt-0" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <main className="flex-1 flex flex-col min-w-0 w-full pt-[56px] md:pt-0 max-w-full overflow-x-hidden">
         <header 
           style={{
             height: '60px',
@@ -391,7 +388,7 @@ const AdminLayout = () => {
           </Link>
         </header>
 
-        <div style={{ flexGrow: 1, background: 'var(--bg)', padding: '24px clamp(16px, 3vw, 36px) 80px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+        <div style={{ flexGrow: 1, background: 'var(--bg)', padding: '20px clamp(12px, 3vw, 36px) 80px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
           <Outlet />
         </div>
       </main>
