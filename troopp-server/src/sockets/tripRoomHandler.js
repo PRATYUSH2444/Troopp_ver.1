@@ -44,7 +44,7 @@ const registerTripRoomHandlers = (io, socket) => {
   // Helper: Verify trip room membership
   const verifyMembership = async (roomId) => {
     let member = await ActivityMember.findOne({
-      where: { activity_id: roomId, user_id: userId, status: 'confirmed' }
+      where: { activity_id: roomId, user_id: userId, status: { [Op.in]: ['confirmed', 'accepted'] } }
     })
 
     if (!member) {

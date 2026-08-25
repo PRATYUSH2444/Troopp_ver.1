@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { Op } from 'sequelize'
 import { authGuard } from '../../middleware/auth.middleware.js'
 import * as tripRoomController from './trip-room.controller.js'
 import Activity from '../../models/Activity.js'
@@ -33,7 +34,11 @@ const checkTripRoomMember = async (req, res, next) => {
     }
 
     const member = await ActivityMember.findOne({
-      where: { activity_id: id, user_id: userId, status: 'confirmed' }
+      where: {
+        activity_id: id,
+        user_id: userId,
+        status: { [Op.in]: ['confirmed', 'accepted'] }
+      }
     })
 
     if (!member) {

@@ -96,7 +96,18 @@ const ChatTab = ({
   // Audio Playback state
   const [playingAudioId, setPlayingAudioId] = useState(null)
   const [audioPlaybackRate, setAudioPlaybackRate] = useState(1.0)
-  const audioPlayerRef = useRef(new Audio())
+  const audioPlayerRef = useRef(null)
+
+  const getAudioPlayer = () => {
+    if (!audioPlayerRef.current && typeof window !== 'undefined') {
+      try {
+        audioPlayerRef.current = new Audio()
+      } catch (err) {
+        console.warn('Audio constructor failed:', err)
+      }
+    }
+    return audioPlayerRef.current
+  }
 
   // Safe arrays
   const safeMessages = useMemo(() => (Array.isArray(messages) ? messages : []), [messages])
@@ -110,7 +121,8 @@ const ChatTab = ({
 
     safeMessages.forEach((msg, idx) => {
       if (!msg) return
-      const day = new Date(msg.created_at || Date.now()).toDateString()
+      const date = new Date(msg.created_at || Date.now())
+      const day = isNaN(date.getTime()) ? 'Today' : date.toDateString()
       if (day !== currentDay) {
         if (currentGroup.length > 0) {
           groups.push({ day: currentDay, messages: currentGroup })
@@ -204,16 +216,19 @@ const ChatTab = ({
 
   // Audio Playback handler
   const handleTogglePlayAudio = (id, url) => {
+    const player = getAudioPlayer()
+    if (!player) return
+
     if (playingAudioId === id) {
-      audioPlayerRef.current.pause()
+      player.pause()
       setPlayingAudioId(null)
     } else {
-      audioPlayerRef.current.src = url
-      audioPlayerRef.current.playbackRate = audioPlaybackRate
-      audioPlayerRef.current.play()
+      player.src = url
+      player.playbackRate = audioPlaybackRate
+      player.play().catch(() => {})
       setPlayingAudioId(id)
 
-      audioPlayerRef.current.onended = () => setPlayingAudioId(null)
+      player.onended = () => setPlayingAudioId(null)
     }
   }
 
@@ -221,8 +236,9 @@ const ChatTab = ({
     const rates = [1.0, 1.5, 2.0]
     const nextRate = rates[(rates.indexOf(audioPlaybackRate) + 1) % rates.length]
     setAudioPlaybackRate(nextRate)
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.playbackRate = nextRate
+    const player = getAudioPlayer()
+    if (player) {
+      player.playbackRate = nextRate
     }
   }
 

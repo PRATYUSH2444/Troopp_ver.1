@@ -39,13 +39,17 @@ const Avatar = ({
     xxl: 'w-[120px] h-[120px] text-[36px]'
   }
 
+  // Safe name fallback
+  const safeName = typeof name === 'string' && name.trim() ? name.trim() : 'Anonymous User'
+
   // Generates initials from name: e.g. "Raj Malhotra" -> "RM"
   const getInitials = (fullName) => {
-    const parts = fullName.trim().split(/\s+/)
-    if (parts.length >= 2) {
+    if (!fullName || typeof fullName !== 'string') return 'AU'
+    const parts = fullName.trim().split(/\s+/).filter(Boolean)
+    if (parts.length >= 2 && parts[0] && parts[1] && parts[0][0] && parts[1][0]) {
       return (parts[0][0] + parts[1][0]).toUpperCase()
     }
-    return fullName.slice(0, 2).toUpperCase()
+    return (fullName.trim().slice(0, 2) || 'AU').toUpperCase()
   }
 
   const getGradientForName = (fullName) => {
@@ -56,16 +60,17 @@ const Avatar = ({
       'linear-gradient(135deg, #212b33 0%, #1a2129 100%)', // raised surface dark
       'linear-gradient(135deg, #2a3b47 0%, #212b33 100%)'  // navy raised dark
     ]
+    const str = typeof fullName === 'string' && fullName ? fullName : 'User'
     let hash = 0
-    for (let i = 0; i < fullName.length; i++) {
-      hash = fullName.charCodeAt(i) + ((hash << 5) - hash)
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash)
     }
     const index = Math.abs(hash) % gradients.length
     return gradients[index]
   }
 
-  const initials = getInitials(name)
-  const fallbackGradient = getGradientForName(name)
+  const initials = getInitials(safeName)
+  const fallbackGradient = getGradientForName(safeName)
 
   const getTransformForSize = (sz) => {
     if (sz === 'lg' || sz === 'xl' || sz === 'xxl') {

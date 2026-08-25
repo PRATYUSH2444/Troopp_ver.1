@@ -70,8 +70,18 @@ const TripRoom = () => {
         if (!isMounted) return
         setActivity(act)
         
-        if (activityJson.data?.confirmedMembers) {
-          setMembers(Array.isArray(activityJson.data.confirmedMembers) ? activityJson.data.confirmedMembers : [])
+        const rawMembers = activityJson.data?.confirmedMembers || act?.Members || []
+        if (Array.isArray(rawMembers) && rawMembers.length > 0) {
+          const normalized = rawMembers.map((m) => ({
+            userId: m.user_id || m.userId || m.id,
+            name: m.name || m.User?.Profile?.name || m.Profile?.name || 'Explorer',
+            avatarUrl: m.avatarUrl || m.User?.Profile?.avatar_url || m.Profile?.avatar_url || null,
+            trustScore: m.trustScore || m.User?.trust_score || 50,
+            reliabilityScore: m.reliabilityScore || m.User?.reliability_score || 100,
+            isOnline: m.isOnline || false,
+            role: m.role || 'member'
+          }))
+          setMembers(normalized)
         }
 
         const isUserHost = Boolean(user?.id && act && (act.creator_id === user.id || act.host_id === user.id))
@@ -183,7 +193,18 @@ const TripRoom = () => {
           return merged
         })
       }
-      if (data.members && Array.isArray(data.members)) setMembers(data.members)
+      if (data.members && Array.isArray(data.members)) {
+        const normalized = data.members.map((m) => ({
+          userId: m.userId || m.user_id || m.id,
+          name: m.name || m.User?.Profile?.name || 'Explorer',
+          avatarUrl: m.avatarUrl || m.User?.Profile?.avatar_url || null,
+          trustScore: m.trustScore || m.User?.trust_score || 50,
+          reliabilityScore: m.reliabilityScore || m.User?.reliability_score || 100,
+          isOnline: m.isOnline !== undefined ? m.isOnline : true,
+          role: m.role || 'member'
+        }))
+        setMembers(normalized)
+      }
       if (data.rules) setTripRules(data.rules)
       if (data.welcomeMessage) setWelcomeMessage(data.welcomeMessage)
     })
@@ -659,6 +680,24 @@ const TripRoom = () => {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Spinner size="lg" />
+      </div>
+    )
+  }
+
+  if (!activity) {
+    return (
+      <div style={{ minHeight: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '24px', textAlign: 'center' }}>
+        <span style={{ fontSize: '48px' }}>🗺️</span>
+        <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#f3f1ea' }}>Trip Room Unavailable</h2>
+        <p style={{ fontSize: '13px', color: '#9ba6ad', maxWidth: '360px', lineHeight: 1.5 }}>
+          This trip room could not be loaded or you may need to confirm your trip membership first.
+        </p>
+        <button
+          onClick={() => navigate('/activities')}
+          style={{ background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)', color: '#1a0e08', border: 'none', borderRadius: '100px', padding: '12px 24px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+        >
+          Browse Upcoming Trips ➔
+        </button>
       </div>
     )
   }

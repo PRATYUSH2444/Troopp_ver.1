@@ -8,13 +8,15 @@ import { haptics } from '../../utils/haptics.js'
  */
 const NewJoinerOnboarding = ({
   onComplete,
-  tripName = 'Trip',
-  hostName = 'Host',
-  hostAvatar = null,
-  safetyText = '',
+  activity = null,
+  tripName: tripNameProp,
+  hostName: hostNameProp,
+  hostAvatar: hostAvatarProp,
+  safetyText: safetyTextProp,
+  welcomeMessage = '',
   rules: rulesProp = null,
   messagesCount = 0,
-  expensesSum = 0,
+  expensesSum: expensesSumProp = 0,
   pollsCount = 0,
   members = []
 }) => {
@@ -23,13 +25,19 @@ const NewJoinerOnboarding = ({
   const [isNextHovered, setIsNextHovered] = useState(false)
   const [isBackHovered, setIsBackHovered] = useState(false)
 
+  const tripName = tripNameProp || activity?.title || 'Trip'
+  const hostName = hostNameProp || activity?.Creator?.Profile?.name || activity?.Host?.Profile?.name || 'Host'
+  const hostAvatar = hostAvatarProp || activity?.Creator?.Profile?.avatar_url || activity?.Host?.Profile?.avatar_url || null
+  const safetyText = safetyTextProp || welcomeMessage || activity?.safety_guidelines || ''
+  const expensesSum = typeof expensesSumProp === 'number' && !isNaN(expensesSumProp) ? expensesSumProp : 0
+
   const handleNext = () => {
     haptics.lightTap()
     if (screen < 4) {
       setScreen(screen + 1)
     } else {
       haptics.success()
-      onComplete()
+      onComplete?.()
     }
   }
 
@@ -44,7 +52,7 @@ const NewJoinerOnboarding = ({
   const rules = []
   rules.push({ rule: 'Respect personal boundaries and travel decisions', type: 'Required', color: '#ff5470' })
   rules.push({ rule: 'Show up on time at the designated meeting point coordinates', type: 'Required', color: '#ff5470' })
-  if (rulesProp) {
+  if (rulesProp && typeof rulesProp === 'object') {
     rules.push({ rule: 'Share trip expenses on the group ledger', type: rulesProp.members_can_add_expenses ? 'Allowed' : 'Host Only', color: rulesProp.members_can_add_expenses ? '#3b82f6' : '#ffc94d' })
     rules.push({ rule: 'Create coordinate polls for voting', type: rulesProp.members_can_create_polls ? 'Allowed' : 'Host Only', color: rulesProp.members_can_create_polls ? '#3b82f6' : '#ffc94d' })
     rules.push({ rule: 'Group chat participant permissions', type: rulesProp.chat_before_full ? 'Open' : 'Muted', color: rulesProp.chat_before_full ? '#4fbe8e' : '#ff5470' })
