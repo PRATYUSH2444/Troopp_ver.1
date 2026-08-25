@@ -48,13 +48,11 @@ const AdminUserDetail = () => {
       }
     } catch (err) {
       console.error('Failed retrieving traveler detail profile:', err)
-      if (!userData) {
-        setError(err.message || 'Unable to load traveler account details.')
-      }
+      setError(err.message || 'Unable to load traveler account details.')
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }, [userId, userData])
+  }, [userId])
 
   useEffect(() => {
     fetchUserData()
@@ -150,24 +148,68 @@ const AdminUserDetail = () => {
     }
   }
 
-  if (loading) {
+  if (loading && !userData) {
     return (
       <div 
         style={{
-          minHeight: '100vh',
+          minHeight: '60vh',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--bg)',
+          gap: '16px',
           color: 'var(--text-primary)'
         }}
       >
         <Spinner size="lg" />
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Loading traveler profile...</span>
       </div>
     )
   }
 
-  const { user, scoreHistory, trustLogs, trips, reportsReceived } = userData
+  if (error || !userData?.user) {
+    return (
+      <div 
+        style={{
+          minHeight: '60vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          color: 'var(--text-primary)',
+          textAlign: 'center',
+          padding: '24px'
+        }}
+      >
+        <span style={{ fontSize: '32px' }}>⚠️</span>
+        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#f3f1ea', margin: 0 }}>
+          {error || 'Traveler Account Not Found'}
+        </h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '400px', margin: 0 }}>
+          Unable to retrieve administrative details for this account. The user may have been deleted or the link is invalid.
+        </p>
+        <button
+          onClick={() => navigate('/admin/users')}
+          style={{
+            marginTop: '8px',
+            padding: '8px 20px',
+            background: 'var(--surface-raised)',
+            border: '1px solid var(--border)',
+            borderRadius: '10px',
+            color: '#f3f1ea',
+            fontSize: '13px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          ← Back to Users List
+        </button>
+      </div>
+    )
+  }
+
+  const { user, scoreHistory = [], trustLogs = [], trips = [], reportsReceived = [] } = userData
 
   return (
     <div 
@@ -242,7 +284,7 @@ const AdminUserDetail = () => {
               boxShadow: 'var(--shadow-card)'
             }}
           >
-            <Avatar size="lg" name={user.name} score={user.trustScore} />
+            <Avatar size="lg" src={user.avatar_url} name={user.name} score={user.trustScore} />
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#f3f1ea', margin: 0, fontFamily: 'var(--font-display)' }}>{user.name}</h3>
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>{user.email}</span>
