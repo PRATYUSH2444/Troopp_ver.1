@@ -14,8 +14,36 @@ import { Sequelize, Op } from 'sequelize'
 export { tripRoomRepo }
 
 // 1. MESSAGES SERVICE
-export const getMessages = async (roomId, limit, offset) => {
-  return await tripRoomRepo.getMessagesPaginated(roomId, limit, offset)
+export const getMessages = async (roomId, options = {}) => {
+  return await tripRoomRepo.getMessagesPaginated(roomId, options)
+}
+
+export const searchMessages = async (roomId, query, requestingUserId) => {
+  return await tripRoomRepo.searchMessages(roomId, query, requestingUserId)
+}
+
+export const getMediaGallery = async (roomId, mediaType, requestingUserId) => {
+  return await tripRoomRepo.getMediaGallery(roomId, mediaType, requestingUserId)
+}
+
+export const getStarredMessages = async (roomId, userId) => {
+  return await tripRoomRepo.getStarredMessages(roomId, userId)
+}
+
+export const forwardMessage = async (messageId, targetRoomId, userId) => {
+  return await tripRoomRepo.forwardMessage(messageId, targetRoomId, userId)
+}
+
+export const updateRoomSettings = async (roomId, settings, userId) => {
+  const activity = await Activity.findByPk(roomId)
+  if (!activity || (activity.creator_id !== userId && activity.host_id !== userId)) {
+    throw new AppError('Access denied: Host credentials required.', 403, 'NOT_HOST')
+  }
+  return await tripRoomRepo.updateRoomSettings(roomId, settings)
+}
+
+export const muteRoomNotifications = async (roomId, userId, duration) => {
+  return await tripRoomRepo.muteRoomNotifications(roomId, userId, duration)
 }
 
 // 2. EXPENSES SERVICE

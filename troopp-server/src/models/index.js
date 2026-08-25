@@ -43,6 +43,11 @@ import PollVote from './PollVote.js'
 import SavedItem from './SavedItem.js'
 import CommunityReport from './CommunityReport.js'
 import ModAction from './ModAction.js'
+import MessageDelivery from './MessageDelivery.js'
+import MessageRead from './MessageRead.js'
+import MessageReaction from './MessageReaction.js'
+import MessageStar from './MessageStar.js'
+import MessageDeletedUser from './MessageDeletedUser.js'
 
 // ==============================================================================
 // DEFINE ALL 35 MODEL ASSOCIATIONS
@@ -88,6 +93,40 @@ Message.belongsTo(TripRoom, { foreignKey: 'trip_room_id' })
 
 User.hasMany(Message, { foreignKey: 'sender_id' })
 Message.belongsTo(User, { foreignKey: 'sender_id', as: 'Sender' })
+
+// Self-referencing ReplyTo
+Message.belongsTo(Message, { as: 'ReplyTo', foreignKey: 'reply_to_message_id' })
+Message.hasMany(Message, { as: 'Replies', foreignKey: 'reply_to_message_id' })
+
+// Message & Delivery
+Message.hasMany(MessageDelivery, { foreignKey: 'message_id', as: 'Deliveries', onDelete: 'CASCADE' })
+MessageDelivery.belongsTo(Message, { foreignKey: 'message_id' })
+User.hasMany(MessageDelivery, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+MessageDelivery.belongsTo(User, { foreignKey: 'user_id' })
+
+// Message & Read
+Message.hasMany(MessageRead, { foreignKey: 'message_id', as: 'Reads', onDelete: 'CASCADE' })
+MessageRead.belongsTo(Message, { foreignKey: 'message_id' })
+User.hasMany(MessageRead, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+MessageRead.belongsTo(User, { foreignKey: 'user_id' })
+
+// Message & Reactions
+Message.hasMany(MessageReaction, { foreignKey: 'message_id', as: 'Reactions', onDelete: 'CASCADE' })
+MessageReaction.belongsTo(Message, { foreignKey: 'message_id' })
+User.hasMany(MessageReaction, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+MessageReaction.belongsTo(User, { foreignKey: 'user_id', as: 'User' })
+
+// Message & Stars
+Message.hasMany(MessageStar, { foreignKey: 'message_id', as: 'Stars', onDelete: 'CASCADE' })
+MessageStar.belongsTo(Message, { foreignKey: 'message_id' })
+User.hasMany(MessageStar, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+MessageStar.belongsTo(User, { foreignKey: 'user_id' })
+
+// Message & Deleted Users (Delete for me)
+Message.hasMany(MessageDeletedUser, { foreignKey: 'message_id', as: 'DeletedUsers', onDelete: 'CASCADE' })
+MessageDeletedUser.belongsTo(Message, { foreignKey: 'message_id' })
+User.hasMany(MessageDeletedUser, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+MessageDeletedUser.belongsTo(User, { foreignKey: 'user_id' })
 
 // 7. Activity & Expenses & Splits
 Activity.hasMany(Expense, { foreignKey: 'activity_id', onDelete: 'CASCADE' })
@@ -350,5 +389,10 @@ export {
   PollVote,
   SavedItem,
   CommunityReport,
-  ModAction
+  ModAction,
+  MessageDelivery,
+  MessageRead,
+  MessageReaction,
+  MessageStar,
+  MessageDeletedUser
 }

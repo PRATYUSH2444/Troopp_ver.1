@@ -15,6 +15,14 @@ TripRoom.init(
       allowNull: false,
       unique: true,
     },
+    room_name: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    room_photo_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.ENUM('active', 'locked', 'archived'),
       defaultValue: 'active',
@@ -27,6 +35,10 @@ TripRoom.init(
     },
     pinned_message_id: {
       type: DataTypes.UUID,
+      allowNull: true,
+    },
+    archived_at: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
   },

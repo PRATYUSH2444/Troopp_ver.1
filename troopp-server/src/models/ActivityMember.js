@@ -43,13 +43,31 @@ ActivityMember.init(
       defaultValue: DataTypes.NOW,
       allowNull: false,
     },
+    last_read_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    notification_muted_until: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    is_cohost: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+    },
   },
   {
     sequelize,
     modelName: 'ActivityMember',
     tableName: 'activity_members',
     timestamps: true,
-    paranoid: false,
+    indexes: [
+      {
+        unique: true,
+        fields: ['activity_id', 'user_id'],
+      },
+    ],
   }
 )
 

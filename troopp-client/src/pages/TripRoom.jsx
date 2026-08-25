@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import { toast } from 'react-hot-toast'
@@ -31,6 +31,9 @@ const TripRoom = () => {
   // Data lists
   const [activity, setActivity] = useState(null)
   const [messages, setMessages] = useState([])
+  const [hasMoreOlder, setHasMoreOlder] = useState(false)
+  const [loadingOlder, setLoadingOlder] = useState(false)
+
   const [expenses, setExpenses] = useState([])
   const [polls, setPolls] = useState([])
   const [members, setMembers] = useState([])
@@ -38,14 +41,14 @@ const TripRoom = () => {
   const [tripRules, setTripRules] = useState(null)
   const [welcomeMessage, setWelcomeMessage] = useState('')
   
-  // Real-time ephemeral logs
+  // Real-time ephemeral logs & SOS
   const [typingUsers, setTypingUsers] = useState([])
   const [sosActiveInfo, setSosActiveInfo] = useState(null)
   const [sosModalOpen, setSosModalOpen] = useState(false)
   const [sosError, setSosError] = useState('')
   const [mySosSent, setMySosSent] = useState(false)
   const [sosHovered, setSosHovered] = useState(false)
-  const [flashType, setFlashType] = useState(null) // 'join' | 'leave'
+  const [flashType, setFlashType] = useState(null)
 
   const socketRef = useRef(null)
 
@@ -94,7 +97,7 @@ const TripRoom = () => {
 
         // 3. Fetch initial tab records safely in parallel
         const [msgRes, expRes, pollRes, healthRes] = await Promise.allSettled([
-          apiRequest(`/trip-rooms/${roomId}/messages`),
+          apiRequest(`/trip-rooms/${roomId}/messages?limit=30`),
           apiRequest(`/trip-rooms/${roomId}/expenses`),
           apiRequest(`/trip-rooms/${roomId}/polls`),
           apiRequest(`/trip-rooms/${roomId}/health`)
@@ -104,10 +107,11 @@ const TripRoom = () => {
 
         if (msgRes.status === 'fulfilled' && msgRes.value?.ok) {
           const msgJson = await msgRes.value.json()
-          const rawMsgs = Array.isArray(msgJson.data) 
-            ? msgJson.data 
+          const rows = Array.isArray(msgJson.data)
+            ? msgJson.data
             : (Array.isArray(msgJson.data?.rows) ? msgJson.data.rows : [])
-          setMessages(rawMsgs)
+          setMessages(rows)
+          setHasMoreOlder(Boolean(msgJson.data?.hasMore))
         }
         if (expRes.status === 'fulfilled' && expRes.value?.ok) {
           const expJson = await expRes.value.json()
@@ -136,7 +140,7 @@ const TripRoom = () => {
     }
   }, [roomId, user?.id])
 
-  // 2. Initialize real-time WebSockets connections on onboarding success or host entry
+  // 2. Initialize real-time WebSockets connections with WhatsApp parity
   useEffect(() => {
     const isUserHost = Boolean(user?.id && activity && (activity.creator_id === user.id || activity.host_id === user.id))
     if (!onboardingComplete && !isUserHost) return
@@ -144,9 +148,7 @@ const TripRoom = () => {
     const serverUrl = import.meta.env.VITE_SOCKET_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api/v1', '') : 'http://localhost:3000')
     const token = getAccessToken()
 
-    // Track timers for cleanup
     const timers = []
-
     let socket
     try {
       socket = io(serverUrl, {
@@ -161,7 +163,6 @@ const TripRoom = () => {
 
     socketRef.current = socket
 
-    // Handle connection errors gracefully instead of crashing
     socket.on('connect_error', (err) => {
       console.warn('Socket connection error:', err?.message)
     })
@@ -172,21 +173,38 @@ const TripRoom = () => {
 
     // Listen room joins responses
     socket.on('room_joined', (data) => {
-      if (data.messages && Array.isArray(data.messages)) setMessages(data.messages)
+      if (data.messages && Array.isArray(data.messages)) {
+        setMessages((prev) => {
+          const existingIds = new Set((prev || []).map((m) => m.id))
+          const merged = [...(prev || [])]
+          data.messages.forEach((m) => {
+            if (!existingIds.has(m.id)) merged.push(m)
+          })
+          return merged
+        })
+      }
       if (data.members && Array.isArray(data.members)) setMembers(data.members)
+      if (data.rules) setTripRules(data.rules)
+      if (data.welcomeMessage) setWelcomeMessage(data.welcomeMessage)
     })
 
     // Listen incoming new messages
     socket.on('new_message', (payload) => {
       if (payload.sender_id !== user?.id) {
         haptics.newMessage?.()
+        // Auto-ack delivery
+        socket.emit('message_delivered_ack', { roomId, messageIds: [payload.id] })
+        if (activeTab === 'chat') {
+          socket.emit('message_read_ack', { roomId, messageIds: [payload.id] })
+        }
       }
+
       setMessages((prev) => {
         const arr = Array.isArray(prev) ? prev : []
         if (arr.some((m) => m.id === payload.id)) return arr
 
         if (payload.sender_id === user?.id) {
-          const idx = arr.findIndex((m) => m.status === 'sending' && m.message_text === payload.message_text)
+          const idx = arr.findIndex((m) => m.status === 'sending' && (m.client_temp_id === payload.client_temp_id || m.message_text === payload.message_text))
           if (idx !== -1) {
             const updated = [...arr]
             updated[idx] = { ...payload, status: 'sent' }
@@ -197,7 +215,75 @@ const TripRoom = () => {
       })
     })
 
-    // Listen new member joins
+    // Listen message delivery acks
+    socket.on('message_delivered', ({ messageIds, userId: recipientId, deliveredAt }) => {
+      setMessages((prev) =>
+        (Array.isArray(prev) ? prev : []).map((msg) => {
+          if (messageIds.includes(msg.id)) {
+            const deliveries = msg.Deliveries || []
+            if (!deliveries.some((d) => d.user_id === recipientId)) {
+              return {
+                ...msg,
+                Deliveries: [...deliveries, { user_id: recipientId, delivered_at: deliveredAt }]
+              }
+            }
+          }
+          return msg
+        })
+      )
+    })
+
+    // Listen message read acks
+    socket.on('message_read', ({ messageIds, userId: recipientId, readAt }) => {
+      setMessages((prev) =>
+        (Array.isArray(prev) ? prev : []).map((msg) => {
+          if (messageIds.includes(msg.id)) {
+            const reads = msg.Reads || []
+            if (!reads.some((r) => r.user_id === recipientId)) {
+              return {
+                ...msg,
+                Reads: [...reads, { user_id: recipientId, read_at: readAt }]
+              }
+            }
+          }
+          return msg
+        })
+      )
+    })
+
+    // Listen message reaction updates
+    socket.on('message_reaction_updated', ({ messageId, reactions }) => {
+      setMessages((prev) =>
+        (Array.isArray(prev) ? prev : []).map((msg) => (msg.id === messageId ? { ...msg, Reactions: reactions } : msg))
+      )
+    })
+
+    // Listen message edits
+    socket.on('message_edited', ({ messageId, newText, editedAt }) => {
+      setMessages((prev) =>
+        (Array.isArray(prev) ? prev : []).map((msg) => (msg.id === messageId ? { ...msg, message_text: newText, edited_at: editedAt } : msg))
+      )
+    })
+
+    // Listen message deletions
+    socket.on('message_deleted', ({ messageId, scope }) => {
+      setMessages((prev) => {
+        const arr = Array.isArray(prev) ? prev : []
+        if (scope === 'everyone') {
+          return arr.map((msg) => (msg.id === messageId ? { ...msg, deleted_for: 'everyone', message_text: '🚫 This message was deleted', media: null } : msg))
+        }
+        return arr.filter((msg) => msg.id !== messageId)
+      })
+    })
+
+    // Listen starred messages
+    socket.on('message_starred', ({ messageId, isStarred }) => {
+      setMessages((prev) =>
+        (Array.isArray(prev) ? prev : []).map((msg) => (msg.id === messageId ? { ...msg, is_starred: isStarred } : msg))
+      )
+    })
+
+    // Listen member joins & presence updates
     socket.on('member_joined', (payload) => {
       const joinMsg = {
         id: `join-${Date.now()}`,
@@ -222,31 +308,25 @@ const TripRoom = () => {
             name: payload.name,
             avatarUrl: payload.avatarUrl || null,
             trustScore: payload.trustScore || 50,
-            reliabilityScore: payload.reliabilityScore || 100
+            reliabilityScore: payload.reliabilityScore || 100,
+            isOnline: true
           }
         ]
       })
     })
 
-    // Listen member leaves/removed
-    socket.on('member_left', (payload) => {
-      const leaveMsg = {
-        id: `leave-${Date.now()}`,
-        sender_id: payload.userId,
-        message_text: `${payload.name || 'A traveler'} left the trip room.`,
-        message_type: 'member_left_system',
-        created_at: new Date().toISOString()
-      }
-      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), leaveMsg])
-
-      setFlashType('leave')
-      import('../utils/sounds.js').then((m) => m.playError?.()).catch(() => {})
-      timers.push(setTimeout(() => setFlashType(null), 800))
-
-      setMembers((prev) => (Array.isArray(prev) ? prev : []).filter((m) => (m.userId || m.id) !== payload.userId))
+    socket.on('presence_update', ({ userId: pUserId, isOnline, lastSeen }) => {
+      setMembers((prev) =>
+        (Array.isArray(prev) ? prev : []).map((m) => {
+          if ((m.userId || m.id) === pUserId) {
+            return { ...m, isOnline, lastSeen }
+          }
+          return m
+        })
+      )
     })
 
-    // Listen typing status indicators
+    // Listen typing indicators
     socket.on('user_typing', (payload) => {
       if (payload.userId === user?.id) return
       setTypingUsers((prev) => {
@@ -260,14 +340,18 @@ const TripRoom = () => {
       setTypingUsers((prev) => (Array.isArray(prev) ? prev : []).filter((u) => u.userId !== payload.userId))
     })
 
-    // Listen Emergency SOS Alarms broadcast
-    socket.on('sos_broadcast', (data) => {
+    // Listen Emergency SOS Alarms
+    socket.on('sos_triggered', (data) => {
       haptics.sos?.()
       setSosActiveInfo(data)
       import('../utils/sounds.js').then((m) => m.playSosAlarm?.()).catch(() => {})
     })
 
-    // Cleanup sockets on unmount — wrapped in try/catch to prevent ErrorBoundary crash
+    socket.on('sos_resolved', () => {
+      setSosActiveInfo(null)
+      toast.success('Emergency SOS resolved.')
+    })
+
     return () => {
       timers.forEach((t) => clearTimeout(t))
       try {
@@ -278,45 +362,82 @@ const TripRoom = () => {
       }
       socketRef.current = null
     }
-  }, [roomId, onboardingComplete, user?.id, activity])
+  }, [roomId, onboardingComplete, user?.id, activity, activeTab])
 
-  // Save active tab in session storage
+  // Tab navigation
   const handleTabChange = (tab) => {
     setActiveTab(tab)
     sessionStorage.setItem(`active_tab_${roomId}`, tab)
   }
 
-  // Completes first-time joiner briefing flow
-  const handleCompleteOnboarding = async () => {
+  // Load older messages for infinite scroll
+  const handleLoadOlderMessages = async () => {
+    if (loadingOlder || !hasMoreOlder || messages.length === 0) return
+    const oldestMsg = messages[0]
+    if (!oldestMsg?.created_at) return
+
+    setLoadingOlder(true)
     try {
-      const res = await apiRequest(`/trip-rooms/${roomId}/onboarding/complete`, {
-        method: 'POST'
-      })
+      const res = await apiRequest(`/trip-rooms/${roomId}/messages?before=${encodeURIComponent(oldestMsg.created_at)}&limit=30`)
       if (res.ok) {
-        setOnboardingComplete(true)
-        toast.success('Onboarding complete! Welcome to the trip.')
-      } else {
-        setOnboardingComplete(true)
+        const json = await res.json()
+        const olderRows = json.data?.rows || []
+        setMessages((prev) => [...olderRows, ...(Array.isArray(prev) ? prev : [])])
+        setHasMoreOlder(Boolean(json.data?.hasMore))
       }
-    } catch {
-      setOnboardingComplete(true)
+    } catch (err) {
+      console.warn('Failed loading older messages:', err)
+    } finally {
+      setLoadingOlder(false)
     }
   }
 
-  // Messaging dispatcher
-  const handleSendMessage = (messageText) => {
-    if (!messageText.trim()) return
+  // Upload Media Dispatcher
+  const handleUploadMedia = async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const token = getAccessToken()
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+
+    const res = await fetch(`${apiUrl}/trip-rooms/${roomId}/messages/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    })
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}))
+      throw new Error(errJson.message || 'Media upload failed.')
+    }
+
+    const json = await res.json()
+    return json.data
+  }
+
+  // Send Rich Message
+  const handleSendMessage = (messageText, options = {}) => {
+    const { messageType = 'text', media = null, locationData = null, contactData = null, replyToId = null, clientTempId } = options
+    const tempId = clientTempId || `temp-${Date.now()}`
 
     const optimisticMessage = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
+      client_temp_id: tempId,
       sender_id: user?.id,
       message_text: messageText,
-      message_type: 'chat',
+      message_type: messageType,
+      media,
+      location_data: locationData,
+      contact_data: contactData,
+      reply_to_message_id: replyToId,
       status: 'sending',
       created_at: new Date().toISOString(),
       Sender: {
         id: user?.id,
         trust_score: user?.trustScore || 85,
+        reliability_score: user?.reliabilityScore || 100,
         Profile: {
           name: user?.name || 'Explorer',
           avatar_url: user?.avatarUrl
@@ -331,8 +452,68 @@ const TripRoom = () => {
         roomId,
         content: messageText,
         messageText,
-        messageType: 'text'
+        messageType,
+        media,
+        locationData,
+        contactData,
+        replyToId,
+        clientTempId: tempId
       })
+    }
+  }
+
+  // Reactions
+  const handleAddReaction = (messageId, emoji) => {
+    if (socketRef.current) {
+      socketRef.current.emit('message_reaction_add', { roomId, messageId, emoji })
+    }
+  }
+
+  const handleRemoveReaction = (messageId, emoji) => {
+    if (socketRef.current) {
+      socketRef.current.emit('message_reaction_remove', { roomId, messageId, emoji })
+    }
+  }
+
+  // Edit Message
+  const handleEditMessage = (messageId, newText) => {
+    if (socketRef.current) {
+      socketRef.current.emit('message_edit', { roomId, messageId, newText })
+    }
+  }
+
+  // Delete Message
+  const handleDeleteMessage = (messageId, scope = 'me') => {
+    if (socketRef.current) {
+      socketRef.current.emit('message_delete', { roomId, messageId, scope })
+    }
+  }
+
+  // Star / Unstar
+  const handleStarMessage = (messageId) => {
+    if (socketRef.current) {
+      socketRef.current.emit('message_star', { messageId })
+    }
+  }
+
+  const handleUnstarMessage = (messageId) => {
+    if (socketRef.current) {
+      socketRef.current.emit('message_unstar', { messageId })
+    }
+  }
+
+  // Forward Message
+  const handleForwardMessage = async (messageId, targetRoomId) => {
+    try {
+      const res = await apiRequest(`/trip-rooms/${roomId}/messages/${messageId}/forward`, {
+        method: 'POST',
+        body: JSON.stringify({ targetRoomId })
+      })
+      if (res.ok) {
+        toast.success('Message forwarded successfully!')
+      }
+    } catch (err) {
+      toast.error('Failed to forward message.')
     }
   }
 
@@ -438,373 +619,284 @@ const TripRoom = () => {
     }
   }
 
-  // Mute member action dispatcher
+  // Mute member action dispatcher (Host only)
   const handleMuteMember = async (memberId, durationMinutes) => {
     try {
-      const res = await apiRequest(`/trip-rooms/${roomId}/manage/mute`, {
+      const res = await apiRequest(`/trip-rooms/${roomId}/mute/${memberId}`, {
         method: 'POST',
-        body: JSON.stringify({ memberId, durationMinutes })
+        body: JSON.stringify({ durationHours: durationMinutes / 60 })
       })
       if (res.ok) {
         toast.success('Member muted successfully.')
       }
     } catch (err) {
-      toast.error(err.message || 'Failed to mute member.')
+      toast.error('Failed to mute member.')
     }
   }
 
-  // Remove member action dispatcher
+  // Remove member action dispatcher (Host only)
   const handleRemoveMember = async (memberId) => {
     try {
-      const res = await apiRequest(`/trip-rooms/${roomId}/manage/remove-member`, {
-        method: 'POST',
-        body: JSON.stringify({ memberId })
+      const res = await apiRequest(`/trip-rooms/${roomId}/remove/${memberId}`, {
+        method: 'POST'
       })
       if (res.ok) {
+        toast.success('Member removed from trip.')
         setMembers((prev) => (Array.isArray(prev) ? prev : []).filter((m) => (m.userId || m.id) !== memberId))
-        toast.success('Member removed from trip room.')
       }
     } catch (err) {
-      toast.error(err.message || 'Failed removing member.')
+      toast.error('Failed to remove member.')
     }
   }
 
-  // Emergency SOS trigger dispatcher
-  const handleSOSTrigger = async () => {
-    try {
-      setSosError('')
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords
-            const res = await apiRequest(`/trip-rooms/${roomId}/sos`, {
-              method: 'POST',
-              body: JSON.stringify({ latitude, longitude })
-            })
-            if (res.ok) {
-              setMySosSent(true)
-              toast.success('Emergency SOS Alert broadcasted!')
-            } else {
-              setSosError('Network transmission failed. Please call 112 directly.')
-            }
-          },
-          () => {
-            setSosError('Unable to get GPS coordinates. Please call local authorities.')
-          }
-        )
-      }
-    } catch (err) {
-      setSosError('SOS trigger error. Please reach local emergency services.')
-    }
-  }
-
-  const isHost = Boolean(user?.id && activity && (activity.creator_id === user.id || activity.host_id === user.id))
-  const safeMessages = Array.isArray(messages) ? messages : []
+  // Safe checks
+  const safeMembers = Array.isArray(members) ? members : []
   const safeExpenses = Array.isArray(expenses) ? expenses : []
   const safePolls = Array.isArray(polls) ? polls : []
-  const safeMembers = Array.isArray(members) ? members : []
+  const isHost = Boolean(user?.id && activity && (activity.creator_id === user.id || activity.host_id === user.id))
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0D1512] flex items-center justify-center">
+      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Spinner size="lg" />
       </div>
     )
   }
 
-  if (!activity) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-6 gap-4">
-        <span className="text-4xl">⚠️</span>
-        <h2 className="text-xl font-bold text-white">Trip Room Unavailable</h2>
-        <p className="text-sm text-stone-400 max-w-md">
-          This trip could not be loaded or you do not have permission to view it.
-        </p>
-        <button
-          onClick={() => navigate('/feed')}
-          className="px-6 py-2.5 bg-primary text-bg font-semibold rounded-xl text-sm"
-        >
-          Return to Feed
-        </button>
-      </div>
-    )
-  }
-
-  // Onboarding Wall Gate Check: Only non-hosts who haven't completed onboarding
-  if (!isHost && !onboardingComplete) {
+  if (!onboardingComplete && !isHost) {
     return (
       <NewJoinerOnboarding
-        tripName={activity?.title || 'Trip Adventure'}
-        hostName={activity?.Creator?.Profile?.name || 'Organizer'}
-        hostAvatar={activity?.Creator?.Profile?.avatar_url}
-        safetyText={tripRules?.safety_briefing_text || welcomeMessage}
+        activity={activity}
         rules={tripRules}
-        messagesCount={safeMessages.length}
-        expensesSum={safeExpenses.reduce((sum, e) => sum + (parseFloat(e?.amount) || 0), 0)}
-        pollsCount={safePolls.length}
-        members={safeMembers}
-        onComplete={handleCompleteOnboarding}
+        welcomeMessage={welcomeMessage}
+        onComplete={async () => {
+          await apiRequest(`/trip-rooms/${roomId}/onboarding-complete`, { method: 'POST' }).catch(() => {})
+          setOnboardingComplete(true)
+        }}
       />
     )
   }
 
   return (
-    <div className="page-container-medium">
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
-        
-        {/* SOS Active Header notification */}
-        {sosActiveInfo && (
-          <div style={{ position: 'fixed', top: '16px', left: '16px', right: '16px', background: '#ff5470', borderRadius: '16px', padding: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '6px' }} className="animate-pulse">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', fontWeight: '900', color: 'white', letterSpacing: '0.06em' }}>
-              <span>🚨 SOS EMERGENCY TRIGGERED 🚨</span>
-              <button onClick={() => setSosActiveInfo(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '14px', cursor: 'pointer' }}>✕</button>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      
+      {/* Persistent SOS Alert Banner */}
+      {sosActiveInfo && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ background: '#ff5470', color: '#fff', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 8px 24px rgba(255,84,112,0.4)', zIndex: 100 }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '24px' }}>🚨</span>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '900', textTransform: 'uppercase' }}>
+                EMERGENCY SOS ALERT: {sosActiveInfo.userName || 'Traveler'}
+              </h4>
+              <span style={{ fontSize: '12px', opacity: 0.9 }}>
+                Location: {sosActiveInfo.latitude?.toFixed(4)}, {sosActiveInfo.longitude?.toFixed(4)}
+              </span>
             </div>
-            <span style={{ fontSize: '12px', color: 'white', lineHeight: '1.4' }}>
-              Traveler <strong>{sosActiveInfo.userName}</strong> triggered an emergency alarm! location coordinates broadcasted: [{sosActiveInfo.latitude}, {sosActiveInfo.longitude}]. Contacts alerted.
-            </span>
           </div>
-        )}
-
-        {/* Page Title & Counters */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', userSelect: 'none' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '70%' }}>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Active Trip Room
-            </span>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '700', color: '#f3f1ea', margin: 0, lineHeight: 1.2 }}>
-              {activity?.title}
-            </h2>
-          </div>
-
-          {/* Member Count Indicator */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Travelers
-            </span>
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={safeMembers.length}
-                initial={{ scale: 1.3, opacity: 0 }}
-                animate={{ scale: 1.0, opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                style={{
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  padding: '4px 12px',
-                  borderRadius: '100px',
-                  background: flashType === 'join' ? 'rgba(79,190,142,0.14)' : flashType === 'leave' ? 'rgba(255,84,112,0.14)' : '#1a2129',
-                  border: '1px solid',
-                  borderColor: flashType === 'join' ? '#4fbe8e' : flashType === 'leave' ? '#ff5470' : 'rgba(255,255,255,0.08)',
-                  color: flashType === 'join' ? '#4fbe8e' : flashType === 'leave' ? '#ff5470' : '#f3f1ea'
-                }}
-              >
-                👤 {safeMembers.length} {safeMembers.length === 1 ? 'member' : 'members'}
-              </motion.span>
-            </AnimatePresence>
-          </div>
-        </div>
-
-        {/* Offline SOS error banner alerts */}
-        {sosError && (
-          <div style={{ background: 'rgba(255,84,112,0.14)', border: '1px solid rgba(255,84,112,0.25)', color: '#ff5470', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', fontWeight: '700', color: '#ff5470', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              <span>⚠️ SOS Dispatch Failed</span>
-              <button onClick={() => setSosError('')} style={{ background: 'none', border: 'none', color: '#ff5470', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }}>✕</button>
-            </div>
-            <span style={{ fontSize: '12px', color: '#9ba6ad', lineHeight: '1.4' }}>
-              {sosError}
-            </span>
-          </div>
-        )}
-
-        {/* Tabs navigation headers */}
-        <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(255,255,255,0.08)', overflowX: 'auto', paddingBottom: '4px', userSelect: 'none' }} className="scrollbar-thin">
-          {['chat', 'info', 'expenses', 'checklist', 'polls'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              style={{
-                padding: '10px 16px',
-                fontSize: '12px',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                background: 'none',
-                border: 'none',
-                borderBottom: '2px solid',
-                borderColor: activeTab === tab ? '#ff6a2c' : 'transparent',
-                color: activeTab === tab ? '#ff6a2c' : '#9ba6ad',
-                cursor: 'pointer',
-                transition: 'all 150ms ease'
-              }}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <a
+              href={`https://maps.google.com/?q=${sosActiveInfo.latitude},${sosActiveInfo.longitude}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', padding: '6px 12px', borderRadius: '10px', textDecoration: 'none', fontSize: '12px', fontWeight: '700' }}
             >
-              {tab}
-            </button>
-          ))}
-          {isHost && (
-            <button
-              onClick={() => handleTabChange('manage')}
-              style={{
-                padding: '10px 16px',
-                fontSize: '12px',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                background: 'none',
-                border: 'none',
-                borderBottom: '2px solid',
-                borderColor: activeTab === 'manage' ? '#ff6a2c' : 'transparent',
-                color: activeTab === 'manage' ? '#ff6a2c' : '#9ba6ad',
-                cursor: 'pointer',
-                transition: 'all 150ms ease'
-              }}
-            >
-              Manage ⚙
-            </button>
-          )}
-        </div>
-
-        {/* Render Tab Sub-Viewports */}
-        <div style={{ flex: 1 }}>
-          {activeTab === 'chat' && (
-            <ChatTab
-              messages={safeMessages}
-              typingUsers={typingUsers}
-              currentUserId={user?.id}
-              onSendMessage={handleSendMessage}
-              onReportMessage={(m) => alert(`Message reported successfully. Ref: ${m.id}`)}
-            />
-          )}
-
-          {activeTab === 'info' && (
-            <InfoTab activity={activity} members={safeMembers} onMemberTap={(m) => alert(`Selected profile: ${m?.name || m?.User?.Profile?.name || 'Explorer'}`)} />
-          )}
-
-          {activeTab === 'expenses' && (
-            <ExpensesTab
-              expenses={safeExpenses}
-              members={safeMembers}
-              currentUserId={user?.id}
-              isHost={isHost}
-              onAddExpense={handleAddExpense}
-              onDeleteExpense={(id) => setExpenses((prev) => (Array.isArray(prev) ? prev : []).filter((e) => e.id !== id))}
-              onSettleSplit={handleSettleSplit}
-            />
-          )}
-
-          {activeTab === 'checklist' && (
-            <ChecklistTab
-              checklist={activity?.packing_checklist}
-              members={safeMembers}
-              onToggleItem={handleToggleChecklistItem}
-            />
-          )}
-
-          {activeTab === 'polls' && (
-            <PollsTab
-              polls={safePolls}
-              currentUserId={user?.id}
-              isHost={isHost}
-              onCreatePoll={handleCreatePoll}
-              onVotePoll={handleVotePoll}
-              onClosePoll={(id) =>
-                setPolls((prev) => (Array.isArray(prev) ? prev : []).map((p) => (p.id === id ? { ...p, is_closed: true } : p)))
-              }
-            />
-          )}
-
-          {activeTab === 'manage' && isHost && (
-            <ManageTab
-              roomId={roomId}
-              members={safeMembers}
-              healthMetrics={healthMetrics}
-              onMuteMember={handleMuteMember}
-              onRemoveMember={handleRemoveMember}
-              onToggleChat={(val) => console.log('Chat toggle:', val)}
-              onToggleLock={(val) => console.log('Group locked:', val)}
-              onMarkStarted={() => alert('Trip started status set. Alert SMS sent.')}
-              onMarkEnded={() => alert('Trip marked completed. Triggered user reviews.')}
-              onCancelTrip={(r) => alert(`Trip cancelled. Reason: ${r}`)}
-              onLockExpenses={(val) => console.log('Ledger lock:', val)}
-              onMarkAllSettled={() => alert('All splits marked settled.')}
-            />
-          )}
-        </div>
-
-        {/* Floating SOS Trigger Button Container */}
-        <div style={{ position: 'fixed', bottom: '24px', left: '24px', zIndex: 999 }}>
-          <AnimatePresence>
-            {sosHovered && !mySosSent && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                style={{
-                  position: 'absolute',
-                  bottom: '64px',
-                  left: 0,
-                  background: '#1a2129',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#f3f1ea',
-                  fontSize: '10px',
-                  fontWeight: '700',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                  whiteSpace: 'nowrap',
-                  pointerEvents: 'none'
-                }}
+              📍 Open Map
+            </a>
+            {isHost && (
+              <button
+                onClick={() => socketRef.current?.emit('sos_resolve', { roomId })}
+                style={{ background: '#fff', color: '#ff5470', border: 'none', padding: '6px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
               >
-                🚨 Emergency Alert
-              </motion.div>
+                Resolve
+              </button>
             )}
-          </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
 
-          <motion.button
-            onMouseEnter={() => setSosHovered(true)}
-            onMouseLeave={() => setSosHovered(false)}
-            onClick={() => !mySosSent && setSosModalOpen(true)}
-            whileHover={{ scale: mySosSent ? 1.0 : 1.15 }}
-            whileTap={{ scale: mySosSent ? 1.0 : 0.95 }}
+      {/* Header Info Banner */}
+      <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#f3f1ea' }}>{activity?.title || 'Trip Room'}</h2>
+          <span style={{ fontSize: '12px', color: '#9ba6ad' }}>📍 {activity?.destination || 'Destination'} · 👤 {safeMembers.length} travelers</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {safeMembers.slice(0, 4).map((m, idx) => (
+            <div key={m.userId || idx} style={{ position: 'relative' }}>
+              <Avatar src={m.avatarUrl} name={m.name} size="sm" score={m.trustScore} />
+              {m.isOnline && (
+                <span style={{ position: 'absolute', bottom: '0', right: '0', width: '8px', height: '8px', background: '#4fbe8e', borderRadius: '50%', border: '2px solid #1a2129' }} />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs Navigation Headers */}
+      <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(255,255,255,0.08)', overflowX: 'auto', paddingBottom: '4px', userSelect: 'none' }} className="scrollbar-thin">
+        {['chat', 'info', 'expenses', 'checklist', 'polls'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => handleTabChange(tab)}
             style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-              color: 'white',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: '900',
-              fontSize: '11px',
-              border: '1px solid rgba(255,84,112,0.20)',
-              cursor: mySosSent ? 'default' : 'pointer',
-              transition: 'all 500ms ease',
-              boxShadow: '0 6px 18px rgba(255,84,112,0.3)',
-              background: mySosSent ? 'rgba(255,84,112,0.1)' : '#ff5470'
+              padding: '10px 16px',
+              fontSize: '12px',
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              background: 'none',
+              border: 'none',
+              borderBottom: '2px solid',
+              borderColor: activeTab === tab ? '#ff6a2c' : 'transparent',
+              color: activeTab === tab ? '#ff6a2c' : '#9ba6ad',
+              cursor: 'pointer',
+              transition: 'all 150ms ease'
             }}
           >
-            {mySosSent ? (
-              <div className="flex flex-col items-center justify-center gap-0.5 animate-bounce">
-                <span style={{ fontSize: '11px' }}>✓</span>
-                <span style={{ fontSize: '6px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>SENT</span>
-              </div>
-            ) : (
-              <span>SOS</span>
-            )}
-          </motion.button>
-        </div>
+            {tab === 'chat' ? '💬 Chat' : tab === 'info' ? 'ℹ Info' : tab === 'expenses' ? '💰 Split' : tab === 'checklist' ? '🎒 Packing' : '📊 Polls'}
+          </button>
+        ))}
+        {isHost && (
+          <button
+            onClick={() => handleTabChange('manage')}
+            style={{
+              padding: '10px 16px',
+              fontSize: '12px',
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              background: 'none',
+              border: 'none',
+              borderBottom: '2px solid',
+              borderColor: activeTab === 'manage' ? '#ff6a2c' : 'transparent',
+              color: activeTab === 'manage' ? '#ff6a2c' : '#9ba6ad',
+              cursor: 'pointer',
+              transition: 'all 150ms ease'
+            }}
+          >
+            ⚙ Manage
+          </button>
+        )}
+      </div>
 
-        {/* SOS Confirm Modal Dialog */}
+      {/* Render Active Tab */}
+      <div style={{ flex: 1 }}>
+        {activeTab === 'chat' && (
+          <ChatTab
+            messages={messages}
+            typingUsers={typingUsers}
+            currentUserId={user?.id}
+            isHost={isHost}
+            roomMembers={safeMembers}
+            onSendMessage={handleSendMessage}
+            onAddReaction={handleAddReaction}
+            onRemoveReaction={handleRemoveReaction}
+            onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
+            onStarMessage={handleStarMessage}
+            onUnstarMessage={handleUnstarMessage}
+            onForwardMessage={handleForwardMessage}
+            onUploadMedia={handleUploadMedia}
+            onLoadOlderMessages={handleLoadOlderMessages}
+            hasMoreOlder={hasMoreOlder}
+            loadingOlder={loadingOlder}
+            onReportMessage={(m) => toast.success(`Report submitted for message ${m.id}`)}
+          />
+        )}
+
+        {activeTab === 'info' && (
+          <InfoTab
+            activity={activity}
+            members={safeMembers}
+            onMemberTap={(m) => alert(`Selected profile: ${m?.name || m?.User?.Profile?.name || 'Explorer'}`)}
+          />
+        )}
+
+        {activeTab === 'expenses' && (
+          <ExpensesTab
+            expenses={safeExpenses}
+            members={safeMembers}
+            currentUserId={user?.id}
+            isHost={isHost}
+            onAddExpense={handleAddExpense}
+            onDeleteExpense={(id) => setExpenses((prev) => (Array.isArray(prev) ? prev : []).filter((e) => e.id !== id))}
+            onSettleSplit={handleSettleSplit}
+          />
+        )}
+
+        {activeTab === 'checklist' && (
+          <ChecklistTab
+            checklist={activity?.packing_checklist}
+            members={safeMembers}
+            onToggleItem={handleToggleChecklistItem}
+          />
+        )}
+
+        {activeTab === 'polls' && (
+          <PollsTab
+            polls={safePolls}
+            currentUserId={user?.id}
+            isHost={isHost}
+            onCreatePoll={handleCreatePoll}
+            onVotePoll={handleVotePoll}
+            onClosePoll={(id) =>
+              setPolls((prev) => (Array.isArray(prev) ? prev : []).map((p) => (p.id === id ? { ...p, is_closed: true } : p)))
+            }
+          />
+        )}
+
+        {activeTab === 'manage' && isHost && (
+          <ManageTab
+            roomId={roomId}
+            members={safeMembers}
+            healthMetrics={healthMetrics}
+            onMuteMember={handleMuteMember}
+            onRemoveMember={handleRemoveMember}
+            onToggleChat={(val) => console.log('Chat toggle:', val)}
+            onToggleLock={(val) => console.log('Group locked:', val)}
+            onMarkStarted={() => alert('Trip started status set. Alert SMS sent.')}
+            onMarkEnded={() => alert('Trip marked completed. Triggered user reviews.')}
+            onCancelTrip={(r) => alert(`Trip cancelled. Reason: ${r}`)}
+            onLockExpenses={(val) => console.log('Ledger lock:', val)}
+            onMarkAllSettled={() => alert('All splits marked settled.')}
+          />
+        )}
+      </div>
+
+      {/* Floating SOS Trigger Button */}
+      <div style={{ position: 'fixed', bottom: '24px', left: '24px', zIndex: 99 }}>
+        <button
+          onClick={() => setSosModalOpen(true)}
+          style={{ width: '52px', height: '52px', borderRadius: '50%', background: '#ff5470', color: '#fff', border: 'none', fontSize: '20px', fontWeight: '900', boxShadow: '0 6px 20px rgba(255,84,112,0.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          title="Emergency SOS Broadcast"
+        >
+          🚨
+        </button>
+      </div>
+
+      {sosModalOpen && (
         <SOSConfirmModal
           isOpen={sosModalOpen}
           onClose={() => setSosModalOpen(false)}
-          onConfirm={handleSOSTrigger}
-          contactName="Priority Emergency Number"
+          onConfirm={(coords) => {
+            if (socketRef.current && coords) {
+              socketRef.current.emit('sos_trigger', {
+                roomId,
+                latitude: coords.latitude,
+                longitude: coords.longitude
+              })
+              setMySosSent(true)
+              toast.error('EMERGENCY SOS DISPATCHED TO ALL MEMBERS & CONTACTS')
+            }
+            setSosModalOpen(false)
+          }}
         />
-      </div>
+      )}
     </div>
   )
 }

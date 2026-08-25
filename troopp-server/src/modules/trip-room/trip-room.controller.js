@@ -5,14 +5,155 @@ import logger from '../../config/logger.js'
  * REST Controllers for Trip Room endpoints.
  */
 
-// 1. CHAT MESSAGES
+import { uploadToCloudinary } from '../../config/cloudinary.js'
+
+// 1. CHAT MESSAGES & EXTENSIONS
 export const getMessages = async (req, res, next) => {
   try {
-    const { limit = 50, offset = 0 } = req.query
-    const messages = await tripRoomService.getMessages(req.params.id, limit, offset)
+    const { limit = 30, before, after, offset = 0 } = req.query
+    const result = await tripRoomService.getMessages(req.params.id, {
+      limit,
+      before,
+      after,
+      offset,
+      requestingUserId: req.user.id
+    })
     res.status(200).json({
       success: true,
-      data: messages
+      data: result
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const searchMessages = async (req, res, next) => {
+  try {
+    const { q } = req.query
+    const results = await tripRoomService.searchMessages(req.params.id, q, req.user.id)
+    res.status(200).json({
+      success: true,
+      data: results
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const getMediaGallery = async (req, res, next) => {
+  try {
+    const { type = 'all' } = req.query
+    const items = await tripRoomService.getMediaGallery(req.params.id, type, req.user.id)
+    res.status(200).json({
+      success: true,
+      data: items
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const getStarredMessages = async (req, res, next) => {
+  try {
+    const stars = await tripRoomService.getStarredMessages(req.params.id, req.user.id)
+    res.status(200).json({
+      success: true,
+      data: stars
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const uploadChatMedia = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file attached for upload.' })
+    }
+
+    const { mimetype, originalname, size, buffer } = req.file
+    let folder = 'trip_room_chat/documents'
+    let resource_type = 'auto'
+
+    if (mimetype.startsWith('image/')) {
+      folder = 'trip_room_chat/images'
+      resource_type = 'image'
+    } else if (mimetype.startsWith('video/')) {
+      folder = 'trip_room_chat/videos'
+      resource_type = 'video'
+    } else if (mimetype.startsWith('audio/')) {
+      folder = 'trip_room_chat/audio'
+      resource_type = 'video' // Cloudinary stores audio under video resource_type
+    }
+
+    const uploadResult = await uploadToCloudinary(buffer, { folder, resource_type })
+
+    const mediaPayload = {
+      url: uploadResult.secure_url || uploadResult.url,
+      mimetype,
+      filename: originalname,
+      size,
+      width: uploadResult.width || null,
+      height: uploadResult.height || null,
+      duration: uploadResult.duration || null
+    }
+
+    res.status(200).json({
+      success: true,
+      data: mediaPayload
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const forwardMessage = async (req, res, next) => {
+  try {
+    const { targetRoomId } = req.body
+    const { msgId } = req.params
+    const forwarded = await tripRoomService.forwardMessage(msgId, targetRoomId, req.user.id)
+
+    // Broadcast to target room if socket.io is available
+    const io = req.app.get('io')
+    if (io && forwarded) {
+      io.to(targetRoomId).emit('new_message', forwarded)
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Message forwarded successfully.',
+      data: forwarded
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const updateRoomSettings = async (req, res, next) => {
+  try {
+    const room = await tripRoomService.updateRoomSettings(req.params.id, req.body, req.user.id)
+    const io = req.app.get('io')
+    if (io) {
+      io.to(req.params.id).emit('room_updated', room)
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Room settings updated.',
+      data: room
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const muteRoomNotifications = async (req, res, next) => {
+  try {
+    const { duration } = req.body // duration in minutes or 'always'
+    const result = await tripRoomService.muteRoomNotifications(req.params.id, req.user.id, duration)
+    res.status(200).json({
+      success: true,
+      message: 'Notification preferences updated.',
+      data: result
     })
   } catch (error) {
     next(error)

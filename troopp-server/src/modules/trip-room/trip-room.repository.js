@@ -1,40 +1,326 @@
-import { Op } from 'sequelize'
-import Message from '../../models/Message.js'
-import Expense from '../../models/Expense.js'
-import ExpenseSplit from '../../models/ExpenseSplit.js'
-import Poll from '../../models/Poll.js'
-import CheckInPoint from '../../models/CheckInPoint.js'
-import CheckInLog from '../../models/CheckInLog.js'
-import MemberMute from '../../models/MemberMute.js'
-import JoinerOnboardingStatus from '../../models/JoinerOnboardingStatus.js'
-import ActivityMember from '../../models/ActivityMember.js'
-import Activity from '../../models/Activity.js'
-import TripRule from '../../models/TripRule.js'
-import User from '../../models/User.js'
-import Profile from '../../models/Profile.js'
-import EmergencyContact from '../../models/EmergencyContact.js'
-import Report from '../../models/Report.js'
+import { Op, Sequelize } from 'sequelize'
+import {
+  Message,
+  Expense,
+  ExpenseSplit,
+  Poll,
+  CheckInPoint,
+  CheckInLog,
+  MemberMute,
+  JoinerOnboardingStatus,
+  ActivityMember,
+  Activity,
+  TripRule,
+  TripRoom,
+  User,
+  Profile,
+  EmergencyContact,
+  Report,
+  MessageDelivery,
+  MessageRead,
+  MessageReaction,
+  MessageStar,
+  MessageDeletedUser
+} from '../../models/index.js'
 
 /**
- * Handles all database operations for real-time Trip Rooms.
+ * Handles all database operations for real-time Trip Rooms with full WhatsApp parity.
  */
 
-// 1. MESSAGES CRUD
-export const getMessagesPaginated = async (roomId, limit = 50, offset = 0) => {
-  return await Message.findAndCountAll({
-    where: { trip_room_id: roomId },
-    limit: parseInt(limit),
-    offset: parseInt(offset),
-    order: [['created_at', 'ASC']],
+// 1. MESSAGES CRUD & CURSOR PAGINATION
+export const getMessagesPaginated = async (roomId, options = {}) => {
+  const {
+    limit = 30,
+    before = null,
+    after = null,
+    offset = 0,
+    requestingUserId = null
+  } = options
+
+  // 1. Filter out messages deleted "for me"
+  let excludedIds = []
+  if (requestingUserId) {
+    const deletedForMe = await MessageDeletedUser.findAll({
+      where: { user_id: requestingUserId },
+      attributes: ['message_id']
+    })
+    excludedIds = deletedForMe.map((d) => d.message_id)
+  }
+
+  // 2. Build where clause
+  const whereClause = {
+    trip_room_id: roomId
+  }
+
+  if (excludedIds.length > 0) {
+    whereClause.id = { [Op.notIn]: excludedIds }
+  }
+
+  // Cursor pagination
+  if (before) {
+    // Older messages (scrolling up)
+    whereClause.created_at = { [Op.lt]: new Date(before) }
+  } else if (after) {
+    // Newer messages (delta sync on reconnect)
+    whereClause.created_at = { [Op.gt]: new Date(after) }
+  }
+
+  const orderDirection = before ? 'DESC' : 'ASC'
+
+  const { rows, count } = await Message.findAndCountAll({
+    where: whereClause,
+    limit: parseInt(limit, 10),
+    ...(offset && !before && !after ? { offset: parseInt(offset, 10) } : {}),
+    order: [['created_at', orderDirection]],
     include: [
       {
         model: User,
         as: 'Sender',
-        attributes: ['id', 'trust_score'],
+        attributes: ['id', 'trust_score', 'reliability_score'],
+        include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'] }]
+      },
+      {
+        model: Message,
+        as: 'ReplyTo',
+        attributes: ['id', 'sender_id', 'message_text', 'message_type', 'media'],
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['id'],
+            include: [{ model: Profile, as: 'Profile', attributes: ['name'] }]
+          }
+        ]
+      },
+      {
+        model: MessageReaction,
+        as: 'Reactions',
+        attributes: ['id', 'emoji', 'user_id'],
+        include: [
+          {
+            model: User,
+            as: 'User',
+            attributes: ['id'],
+            include: [{ model: Profile, as: 'Profile', attributes: ['name'] }]
+          }
+        ]
+      },
+      {
+        model: MessageDelivery,
+        as: 'Deliveries',
+        attributes: ['user_id', 'delivered_at']
+      },
+      {
+        model: MessageRead,
+        as: 'Reads',
+        attributes: ['user_id', 'read_at']
+      },
+      ...(requestingUserId
+        ? [
+            {
+              model: MessageStar,
+              as: 'Stars',
+              where: { user_id: requestingUserId },
+              required: false,
+              attributes: ['id']
+            }
+          ]
+        : [])
+    ]
+  })
+
+  // If we fetched older messages with DESC order, re-sort ascending for client chat view
+  const formattedRows = (before ? rows.reverse() : rows).map((m) => {
+    const plain = m.toJSON()
+    plain.is_starred = Boolean(plain.Stars && plain.Stars.length > 0)
+    return plain
+  })
+
+  return {
+    rows: formattedRows,
+    count,
+    hasMore: rows.length >= parseInt(limit, 10)
+  }
+}
+
+// 2. IN-CHAT MESSAGE SEARCH
+export const searchMessages = async (roomId, query, requestingUserId = null) => {
+  if (!query?.trim()) return []
+
+  let excludedIds = []
+  if (requestingUserId) {
+    const deletedForMe = await MessageDeletedUser.findAll({
+      where: { user_id: requestingUserId },
+      attributes: ['message_id']
+    })
+    excludedIds = deletedForMe.map((d) => d.message_id)
+  }
+
+  const whereClause = {
+    trip_room_id: roomId,
+    deleted_for: { [Op.ne]: 'everyone' },
+    message_text: { [Op.iLike]: `%${query.trim()}%` }
+  }
+
+  if (excludedIds.length > 0) {
+    whereClause.id = { [Op.notIn]: excludedIds }
+  }
+
+  const results = await Message.findAll({
+    where: whereClause,
+    order: [['created_at', 'DESC']],
+    limit: 50,
+    include: [
+      {
+        model: User,
+        as: 'Sender',
+        attributes: ['id'],
         include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'] }]
       }
     ]
   })
+
+  return results.map((m) => m.toJSON())
+}
+
+// 3. MEDIA GALLERY (Photos, Videos, Audio/Voice, Documents, Links)
+export const getMediaGallery = async (roomId, mediaType = 'all', requestingUserId = null) => {
+  let excludedIds = []
+  if (requestingUserId) {
+    const deletedForMe = await MessageDeletedUser.findAll({
+      where: { user_id: requestingUserId },
+      attributes: ['message_id']
+    })
+    excludedIds = deletedForMe.map((d) => d.message_id)
+  }
+
+  const whereClause = {
+    trip_room_id: roomId,
+    deleted_for: { [Op.ne]: 'everyone' }
+  }
+
+  if (excludedIds.length > 0) {
+    whereClause.id = { [Op.notIn]: excludedIds }
+  }
+
+  if (mediaType === 'image') {
+    whereClause.message_type = 'image'
+  } else if (mediaType === 'video') {
+    whereClause.message_type = 'video'
+  } else if (mediaType === 'audio') {
+    whereClause.message_type = 'audio'
+  } else if (mediaType === 'document') {
+    whereClause.message_type = 'document'
+  } else if (mediaType === 'links') {
+    whereClause.message_text = { [Op.iLike]: '%http%' }
+  } else {
+    // All attachments
+    whereClause[Op.or] = [
+      { message_type: { [Op.in]: ['image', 'video', 'audio', 'document'] } },
+      { media: { [Op.ne]: null } }
+    ]
+  }
+
+  const mediaMessages = await Message.findAll({
+    where: whereClause,
+    order: [['created_at', 'DESC']],
+    limit: 100,
+    include: [
+      {
+        model: User,
+        as: 'Sender',
+        attributes: ['id'],
+        include: [{ model: Profile, as: 'Profile', attributes: ['name'] }]
+      }
+    ]
+  })
+
+  return mediaMessages.map((m) => m.toJSON())
+}
+
+// 4. STARRED MESSAGES
+export const getStarredMessages = async (roomId, userId) => {
+  const stars = await MessageStar.findAll({
+    where: { user_id: userId },
+    include: [
+      {
+        model: Message,
+        where: { trip_room_id: roomId, deleted_for: { [Op.ne]: 'everyone' } },
+        include: [
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['id'],
+            include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'] }]
+          }
+        ]
+      }
+    ],
+    order: [['created_at', 'DESC']]
+  })
+
+  return stars.map((s) => ({
+    ...s.Message.toJSON(),
+    is_starred: true,
+    starred_at: s.created_at
+  }))
+}
+
+// 5. FORWARD MESSAGE
+export const forwardMessage = async (messageId, targetRoomId, userId) => {
+  const original = await Message.findByPk(messageId)
+  if (!original) return null
+
+  return await Message.create({
+    trip_room_id: targetRoomId,
+    sender_id: userId,
+    message_type: original.message_type,
+    message_text: original.message_text,
+    media: original.media,
+    location_data: original.location_data,
+    contact_data: original.contact_data,
+    deleted_for: 'none',
+    created_at: new Date(),
+    updated_at: new Date()
+  })
+}
+
+// 6. UPDATE ROOM SETTINGS (Rename, Photo, Archive)
+export const updateRoomSettings = async (roomId, settings = {}) => {
+  let room = await TripRoom.findOne({ where: { activity_id: roomId } })
+  if (!room) {
+    room = await TripRoom.create({ activity_id: roomId })
+  }
+
+  if (settings.roomName !== undefined) room.room_name = settings.roomName
+  if (settings.roomPhotoUrl !== undefined) room.room_photo_url = settings.roomPhotoUrl
+  if (settings.status !== undefined) {
+    room.status = settings.status
+    if (settings.status === 'archived') {
+      room.archived_at = new Date()
+    }
+  }
+  if (settings.chatEnabled !== undefined) room.chat_enabled = settings.chatEnabled
+
+  await room.save()
+  return room
+}
+
+// 7. MUTE ROOM NOTIFICATIONS
+export const muteRoomNotifications = async (roomId, userId, durationMinutes) => {
+  let until = null
+  if (durationMinutes === 'always' || durationMinutes === -1) {
+    until = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) // 100 years
+  } else if (durationMinutes > 0) {
+    until = new Date(Date.now() + durationMinutes * 60 * 1000)
+  }
+
+  await ActivityMember.update(
+    { notification_muted_until: until },
+    { where: { activity_id: roomId, user_id: userId } }
+  )
+
+  return { mutedUntil: until }
 }
 
 export const createMessage = async (data) => {
@@ -52,14 +338,14 @@ export const pinMessage = async (messageId, isPinned) => {
 export const softDeleteMessage = async (messageId) => {
   const msg = await Message.findByPk(messageId)
   if (!msg) return null
-  // Simulate soft delete using message body placeholder or deleted_at timestamp
-  msg.message_text = 'Removed by host'
+  msg.message_text = '🚫 This message was deleted'
+  msg.deleted_for = 'everyone'
   msg.deleted_at = new Date()
   await msg.save()
   return msg
 }
 
-// 2. EXPENSES CRUD
+// 8. EXPENSES CRUD
 export const getExpensesWithSplits = async (activityId) => {
   return await Expense.findAll({
     where: { activity_id: activityId },
@@ -101,7 +387,7 @@ export const createExpenseWithSplits = async (activityId, payerId, amount, descr
       expense_id: expense.id,
       user_id: split.userId,
       share_amount: split.shareAmount,
-      is_settled: split.userId === payerId // Auto-settled for payer
+      is_settled: split.userId === payerId
     })
   )
   await Promise.all(splitPromises)
@@ -128,7 +414,7 @@ export const settleSplit = async (splitId) => {
   return split
 }
 
-// 3. POLLS CRUD
+// 9. POLLS CRUD
 export const getPollsByActivity = async (activityId) => {
   return await Poll.findAll({
     where: { activity_id: activityId },
@@ -137,7 +423,6 @@ export const getPollsByActivity = async (activityId) => {
 }
 
 export const createPoll = async (activityId, creatorId, question, options) => {
-  // Initialize votes array matching options length
   const votes = Array(options.length).fill(null).map(() => [])
   return await Poll.create({
     activity_id: activityId,
@@ -157,7 +442,7 @@ export const closePoll = async (pollId) => {
   return poll
 }
 
-// 4. CHECK-IN POINTS & LOGS
+// 10. CHECK-IN POINTS & LOGS
 export const getCheckInPoints = async (activityId) => {
   return await CheckInPoint.findAll({
     where: { activity_id: activityId },
@@ -190,7 +475,7 @@ export const getCheckInLogsForPoint = async (pointId) => {
   })
 }
 
-// 5. ONBOARDING STATUS
+// 11. ONBOARDING STATUS
 export const getOnboardingStatus = async (activityId, userId) => {
   return await JoinerOnboardingStatus.findOne({
     where: { activity_id: activityId, user_id: userId }
@@ -216,9 +501,8 @@ export const completeOnboarding = async (activityId, userId) => {
   return status
 }
 
-// 6. HEALTH DASHBOARD STATS (Aggregated metrics)
+// 12. HEALTH DASHBOARD STATS
 export const getHealthMetrics = async (activityId) => {
-  // Members trust aggregates
   const members = await ActivityMember.findAll({
     where: { activity_id: activityId, status: 'confirmed' },
     include: [
@@ -249,23 +533,17 @@ export const getHealthMetrics = async (activityId) => {
     if (!u) return
     totalTrust += u.trust_score
     if (u.trust_score >= 75) trustedCount++
-    
-    // Member is "new" if registered on Troopp for less than 1 month
     const tenureMonths = (now - new Date(u.created_at || now)) / (1000 * 60 * 60 * 24 * 30)
     if (tenureMonths <= 1) newMembersCount++
-
     if (u.Profile?.gender === 'female') femaleCount++
     if (u.EmergencyContact) emergencySetCount++
   })
 
-  // Pending Checkins count
   const points = await CheckInPoint.findAll({ where: { activity_id: activityId } })
   const pointIds = points.map((p) => p.id)
   const logsCount = await CheckInLog.count({ where: { check_in_point_id: { [Op.in]: pointIds } } })
   const expectedCheckins = pointIds.length * totalMembers
   const pendingCheckins = Math.max(0, expectedCheckins - logsCount)
-
-  // Reports filed count
   const reportsCount = await Report.count({ where: { activity_id: activityId } })
 
   return {

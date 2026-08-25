@@ -4,6 +4,7 @@ import * as tripRoomController from './trip-room.controller.js'
 import Activity from '../../models/Activity.js'
 import ActivityMember from '../../models/ActivityMember.js'
 import { AppError } from '../../middleware/errorHandler.middleware.js'
+import { uploadChatFile } from '../../middleware/upload.middleware.js'
 
 const router = Router()
 
@@ -73,10 +74,19 @@ const checkTripHost = async (req, res, next) => {
 router.get('/:id/onboarding', checkTripRoomMember, tripRoomController.getOnboarding)
 router.post('/:id/onboarding-complete', checkTripRoomMember, tripRoomController.completeOnboarding)
 
-// Message endpoints
+// Message endpoints & extensions
 router.get('/:id/messages', checkTripRoomMember, tripRoomController.getMessages)
+router.get('/:id/messages/search', checkTripRoomMember, tripRoomController.searchMessages)
+router.get('/:id/media', checkTripRoomMember, tripRoomController.getMediaGallery)
+router.get('/:id/starred', checkTripRoomMember, tripRoomController.getStarredMessages)
+router.post('/:id/messages/upload', checkTripRoomMember, uploadChatFile('file'), tripRoomController.uploadChatMedia)
+router.post('/:id/messages/:msgId/forward', checkTripRoomMember, tripRoomController.forwardMessage)
 router.post('/:id/messages/:messageId/pin', checkTripRoomMember, tripRoomController.pinMessage)
 router.delete('/:id/messages/:messageId', checkTripRoomMember, tripRoomController.deleteMessage)
+
+// Room settings & notification preferences
+router.patch('/:id/settings', checkTripHost, tripRoomController.updateRoomSettings)
+router.patch('/:id/notification-mute', checkTripRoomMember, tripRoomController.muteRoomNotifications)
 
 // Expense management
 router.get('/:id/expenses', checkTripRoomMember, tripRoomController.getExpenses)

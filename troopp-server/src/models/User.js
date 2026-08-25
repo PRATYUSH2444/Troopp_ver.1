@@ -124,6 +124,16 @@ User.init(
       defaultValue: true,
       allowNull: false,
     },
+    presence_privacy: {
+      type: DataTypes.ENUM('everyone', 'trip_only', 'nobody'),
+      defaultValue: 'everyone',
+      allowNull: false,
+    },
+    read_receipts_enabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+      allowNull: false,
+    },
     last_active_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

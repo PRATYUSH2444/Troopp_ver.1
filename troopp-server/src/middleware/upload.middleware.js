@@ -81,3 +81,21 @@ export const uploadID = (fieldName) => [
   idMulter.single(fieldName),
   validateMagicBytes(idMimeTypes)
 ]
+
+const chatMimeTypes = [
+  'image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif',
+  'video/mp4', 'video/webm', 'video/quicktime',
+  'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm', 'audio/m4a', 'audio/aac',
+  'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain', 'application/zip'
+]
+
+const chatMulter = multer({
+  storage,
+  limits: { fileSize: 25 * 1024 * 1024 } // 25MB limit
+})
+
+export const uploadChatFile = (fieldName = 'file') => [
+  chatMulter.single(fieldName)
+]
+
