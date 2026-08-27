@@ -814,16 +814,16 @@ const TripRoom = () => {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 flex flex-col gap-4 sm:gap-6 min-w-0">
+    <div className="page-container-wide flex flex-col gap-6 text-[#f3f1ea] min-w-0 pb-16">
       
       {/* Persistent SOS Alert Banner */}
       {sosActiveInfo && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#ff5470] text-white rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl z-50"
+          className="bg-[#ff5470] text-white rounded-[20px] p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl z-50"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <span className="text-2xl animate-pulse">🚨</span>
             <div>
               <h4 className="m-0 text-xs sm:text-sm font-black uppercase tracking-wider">
@@ -834,19 +834,19 @@ const TripRoom = () => {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             <a
               href={`https://maps.google.com/?q=${sosActiveInfo.latitude},${sosActiveInfo.longitude}`}
               target="_blank"
               rel="noreferrer"
-              className="bg-black/20 hover:bg-black/30 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all"
+              className="bg-black/20 hover:bg-black/30 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all"
             >
               📍 Open Map
             </a>
             {isHost && (
               <button
                 onClick={() => socketRef.current?.emit('sos_resolve', { roomId })}
-                className="bg-white hover:bg-white/90 text-[#ff5470] px-4 py-1.5 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer"
+                className="bg-white hover:bg-white/90 text-[#ff5470] px-4 py-2 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer"
               >
                 Resolve
               </button>
@@ -856,18 +856,18 @@ const TripRoom = () => {
       )}
 
       {/* Header Info Banner */}
-      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-xl">
+      <div className="bg-[#151c24] border border-[#242f3d] rounded-[20px] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
         <div className="flex flex-col min-w-0">
-          <h1 className="m-0 text-lg sm:text-2xl font-black text-[#f3f1ea] font-display truncate">
+          <h1 className="m-0 text-xl sm:text-2xl font-black text-[#f3f1ea] font-display truncate">
             {activity?.title || 'Trip Room'}
           </h1>
-          <div className="flex items-center flex-wrap gap-2 text-xs text-[#9ba6ad] mt-1">
-            <span className="flex items-center gap-1 font-medium">
+          <div className="flex items-center flex-wrap gap-2.5 text-xs text-[#9ba6ad] mt-1.5">
+            <span className="flex items-center gap-1.5 font-medium">
               <span>📍</span>
               <span className="text-white/90">{activity?.destination || 'Destination'}</span>
             </span>
             <span>•</span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1.5">
               <span>👤</span>
               <span className="font-semibold text-white/90">{safeMembers.length} travelers</span>
             </span>
@@ -875,8 +875,8 @@ const TripRoom = () => {
         </div>
 
         {/* Traveler Avatars stack */}
-        <div className="flex items-center gap-1.5 flex-shrink-0 self-start sm:self-center">
-          <div className="flex items-center -space-x-2 overflow-hidden py-1">
+        <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+          <div className="flex items-center -space-x-2.5 overflow-hidden py-1">
             {safeMembers.slice(0, 5).map((m, idx) => (
               <div key={m.userId || idx} className="relative ring-2 ring-[#151c24] rounded-full">
                 <Avatar src={m.avatarUrl || m.User?.Profile?.avatar_url} name={m.name || m.User?.Profile?.name} size="sm" score={m.trustScore} />
@@ -887,7 +887,7 @@ const TripRoom = () => {
             ))}
           </div>
           {safeMembers.length > 5 && (
-            <span className="text-[11px] font-bold text-[#9ba6ad] bg-[#1a2129] border border-white/10 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-bold text-[#9ba6ad] bg-[#1a2129] border border-white/10 px-2.5 py-1 rounded-full">
               +{safeMembers.length - 5}
             </span>
           )}

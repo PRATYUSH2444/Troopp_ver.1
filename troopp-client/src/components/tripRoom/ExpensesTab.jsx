@@ -324,26 +324,26 @@ const ExpensesTab = ({
   }
 
   return (
-    <div className="flex flex-col gap-5 text-[#f3f1ea] relative min-h-[480px]">
+    <div className="flex flex-col gap-6 text-[#f3f1ea] relative min-h-[480px] pb-16">
       
       {/* 1. TOP STATS DASHBOARD */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         
         {/* Net Position Banner */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-4 sm:p-5 rounded-2xl flex flex-col justify-between shadow-lg">
+        <div className="bg-[#151c24] border border-[#242f3d] p-6 sm:p-7 rounded-[20px] flex flex-col justify-between shadow-lg">
           <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider">
             Your Net Position
           </span>
-          <div className="flex items-baseline gap-2 mt-1">
+          <div className="flex items-baseline gap-2.5 mt-2">
             <h4
-              className={`text-2xl font-black font-display ${
+              className={`text-2xl sm:text-3xl font-black font-display ${
                 myNet > 0.5 ? 'text-[#4fbe8e]' : myNet < -0.5 ? 'text-[#ff5470]' : 'text-[#f3f1ea]'
               }`}
             >
               {myNet > 0.5 ? `+₹${formatINR(myNet)}` : myNet < -0.5 ? `-₹${formatINR(Math.abs(myNet))}` : '₹0'}
             </h4>
             <span
-              className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+              className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
                 myNet > 0.5
                   ? 'bg-[rgba(79,190,142,0.15)] text-[#4fbe8e]'
                   : myNet < -0.5
@@ -354,32 +354,32 @@ const ExpensesTab = ({
               {myNet > 0.5 ? 'You get back' : myNet < -0.5 ? 'You owe' : 'All Settled'}
             </span>
           </div>
-          <span className="text-[10px] text-[#6b757c] mt-2">
+          <span className="text-[10px] text-[#6b757c] mt-3">
             Reconciled across all bills & payments
           </span>
         </div>
 
         {/* Total Trip Pool */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-4 sm:p-5 rounded-2xl flex flex-col justify-between shadow-lg">
+        <div className="bg-[#151c24] border border-[#242f3d] p-6 sm:p-7 rounded-[20px] flex flex-col justify-between shadow-lg">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider">
               Total Trip Pool
             </span>
-            <span className="text-xs font-bold text-[#ff6a2c] font-mono">
+            <span className="text-xs font-bold text-[#ff6a2c] font-mono bg-[rgba(255,106,44,0.12)] px-2 py-0.5 rounded-md">
               {safeExpenses.length} {safeExpenses.length === 1 ? 'bill' : 'bills'}
             </span>
           </div>
-          <h4 className="text-2xl font-black text-[#f3f1ea] font-display mt-1">
+          <h4 className="text-2xl sm:text-3xl font-black text-[#f3f1ea] font-display mt-2">
             ₹{formatINR(totalTripSpend)}
           </h4>
-          <span className="text-[10px] text-[#6b757c] mt-2">
+          <span className="text-[10px] text-[#6b757c] mt-3">
             Shared expenditure for {totalMembersCount} members
           </span>
         </div>
       </div>
 
       {/* 2. SETTLEMENT PROGRESS BAR */}
-      <div className="bg-[#151c24] border border-[#242f3d] p-4 rounded-2xl flex flex-col gap-2 shadow-lg">
+      <div className="bg-[#151c24] border border-[#242f3d] p-6 rounded-[20px] flex flex-col gap-3 shadow-lg">
         <div className="flex justify-between items-center text-xs font-bold text-[#9ba6ad]">
           <span>Settlement Completion</span>
           <span className={settlementPercentage === 100 ? 'text-[#4fbe8e] font-black' : 'text-[#ff6a2c] font-black'}>
@@ -399,11 +399,11 @@ const ExpensesTab = ({
       </div>
 
       {/* 3. SUB-TAB SWITCHER & ACTION BAR */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#151c24] border border-[#242f3d] p-2 rounded-2xl">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#151c24] border border-[#242f3d] p-3 rounded-[20px] shadow-lg">
         <div className="flex items-center gap-1.5 p-1 bg-[#1a2129] rounded-xl">
           <button
             onClick={() => setSubTab('ledger')}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 sm:flex-none h-9 px-4 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               subTab === 'ledger'
                 ? 'bg-[#ff6a2c] text-[#1a0e08] shadow-md'
                 : 'text-[#9ba6ad] hover:text-[#f3f1ea]'
@@ -413,7 +413,7 @@ const ExpensesTab = ({
           </button>
           <button
             onClick={() => setSubTab('bills')}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 sm:flex-none h-9 px-4 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               subTab === 'bills'
                 ? 'bg-[#ff6a2c] text-[#1a0e08] shadow-md'
                 : 'text-[#9ba6ad] hover:text-[#f3f1ea]'
@@ -441,16 +441,16 @@ const ExpensesTab = ({
           )}
           <button
             onClick={handleExportSummary}
-            className="h-9 px-3.5 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 rounded-xl text-xs font-bold text-[#9ba6ad] hover:text-[#f3f1ea] flex items-center gap-1.5 transition-all cursor-pointer"
+            className="h-9 px-4 bg-[#1a2129] hover:bg-[#212b33] border border-white/10 rounded-xl text-xs font-bold text-[#f3f1ea] flex items-center gap-2 transition-all cursor-pointer"
             title="Export WhatsApp Summary"
           >
             <span>📤</span>
-            <span className="hidden sm:inline">WhatsApp Export</span>
+            <span>WhatsApp Export</span>
           </button>
           <button
             disabled={expensesLocked}
             onClick={handleOpenModal}
-            className={`h-9 px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer ${
+            className={`h-9 px-5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer ${
               expensesLocked
                 ? 'bg-[#212b33] text-[#6b757c] cursor-not-allowed'
                 : 'bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08]'
@@ -464,10 +464,10 @@ const ExpensesTab = ({
 
       {/* 4. MAIN CONTENT CONTAINER */}
       {subTab === 'ledger' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           
           {/* SECTION A: OPTIMIZED SETTLE UP (Who Pays Whom) */}
-          <div className="bg-[#151c24] border border-[#242f3d] p-4 sm:p-5 rounded-2xl flex flex-col gap-3 shadow-lg">
+          <div className="bg-[#151c24] border border-[#242f3d] p-6 rounded-[20px] flex flex-col gap-4 shadow-lg">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div>
                 <h3 className="text-sm font-bold font-display text-[#f3f1ea]">
@@ -483,13 +483,13 @@ const ExpensesTab = ({
             </div>
 
             {simplifiedTransactions.length === 0 ? (
-              <div className="text-center py-8 flex flex-col items-center gap-2">
+              <div className="text-center py-12 flex flex-col items-center gap-2">
                 <span className="text-3xl">🎉</span>
                 <h4 className="text-sm font-bold text-[#4fbe8e]">All debts settled!</h4>
                 <p className="text-xs text-[#9ba6ad]">No pending transfers required across the group.</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3">
                 {simplifiedTransactions.map((tx, idx) => {
                   const isMyDebt = tx.fromUserId === currentUserId
                   const isOwedToMe = tx.toUserId === currentUserId
@@ -497,7 +497,7 @@ const ExpensesTab = ({
                   return (
                     <div
                       key={idx}
-                      className={`p-3.5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all ${
+                      className={`p-4 sm:p-5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 transition-all ${
                         isMyDebt
                           ? 'bg-[rgba(255,84,112,0.06)] border-[rgba(255,84,112,0.3)]'
                           : isOwedToMe
@@ -521,7 +521,7 @@ const ExpensesTab = ({
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto flex-shrink-0">
+                      <div className="flex items-center justify-between sm:justify-end gap-3.5 w-full sm:w-auto flex-shrink-0">
                         <span className="text-sm font-black text-[#f3f1ea] font-mono">
                           ₹{formatINR(tx.amount)}
                         </span>
@@ -558,7 +558,7 @@ const ExpensesTab = ({
           </div>
 
           {/* SECTION B: MEMBER-WISE NET LEDGER GRID */}
-          <div className="bg-[#151c24] border border-[#242f3d] p-4 sm:p-5 rounded-2xl flex flex-col gap-3 shadow-lg">
+          <div className="bg-[#151c24] border border-[#242f3d] p-6 rounded-[20px] flex flex-col gap-4 shadow-lg">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div>
                 <h3 className="text-sm font-bold font-display text-[#f3f1ea]">
@@ -570,11 +570,11 @@ const ExpensesTab = ({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {memberBalances.map((m) => (
                 <div
                   key={m.userId}
-                  className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex items-center justify-between gap-3"
+                  className="p-4 sm:p-5 bg-[#1a2129] border border-white/5 rounded-xl flex items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar size="sm" src={m.user?.avatarUrl} name={m.user?.name} />
@@ -588,7 +588,7 @@ const ExpensesTab = ({
                     </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     <span
                       className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                         m.status === 'gets_back'
