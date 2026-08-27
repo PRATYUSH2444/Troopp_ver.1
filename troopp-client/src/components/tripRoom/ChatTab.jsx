@@ -418,7 +418,7 @@ const ChatTab = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '620px', background: '#161c22', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', boxShadow: '0 12px 32px rgba(0,0,0,0.3)', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'clamp(500px, calc(100vh - 240px), 780px)', background: '#161c22', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', boxShadow: '0 12px 32px rgba(0,0,0,0.3)', overflow: 'hidden', position: 'relative' }}>
       
       {/* Top Action Bar (In-Chat Search, Media Gallery, Starred) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: '#1a2129', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>

@@ -21,6 +21,15 @@ const loadRazorpayScript = () => {
   })
 }
 
+const formatINR = (val) => {
+  const num = Number(val)
+  if (isNaN(num)) return '0'
+  return num.toLocaleString('en-IN', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: Number.isInteger(num) ? 0 : 1
+  })
+}
+
 /**
  * Troopp Expense & Settlement Management Engine
  * Features:
@@ -331,7 +340,7 @@ const ExpensesTab = ({
                 myNet > 0.5 ? 'text-[#4fbe8e]' : myNet < -0.5 ? 'text-[#ff5470]' : 'text-[#f3f1ea]'
               }`}
             >
-              {myNet > 0.5 ? `+₹${myNet.toLocaleString()}` : myNet < -0.5 ? `-₹${Math.abs(myNet).toLocaleString()}` : '₹0'}
+              {myNet > 0.5 ? `+₹${formatINR(myNet)}` : myNet < -0.5 ? `-₹${formatINR(Math.abs(myNet))}` : '₹0'}
             </h4>
             <span
               className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -361,7 +370,7 @@ const ExpensesTab = ({
             </span>
           </div>
           <h4 className="text-2xl font-black text-[#f3f1ea] font-display mt-1">
-            ₹{totalTripSpend.toLocaleString()}
+            ₹{formatINR(totalTripSpend)}
           </h4>
           <span className="text-[10px] text-[#6b757c] mt-2">
             Shared expenditure for {totalMembersCount} members
@@ -510,7 +519,7 @@ const ExpensesTab = ({
 
                       <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
                         <span className="text-sm font-black text-[#f3f1ea] font-mono">
-                          ₹{tx.amount.toLocaleString()}
+                          ₹{formatINR(tx.amount)}
                         </span>
 
                         {isMyDebt ? (
@@ -570,7 +579,7 @@ const ExpensesTab = ({
                         {m.user?.name || 'Member'} {m.userId === currentUserId && '(You)'}
                       </span>
                       <span className="text-[11px] text-[#9ba6ad] mt-0.5">
-                        Paid: ₹{m.paid.toLocaleString()} · Share: ₹{m.share.toLocaleString()}
+                        Paid: ₹{formatINR(m.paid)} · Share: ₹{formatINR(m.share)}
                       </span>
                     </div>
                   </div>
@@ -586,9 +595,9 @@ const ExpensesTab = ({
                       }`}
                     >
                       {m.status === 'gets_back'
-                        ? `+₹${m.net.toLocaleString()}`
+                        ? `+₹${formatINR(m.net)}`
                         : m.status === 'owes'
-                        ? `-₹${Math.abs(m.net).toLocaleString()}`
+                        ? `-₹${formatINR(Math.abs(m.net))}`
                         : 'Settled'}
                     </span>
                   </div>

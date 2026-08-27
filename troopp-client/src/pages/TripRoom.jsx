@@ -874,23 +874,23 @@ const TripRoom = () => {
       </div>
 
       {/* Tabs Navigation Headers */}
-      <div className="flex items-center gap-1 sm:gap-2 border-b border-[#242f3d] overflow-x-auto no-scrollbar pb-1 select-none">
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 select-none">
         {[
-          { id: 'chat', label: 'Chat', icon: '💬' },
-          { id: 'info', label: 'Info', icon: 'ℹ' },
-          { id: 'expenses', label: 'Split', icon: '💰' },
-          { id: 'checklist', label: 'Packing', icon: '🎒' },
-          { id: 'polls', label: 'Polls', icon: '📊' }
+          { id: 'chat', label: 'CHAT', icon: '💬' },
+          { id: 'info', label: 'INFO', icon: 'ℹ' },
+          { id: 'expenses', label: 'SPLIT', icon: '💰' },
+          { id: 'checklist', label: 'PACKING', icon: '🎒' },
+          { id: 'polls', label: 'POLLS', icon: '📊' }
         ].map((tab) => {
           const isActive = activeTab === tab.id
           return (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`min-h-[44px] px-3.5 sm:px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+              className={`min-h-[42px] px-4 sm:px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-[rgba(255,106,44,0.12)] text-[#ff6a2c] border-b-2 border-[#ff6a2c] shadow-sm'
-                  : 'text-[#9ba6ad] hover:text-[#f3f1ea] hover:bg-white/5 border-b-2 border-transparent'
+                  ? 'bg-[rgba(255,106,44,0.15)] text-[#f3f1ea] border border-[#ff6a2c] shadow-[0_0_12px_rgba(255,106,44,0.25)]'
+                  : 'text-[#9ba6ad] hover:text-[#f3f1ea] hover:bg-white/5 border border-transparent'
               }`}
             >
               <span>{tab.icon}</span>
@@ -901,14 +901,14 @@ const TripRoom = () => {
         {isHost && (
           <button
             onClick={() => handleTabChange('manage')}
-            className={`min-h-[44px] px-3.5 sm:px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+            className={`min-h-[42px] px-4 sm:px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'manage'
-                ? 'bg-[rgba(255,106,44,0.12)] text-[#ff6a2c] border-b-2 border-[#ff6a2c] shadow-sm'
-                : 'text-[#9ba6ad] hover:text-[#f3f1ea] hover:bg-white/5 border-b-2 border-transparent'
+                ? 'bg-[rgba(255,106,44,0.15)] text-[#f3f1ea] border border-[#ff6a2c] shadow-[0_0_12px_rgba(255,106,44,0.25)]'
+                : 'text-[#9ba6ad] hover:text-[#f3f1ea] hover:bg-white/5 border border-transparent'
             }`}
           >
             <span>⚙</span>
-            <span>Manage</span>
+            <span>MANAGE</span>
           </button>
         )}
       </div>

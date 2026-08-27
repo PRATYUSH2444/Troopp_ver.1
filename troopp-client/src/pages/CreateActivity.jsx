@@ -462,7 +462,7 @@ const CreateActivity = () => {
               {/* Category Cards grid selector */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '700', color: '#9ba6ad' }}>Select Category</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {CATEGORY_CARDS.map((cat) => {
                     const isSelected = formData.category === cat.name
                     const isHovered = hoveredCategory === cat.name
@@ -475,22 +475,16 @@ const CreateActivity = () => {
                         }}
                         onMouseEnter={() => setHoveredCategory(cat.name)}
                         onMouseLeave={() => setHoveredCategory(null)}
-                        style={{
-                          background: isSelected ? 'rgba(255,106,44,0.12)' : isHovered ? 'rgba(255,255,255,0.04)' : '#212b33',
-                          border: isSelected ? '1px solid #ff6a2c' : '1px solid rgba(255,255,255,0.06)',
-                          borderRadius: '12px',
-                          padding: '12px 6px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '6px',
-                          cursor: 'pointer',
-                          textAlign: 'center',
-                          transition: 'all 150ms ease'
-                        }}
+                        className={`rounded-xl p-3 sm:p-3.5 flex flex-col items-center gap-1.5 cursor-pointer text-center transition-all ${
+                          isSelected
+                            ? 'bg-[rgba(255,106,44,0.14)] border border-[#ff6a2c] shadow-sm'
+                            : 'bg-[#212b33] border border-white/5 hover:border-white/15'
+                        }`}
                       >
-                        <span style={{ fontSize: '20px' }}>{cat.emoji}</span>
-                        <span style={{ fontSize: '11px', fontWeight: '700', color: isSelected ? '#ff6a2c' : '#f3f1ea' }}>{cat.name}</span>
+                        <span className="text-2xl">{cat.emoji}</span>
+                        <span className={`text-xs font-bold ${isSelected ? 'text-[#ff6a2c]' : 'text-[#f3f1ea]'}`}>
+                          {cat.name}
+                        </span>
                       </div>
                     )
                   })}
