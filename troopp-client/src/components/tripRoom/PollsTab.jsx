@@ -93,181 +93,159 @@ const PollsTab = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: '#f3f1ea', position: 'relative', minHeight: '460px' }}>
+    <div className="flex flex-col gap-5 text-[#f3f1ea] relative min-h-[460px]">
       
-      {/* Top Description */}
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#f3f1ea', fontFamily: 'var(--font-display)' }}>Trip Room Polls</h3>
-        <span style={{ fontSize: '11px', color: '#9ba6ad', marginTop: '2px' }}>
-          Decide on logistics, departure times, and routes together.
-        </span>
+      {/* Top Header & Actions */}
+      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-base font-bold text-[#f3f1ea] font-display">Trip Room Polls</h3>
+          <p className="text-xs text-[#9ba6ad] mt-1">
+            Decide on departure times, meal spots, and group logistics together.
+          </p>
+        </div>
+        <button
+          onClick={handleOpenModal}
+          className="h-9 px-4 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
+        >
+          <span>＋</span>
+          <span>Create Poll</span>
+        </button>
       </div>
 
-      {/* Polls list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '64px' }}>
+      {/* Polls grid */}
+      <div className="pb-16">
         {(!Array.isArray(polls) || polls.length === 0) ? (
-          <div style={{ textAlign: 'center', padding: '80px 20px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '32px' }}>📊</span>
-            <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>No active polls</h4>
-            <p style={{ fontSize: '11px', color: '#9ba6ad' }}>Tap the orange button to coordinate a new vote.</p>
+          <div className="text-center py-16 bg-[#151c24] border border-[#242f3d] rounded-2xl flex flex-col items-center gap-2">
+            <span className="text-3xl">📊</span>
+            <h4 className="text-sm font-bold text-[#f3f1ea]">No active polls</h4>
+            <p className="text-xs text-[#9ba6ad]">Create a poll to coordinate group votes and decisions.</p>
           </div>
         ) : (
-          polls.map((poll) => {
-            if (!poll) return null
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            {polls.map((poll) => {
+              if (!poll) return null
 
-            const rawOptions = poll.options
-            const pollOptions = Array.isArray(rawOptions)
-              ? rawOptions
-              : typeof rawOptions === 'string'
-              ? (() => { try { return JSON.parse(rawOptions) } catch { return [] } })()
-              : []
+              const rawOptions = poll.options
+              const pollOptions = Array.isArray(rawOptions)
+                ? rawOptions
+                : typeof rawOptions === 'string'
+                ? (() => { try { return JSON.parse(rawOptions) } catch { return [] } })()
+                : []
 
-            const rawVotes = poll.votes
-            const votes = Array.isArray(rawVotes)
-              ? rawVotes
-              : typeof rawVotes === 'string'
-              ? (() => { try { return JSON.parse(rawVotes) } catch { return [] } })()
-              : []
+              const rawVotes = poll.votes
+              const votes = Array.isArray(rawVotes)
+                ? rawVotes
+                : typeof rawVotes === 'string'
+                ? (() => { try { return JSON.parse(rawVotes) } catch { return [] } })()
+                : []
 
-            // Count total votes
-            let totalVotes = 0
-            let maxVotesIndex = -1
-            let maxVotesCount = 0
+              // Count total votes
+              let totalVotes = 0
+              let maxVotesIndex = -1
+              let maxVotesCount = 0
 
-            votes.forEach((vArr, idx) => {
-              const count = Array.isArray(vArr) ? vArr.length : (typeof vArr === 'number' ? vArr : 0)
-              totalVotes += count
-              if (count > maxVotesCount) {
-                maxVotesCount = count
-                maxVotesIndex = idx
-              }
-            })
+              votes.forEach((vArr, idx) => {
+                const count = Array.isArray(vArr) ? vArr.length : (typeof vArr === 'number' ? vArr : 0)
+                totalVotes += count
+                if (count > maxVotesCount) {
+                  maxVotesCount = count
+                  maxVotesIndex = idx
+                }
+              })
 
-            // Check if current user voted
-            const userVotedIndex = votes.findIndex((vArr) => Array.isArray(vArr) && vArr.includes(currentUserId))
-            const hasVoted = userVotedIndex !== -1
+              // Check if current user voted
+              const userVotedIndex = votes.findIndex((vArr) => Array.isArray(vArr) && vArr.includes(currentUserId))
+              const hasVoted = userVotedIndex !== -1
 
-            return (
-              <div
-                key={poll.id}
-                style={{
-                  background: poll.is_closed ? '#121920' : '#1a2129',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '16px',
-                  padding: '16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                  opacity: poll.is_closed ? 0.75 : 1
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>{poll.question}</h4>
-                    <span style={{ fontSize: '11px', color: '#9ba6ad', marginTop: '2px' }}>
-                      {totalVotes} total votes · {poll.is_closed ? 'Closed' : 'Active'}
-                    </span>
-                  </div>
-                  {isHost && !poll.is_closed && (
-                    <button
-                      onClick={() => onClosePoll(poll.id)}
-                      style={{
-                        padding: '4px 10px',
-                        border: 'none',
-                        color: '#ff5470',
-                        background: 'rgba(255,84,112,0.14)',
-                        borderRadius: '8px',
-                        fontSize: '10px',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        transition: 'background-color 150ms'
-                      }}
-                    >
-                      Close Early
-                    </button>
-                  )}
-                </div>
-
-                {/* Options List */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                  {pollOptions.map((option, idx) => {
-                    const optVotes = votes[idx] ? (Array.isArray(votes[idx]) ? votes[idx].length : (typeof votes[idx] === 'number' ? votes[idx] : 0)) : 0
-                    const percentage = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0
-                    const isMajority = maxVotesCount > 0 && idx === maxVotesIndex
-                    const didVoteThis = userVotedIndex === idx
-
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => {
-                          if (!hasVoted && !poll.is_closed) {
-                            haptics.pollVote()
-                            onVotePoll(poll.id, idx)
-                          }
-                        }}
-                        style={{
-                          position: 'relative',
-                          height: '40px',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '12px',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0 14px',
-                          cursor: poll.is_closed ? 'default' : 'pointer',
-                          transition: 'all 150ms ease'
-                        }}
+              return (
+                <div
+                  key={poll.id}
+                  className={`p-4 sm:p-5 rounded-2xl border flex flex-col gap-3 shadow-lg transition-all ${
+                    poll.is_closed ? 'bg-[#121920] border-white/5 opacity-80' : 'bg-[#151c24] border-[#242f3d]'
+                  }`}
+                >
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex flex-col min-w-0">
+                      <h4 className="text-sm font-bold text-[#f3f1ea]">{poll.question}</h4>
+                      <span className="text-[11px] text-[#9ba6ad] mt-0.5">
+                        {totalVotes} total votes · {poll.is_closed ? 'Closed' : 'Active'}
+                      </span>
+                    </div>
+                    {isHost && !poll.is_closed && (
+                      <button
+                        onClick={() => onClosePoll(poll.id)}
+                        className="px-2.5 py-1 text-[10px] font-bold text-[#ff5470] bg-[rgba(255,84,112,0.12)] hover:bg-[rgba(255,84,112,0.2)] rounded-lg transition-colors cursor-pointer"
                       >
-                        {/* Vote Percent Animation Bar */}
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ duration: 0.6, ease: 'easeOut' }}
-                          style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            zIndex: 0,
-                            background: didVoteThis ? 'rgba(255,106,44,0.16)' : 'rgba(255,255,255,0.06)'
+                        Close Early
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Options List */}
+                  <div className="flex flex-col gap-2 mt-1">
+                    {pollOptions.map((option, idx) => {
+                      const optVotes = votes[idx] ? (Array.isArray(votes[idx]) ? votes[idx].length : (typeof votes[idx] === 'number' ? votes[idx] : 0)) : 0
+                      const percentage = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0
+                      const isMajority = maxVotesCount > 0 && idx === maxVotesIndex
+                      const didVoteThis = userVotedIndex === idx
+
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            if (!hasVoted && !poll.is_closed) {
+                              haptics.pollVote()
+                              onVotePoll(poll.id, idx)
+                            }
                           }}
-                        />
+                          className={`relative h-11 border rounded-xl overflow-hidden flex items-center justify-between px-3.5 transition-all ${
+                            poll.is_closed ? 'cursor-default' : 'cursor-pointer hover:border-white/20'
+                          } ${didVoteThis ? 'border-[#ff6a2c]' : 'border-white/10'}`}
+                        >
+                          {/* Vote Percent Animation Bar */}
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                            className={`absolute left-0 top-0 bottom-0 z-0 ${
+                              didVoteThis ? 'bg-[rgba(255,106,44,0.18)]' : 'bg-white/5'
+                            }`}
+                          />
 
-                        {/* Label Content */}
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#f3f1ea', zIndex: 10, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {option}
-                          {didVoteThis && <span style={{ fontSize: '10px', color: '#ff6a2c' }}>(You)</span>}
-                          {isMajority && (
-                            <motion.span
-                              initial={{ y: -15, opacity: 0, scale: 0.5 }}
-                              animate={{ y: 0, opacity: 1, scale: 1 }}
-                              transition={{
-                                type: 'spring',
-                                stiffness: 350,
-                                damping: 15,
-                                delay: 0.6
-                              }}
-                              style={{ display: 'inline-block' }}
-                              title="Majority leader"
-                            >
-                              👑
-                            </motion.span>
-                          )}
-                        </span>
+                          {/* Label Content */}
+                          <span className="text-xs font-semibold text-[#f3f1ea] z-10 flex items-center gap-1.5">
+                            <span>{option}</span>
+                            {didVoteThis && <span className="text-[10px] font-bold text-[#ff6a2c]">(You)</span>}
+                            {isMajority && (
+                              <motion.span
+                                initial={{ y: -15, opacity: 0, scale: 0.5 }}
+                                animate={{ y: 0, opacity: 1, scale: 1 }}
+                                transition={{
+                                  type: 'spring',
+                                  stiffness: 350,
+                                  damping: 15,
+                                  delay: 0.4
+                                }}
+                                className="inline-block"
+                                title="Majority leader"
+                              >
+                                👑
+                              </motion.span>
+                            )}
+                          </span>
 
-                        {/* Percent Output */}
-                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', zIndex: 10 }}>
-                          <NumberTicker value={percentage} /> ({optVotes})
-                        </span>
-                      </div>
-                    )
-                  })}
+                          {/* Percent Output */}
+                          <span className="text-[11px] font-bold text-[#9ba6ad] z-10 font-mono">
+                            <NumberTicker value={percentage} /> ({optVotes})
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )
-          })
+              )
+            })}
+          </div>
         )}
       </div>
 

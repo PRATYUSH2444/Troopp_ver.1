@@ -56,6 +56,7 @@ const ExpensesTab = ({
   const [percentages, setPercentages] = useState({})
   const [payers, setPayers] = useState({})
   const [submittingExpense, setSubmittingExpense] = useState(false)
+  const [expensesLocked, setExpensesLocked] = useState(false)
 
   // Celebration trigger
   const [celebrated, setCelebrated] = useState(false)
@@ -413,7 +414,22 @@ const ExpensesTab = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2 px-1">
+        <div className="flex items-center flex-wrap gap-2 px-1">
+          {isHost && (
+            <button
+              onClick={() => {
+                setExpensesLocked(!expensesLocked)
+                toast.success(expensesLocked ? 'Ledger unlocked for entries.' : 'Ledger locked.')
+              }}
+              className={`h-9 px-3.5 border rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                expensesLocked
+                  ? 'border-[#ff5470] bg-[rgba(255,84,112,0.15)] text-[#ff5470]'
+                  : 'border-white/10 bg-[#212b33] hover:bg-[#2b3742] text-[#9ba6ad] hover:text-[#f3f1ea]'
+              }`}
+            >
+              {expensesLocked ? '🔒 Locked' : '🔓 Lock Ledger'}
+            </button>
+          )}
           <button
             onClick={handleExportSummary}
             className="h-9 px-3.5 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 rounded-xl text-xs font-bold text-[#9ba6ad] hover:text-[#f3f1ea] flex items-center gap-1.5 transition-all cursor-pointer"
@@ -423,8 +439,13 @@ const ExpensesTab = ({
             <span className="hidden sm:inline">WhatsApp Export</span>
           </button>
           <button
+            disabled={expensesLocked}
             onClick={handleOpenModal}
-            className="h-9 px-4 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer"
+            className={`h-9 px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer ${
+              expensesLocked
+                ? 'bg-[#212b33] text-[#6b757c] cursor-not-allowed'
+                : 'bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08]'
+            }`}
           >
             <span>＋</span>
             <span>Add Bill</span>
@@ -434,7 +455,7 @@ const ExpensesTab = ({
 
       {/* 4. MAIN CONTENT CONTAINER */}
       {subTab === 'ledger' ? (
-        <div className="flex flex-col gap-5 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pb-20">
           
           {/* SECTION A: OPTIMIZED SETTLE UP (Who Pays Whom) */}
           <div className="bg-[#151c24] border border-[#242f3d] p-4 sm:p-5 rounded-2xl flex flex-col gap-3 shadow-lg">

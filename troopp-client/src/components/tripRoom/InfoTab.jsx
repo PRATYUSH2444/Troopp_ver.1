@@ -307,103 +307,113 @@ const InfoTab = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: '#f3f1ea' }}>
-      {/* 1. Google Maps Static/Interactive Frame Mock */}
-      <div
-        style={{
-          width: '100%',
-          height: '160px',
-          background: '#1a2129',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '16px',
-          overflow: 'hidden',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          padding: '14px',
-          boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.2)'
-        }}
-      >
-        {/* Placeholder SVG background representing route map */}
-        <div style={{ position: 'absolute', inset: 0, background: '#1a2129', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b757c', fontWeight: '600', fontSize: '12px' }}>
-          🗺️ Google Map: [Lat: {activity?.meeting_point_lat || 19.07}, Lng: {activity?.meeting_point_lng || 72.87}]
-        </div>
-        <div style={{ background: 'rgba(12,16,19,0.85)', backdropFilter: 'blur(6px)', padding: '8px 14px', borderRadius: '12px', zIndex: 10, display: 'flex', flexDirection: 'column', color: 'white', maxWidth: '85%', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <span style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#ff6a2c' }}>Meeting Point</span>
-          <span style={{ fontSize: '11px', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{meetingLabel}</span>
-        </div>
-      </div>
-
-      {/* 2. Destination Details Card */}
-      <div
-        style={{
-          background: '#1a2129',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '16px',
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-        }}
-      >
-        <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Destination Location</span>
-        <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#f3f1ea', lineHeight: 1.2, fontFamily: 'Space Grotesk' }}>
-          {activity?.destination || activity?.title || 'Trip Destination'}
-        </h3>
-        <p style={{ fontSize: '13px', color: '#9ba6ad', lineHeight: 1.5, marginTop: '4px' }}>
-          📅 Scheduled on: {parseActivityDate(activity?.date_time)} <br />
-          💰 Estimated Budget: ₹{Number(activity?.cost_per_person || 0).toLocaleString('en-IN')} per person
-        </p>
-      </div>
-
-      {/* 3. Host Profile Card */}
-      <div
-        style={{
-          background: '#1a2129',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '16px',
-          padding: '14px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Avatar
-            src={activity?.Creator?.Profile?.avatar_url}
-            name={hostName}
-            size="md"
-            score={activity?.Creator?.trust_score || 85}
-          />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: '#ff6a2c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Trip Organizer</span>
-            <span style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>{hostName}</span>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-[#f3f1ea]">
+      
+      {/* LEFT COLUMN: Trip Logistics & Organizer */}
+      <div className="lg:col-span-6 flex flex-col gap-4">
+        
+        {/* Meeting Point Interactive Route Map */}
+        <div className="w-full h-44 bg-[#1a2129] border border-[#242f3d] rounded-2xl overflow-hidden relative flex flex-col justify-end p-3.5 shadow-lg">
+          <div className="absolute inset-0 bg-[#161d24] flex items-center justify-center text-xs font-semibold text-[#6b757c]">
+            🗺️ Interactive Route Meeting Point · [Lat: {activity?.meeting_point_lat || 19.07}, Lng: {activity?.meeting_point_lng || 72.87}]
+          </div>
+          <div className="bg-[#0c1013]/90 backdrop-blur-md p-2.5 px-3.5 rounded-xl z-10 flex flex-col text-white max-w-[85%] border border-white/10 shadow-md">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-[#ff6a2c]">Meeting Point</span>
+            <span className="text-xs font-bold truncate mt-0.5">{meetingLabel}</span>
           </div>
         </div>
+
+        {/* Destination Details Card */}
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 shadow-lg flex flex-col gap-2">
+          <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
+            Destination & Schedule
+          </span>
+          <h3 className="text-xl font-black text-[#f3f1ea] font-display">
+            {activity?.destination || activity?.title || 'Trip Destination'}
+          </h3>
+          <div className="text-xs text-[#9ba6ad] flex flex-col gap-1.5 mt-2 bg-[#1a2129] p-3.5 rounded-xl border border-white/5">
+            <span className="flex items-center gap-2">
+              <span>📅</span>
+              <span><strong>Scheduled:</strong> {parseActivityDate(activity?.date_time)}</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <span>💰</span>
+              <span><strong>Estimated Budget:</strong> ₹{Number(activity?.cost_per_person || 0).toLocaleString('en-IN')} per traveler</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <span>📍</span>
+              <span><strong>Meeting Point:</strong> {meetingLabel}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Host Profile Card */}
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Avatar
+              src={activity?.Creator?.Profile?.avatar_url}
+              name={hostName}
+              size="md"
+              score={activity?.Creator?.trust_score || 85}
+            />
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
+                Trip Organizer
+              </span>
+              <span className="text-sm font-bold text-[#f3f1ea]">{hostName}</span>
+              <span className="text-[11px] text-[#9ba6ad] mt-0.5">Trust Score: {activity?.Creator?.trust_score || 85} / 100</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Location Share Toggle */}
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-1 max-w-[75%]">
+            <span className="text-sm font-bold text-[#f3f1ea]">Live GPS Location Sharing</span>
+            <span className="text-xs text-[#9ba6ad] leading-relaxed">
+              Periodically updates your coordinate marker to fellow confirmed travelers.
+            </span>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer w-11 h-6 flex-shrink-0">
+            <input
+              type="checkbox"
+              checked={sharing}
+              onChange={(e) => setSharing(e.target.checked)}
+              className="sr-only"
+            />
+            <div
+              className={`w-11 h-6 rounded-full transition-colors ${
+                sharing ? 'bg-[#ff6a2c]' : 'bg-[#212b33] border border-white/10'
+              }`}
+            />
+            <div
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-md ${
+                sharing ? 'transform translate-x-5' : ''
+              }`}
+            />
+          </label>
+        </div>
       </div>
 
-      {/* 4. Horizontal Confirmed Members Scroll bar */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Confirmed Members (<NumberTicker value={safeMembers.length} />)
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', overflowX: 'auto', paddingBottom: '6px' }}>
-          <AnimatePresence>
+      {/* RIGHT COLUMN: Confirmed Members & Waypoints */}
+      <div className="lg:col-span-6 flex flex-col gap-4">
+        
+        {/* Confirmed Members Card */}
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+            <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
+              Confirmed Travelers ({safeMembers.length})
+            </span>
+            <span className="text-[11px] text-[#4fbe8e] font-bold">● Active Group</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {safeMembers.map((m) => {
               const rawName = m?.name || m?.User?.Profile?.name || 'Explorer'
-              const firstName = typeof rawName === 'string' ? rawName.split(' ')[0] : 'Explorer'
               return (
-                <motion.div
-                  key={m.userId || m.id || firstName}
+                <div
+                  key={m.userId || m.id || rawName}
                   onClick={() => onMemberTap && onMemberTap(m)}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 350, damping: 18 }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer', flexShrink: 0 }}
+                  className="p-2.5 bg-[#1a2129] border border-white/5 hover:border-[#ff6a2c]/30 rounded-xl flex items-center gap-2.5 cursor-pointer transition-all active:scale-98"
                 >
                   <Avatar
                     src={m.avatarUrl || m.User?.Profile?.avatar_url}
@@ -411,82 +421,34 @@ const InfoTab = ({
                     size="sm"
                     score={m.trustScore || m.User?.trust_score || 80}
                   />
-                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ba6ad', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '64px', textAlign: 'center' }}>
-                    {firstName}
-                  </span>
-                </motion.div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-[#f3f1ea] truncate">{rawName}</span>
+                    <span className="text-[10px] text-[#9ba6ad]">Verified</span>
+                  </div>
+                </div>
               )
             })}
-          </AnimatePresence>
+          </div>
         </div>
-      </div>
 
-      {/* 5. Live Location Share Toggle */}
-      <div
-        style={{
-          padding: '16px',
-          background: '#1a2129',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxWidth: '75%' }}>
-          <span style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>Live Location Share</span>
-          <span style={{ fontSize: '11px', color: '#9ba6ad', lineHeight: 1.4 }}>
-            Broadcasts your GPS coordinates to other members every 5 minutes.
-          </span>
-        </div>
-        <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', width: '44px', height: '24px' }}>
-          <input
-            type="checkbox"
-            checked={sharing}
-            onChange={(e) => setSharing(e.target.checked)}
-            style={{ display: 'none' }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '100px',
-              background: sharing ? '#ff6a2c' : '#212b33',
-              border: '1px solid rgba(255,255,255,0.08)',
-              transition: 'background-color 200ms ease'
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '3px',
-              left: sharing ? 'calc(100% - 21px)' : '3px',
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              background: 'white',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-              transition: 'left 200ms ease'
-            }}
-          />
-        </label>
-      </div>
-
-      {/* 6. Waypoints Checkpoints list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Check-in Waypoints Status
-        </span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {(Array.isArray(localWaypoints) ? localWaypoints : []).map((point) => (
-            <WaypointRow
-              key={point.id}
-              point={point}
-              onCheckIn={handleCheckIn}
-              user={user}
-            />
-          ))}
+        {/* Waypoints Checkpoints Card */}
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+            <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
+              Check-in Waypoints
+            </span>
+            <span className="text-[11px] text-[#ff6a2c] font-bold">Live Status</span>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            {(Array.isArray(localWaypoints) ? localWaypoints : []).map((point) => (
+              <WaypointRow
+                key={point.id}
+                point={point}
+                onCheckIn={handleCheckIn}
+                user={user}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

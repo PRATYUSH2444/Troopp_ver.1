@@ -793,39 +793,39 @@ const TripRoom = () => {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 flex flex-col gap-4 sm:gap-6 min-w-0">
       
       {/* Persistent SOS Alert Banner */}
       {sosActiveInfo && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          style={{ background: '#ff5470', color: '#fff', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 8px 24px rgba(255,84,112,0.4)', zIndex: 100 }}
+          className="bg-[#ff5470] text-white rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl z-50"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '24px' }}>🚨</span>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl animate-pulse">🚨</span>
             <div>
-              <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '900', textTransform: 'uppercase' }}>
+              <h4 className="m-0 text-xs sm:text-sm font-black uppercase tracking-wider">
                 EMERGENCY SOS ALERT: {sosActiveInfo.userName || 'Traveler'}
               </h4>
-              <span style={{ fontSize: '12px', opacity: 0.9 }}>
+              <span className="text-xs opacity-90">
                 Location: {sosActiveInfo.latitude?.toFixed(4)}, {sosActiveInfo.longitude?.toFixed(4)}
               </span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <a
               href={`https://maps.google.com/?q=${sosActiveInfo.latitude},${sosActiveInfo.longitude}`}
               target="_blank"
               rel="noreferrer"
-              style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', padding: '6px 12px', borderRadius: '10px', textDecoration: 'none', fontSize: '12px', fontWeight: '700' }}
+              className="bg-black/20 hover:bg-black/30 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all"
             >
               📍 Open Map
             </a>
             {isHost && (
               <button
                 onClick={() => socketRef.current?.emit('sos_resolve', { roomId })}
-                style={{ background: '#fff', color: '#ff5470', border: 'none', padding: '6px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
+                className="bg-white hover:bg-white/90 text-[#ff5470] px-4 py-1.5 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer"
               >
                 Resolve
               </button>
@@ -835,72 +835,86 @@ const TripRoom = () => {
       )}
 
       {/* Header Info Banner */}
-      <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#f3f1ea' }}>{activity?.title || 'Trip Room'}</h2>
-          <span style={{ fontSize: '12px', color: '#9ba6ad' }}>📍 {activity?.destination || 'Destination'} · 👤 {safeMembers.length} travelers</span>
+      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-xl">
+        <div className="flex flex-col min-w-0">
+          <h1 className="m-0 text-lg sm:text-2xl font-black text-[#f3f1ea] font-display truncate">
+            {activity?.title || 'Trip Room'}
+          </h1>
+          <div className="flex items-center flex-wrap gap-2 text-xs text-[#9ba6ad] mt-1">
+            <span className="flex items-center gap-1 font-medium">
+              <span>📍</span>
+              <span className="text-white/90">{activity?.destination || 'Destination'}</span>
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <span>👤</span>
+              <span className="font-semibold text-white/90">{safeMembers.length} travelers</span>
+            </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {safeMembers.slice(0, 4).map((m, idx) => (
-            <div key={m.userId || idx} style={{ position: 'relative' }}>
-              <Avatar src={m.avatarUrl} name={m.name} size="sm" score={m.trustScore} />
-              {m.isOnline && (
-                <span style={{ position: 'absolute', bottom: '0', right: '0', width: '8px', height: '8px', background: '#4fbe8e', borderRadius: '50%', border: '2px solid #1a2129' }} />
-              )}
-            </div>
-          ))}
+
+        {/* Traveler Avatars stack */}
+        <div className="flex items-center gap-1.5 flex-shrink-0 self-start sm:self-center">
+          <div className="flex items-center -space-x-2 overflow-hidden py-1">
+            {safeMembers.slice(0, 5).map((m, idx) => (
+              <div key={m.userId || idx} className="relative ring-2 ring-[#151c24] rounded-full">
+                <Avatar src={m.avatarUrl || m.User?.Profile?.avatar_url} name={m.name || m.User?.Profile?.name} size="sm" score={m.trustScore} />
+                {m.isOnline && (
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#4fbe8e] rounded-full border-2 border-[#151c24]" />
+                )}
+              </div>
+            ))}
+          </div>
+          {safeMembers.length > 5 && (
+            <span className="text-[11px] font-bold text-[#9ba6ad] bg-[#1a2129] border border-white/10 px-2 py-0.5 rounded-full">
+              +{safeMembers.length - 5}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Tabs Navigation Headers */}
-      <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(255,255,255,0.08)', overflowX: 'auto', paddingBottom: '4px', userSelect: 'none' }} className="scrollbar-thin">
-        {['chat', 'info', 'expenses', 'checklist', 'polls'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => handleTabChange(tab)}
-            style={{
-              padding: '10px 16px',
-              fontSize: '12px',
-              fontWeight: '700',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              background: 'none',
-              border: 'none',
-              borderBottom: '2px solid',
-              borderColor: activeTab === tab ? '#ff6a2c' : 'transparent',
-              color: activeTab === tab ? '#ff6a2c' : '#9ba6ad',
-              cursor: 'pointer',
-              transition: 'all 150ms ease'
-            }}
-          >
-            {tab === 'chat' ? '💬 Chat' : tab === 'info' ? 'ℹ Info' : tab === 'expenses' ? '💰 Split' : tab === 'checklist' ? '🎒 Packing' : '📊 Polls'}
-          </button>
-        ))}
+      <div className="flex items-center gap-1 sm:gap-2 border-b border-[#242f3d] overflow-x-auto no-scrollbar pb-1 select-none">
+        {[
+          { id: 'chat', label: 'Chat', icon: '💬' },
+          { id: 'info', label: 'Info', icon: 'ℹ' },
+          { id: 'expenses', label: 'Split', icon: '💰' },
+          { id: 'checklist', label: 'Packing', icon: '🎒' },
+          { id: 'polls', label: 'Polls', icon: '📊' }
+        ].map((tab) => {
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`min-h-[44px] px-3.5 sm:px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-[rgba(255,106,44,0.12)] text-[#ff6a2c] border-b-2 border-[#ff6a2c] shadow-sm'
+                  : 'text-[#9ba6ad] hover:text-[#f3f1ea] hover:bg-white/5 border-b-2 border-transparent'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          )
+        })}
         {isHost && (
           <button
             onClick={() => handleTabChange('manage')}
-            style={{
-              padding: '10px 16px',
-              fontSize: '12px',
-              fontWeight: '700',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              background: 'none',
-              border: 'none',
-              borderBottom: '2px solid',
-              borderColor: activeTab === 'manage' ? '#ff6a2c' : 'transparent',
-              color: activeTab === 'manage' ? '#ff6a2c' : '#9ba6ad',
-              cursor: 'pointer',
-              transition: 'all 150ms ease'
-            }}
+            className={`min-h-[44px] px-3.5 sm:px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === 'manage'
+                ? 'bg-[rgba(255,106,44,0.12)] text-[#ff6a2c] border-b-2 border-[#ff6a2c] shadow-sm'
+                : 'text-[#9ba6ad] hover:text-[#f3f1ea] hover:bg-white/5 border-b-2 border-transparent'
+            }`}
           >
-            ⚙ Manage
+            <span>⚙</span>
+            <span>Manage</span>
           </button>
         )}
       </div>
 
-      {/* Render Active Tab */}
-      <div style={{ flex: 1 }}>
+      {/* Render Active Tab Container */}
+      <div className="flex-1 w-full min-w-0">
         {activeTab === 'chat' && (
           <ChatTab
             messages={messages}

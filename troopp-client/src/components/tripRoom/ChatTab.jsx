@@ -593,7 +593,10 @@ const ChatTab = ({
                     )}
 
                     {/* Bubble container */}
-                    <div style={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', alignItems: isOwn ? 'flex-end' : 'flex-start' }}>
+                    <div
+                      className="max-w-[85%] sm:max-w-[75%] lg:max-w-[65ch]"
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: isOwn ? 'flex-end' : 'flex-start' }}
+                    >
                       
                       {/* Sender name for group clarity */}
                       {!isOwn && !isConsecutive && (

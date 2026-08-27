@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Avatar from '../common/Avatar.jsx'
 
@@ -51,134 +51,59 @@ const ManageTab = ({
     setCancelOpen(false)
   }
 
-  // Safely resolve display name from potentially nested member objects
   const getDisplayName = (m) => m?.name || m?.User?.Profile?.name || 'Explorer'
 
-  // Fallback defaults for health metrics (|| {} needed because default params don't catch null)
   const {
     averageTrustScore = 80,
     trustedMembersCount = 3,
-    newMembersCount = 1,
     pendingCheckins = 4,
-    reportsFiledCount = 0,
-    womenPercentage = 30,
-    emergencyContactsSetCount = 3
+    reportsFiledCount = 0
   } = healthMetrics || {}
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: '#f3f1ea', paddingBottom: '64px' }}>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-[#f3f1ea] pb-16">
       
-      {/* SECTION E: GROUP HEALTH DASHBOARD */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Group Health Metrics
-        </span>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-          <div style={{ padding: '14px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'center' }}>
-            <span style={{ fontSize: '9px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase' }}>Average Trust</span>
-            <span style={{ fontSize: '18px', fontWeight: '800', color: '#4fbe8e', marginTop: '4px', fontFamily: 'var(--font-display)' }}>{averageTrustScore}</span>
-            <span style={{ fontSize: '8px', color: '#6b757c' }}>Safety Checked</span>
-          </div>
-          <div style={{ padding: '14px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'center' }}>
-            <span style={{ fontSize: '9px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase' }}>Trusted Members</span>
-            <span style={{ fontSize: '18px', fontWeight: '800', color: '#f3f1ea', marginTop: '4px', fontFamily: 'var(--font-display)' }}>{trustedMembersCount} / {(Array.isArray(members) ? members : []).length}</span>
-            <span style={{ fontSize: '8px', color: '#6b757c' }}>Score &gt;= 75</span>
-          </div>
-          <div style={{ padding: '14px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'center' }}>
-            <span style={{ fontSize: '9px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase' }}>Pending Checkins</span>
-            <span style={{ fontSize: '18px', fontWeight: '800', color: '#ffc94d', marginTop: '4px', fontFamily: 'var(--font-display)' }}>{pendingCheckins}</span>
-            <span style={{ fontSize: '8px', color: '#6b757c' }}>Waypoints</span>
-          </div>
-          <div style={{ padding: '14px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'center' }}>
-            <span style={{ fontSize: '9px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase' }}>Safety Reports</span>
-            <span style={{ fontSize: '18px', fontWeight: '800', color: '#ff5470', marginTop: '4px', fontFamily: 'var(--font-display)' }}>{reportsFiledCount}</span>
-            <span style={{ fontSize: '8px', color: '#6b757c' }}>Active Flags</span>
+      {/* LEFT COLUMN: Health Metrics & Global Trip Controls */}
+      <div className="lg:col-span-6 flex flex-col gap-5">
+        
+        {/* GROUP HEALTH DASHBOARD */}
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
+            Group Safety & Trust Metrics
+          </span>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between text-center">
+              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Avg Trust</span>
+              <span className="text-xl font-black text-[#4fbe8e] font-display mt-1">{averageTrustScore}</span>
+              <span className="text-[9px] text-[#6b757c] mt-0.5">Verified Safety</span>
+            </div>
+            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between text-center">
+              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Trusted</span>
+              <span className="text-xl font-black text-[#f3f1ea] font-display mt-1">{trustedMembersCount} / {(Array.isArray(members) ? members : []).length}</span>
+              <span className="text-[9px] text-[#6b757c] mt-0.5">Score &gt;= 75</span>
+            </div>
+            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between text-center">
+              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Check-ins</span>
+              <span className="text-xl font-black text-[#ffc94d] font-display mt-1">{pendingCheckins}</span>
+              <span className="text-[9px] text-[#6b757c] mt-0.5">Pending</span>
+            </div>
+            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between text-center">
+              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Reports</span>
+              <span className="text-xl font-black text-[#ff5470] font-display mt-1">{reportsFiledCount}</span>
+              <span className="text-[9px] text-[#6b757c] mt-0.5">Flags</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* SECTION A: MEMBER MANAGEMENT */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px' }}>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Member Roster ({(Array.isArray(members) ? members : []).length})
-        </span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {(Array.isArray(members) ? members : []).map((m) => {
-            if (!m) return null
-            const uid = m.userId || m.user_id || m.User?.id || m.id
-            const mName = m.name || m.User?.Profile?.name || 'Explorer'
-            const mAvatar = m.avatarUrl || m.User?.Profile?.avatar_url
-            const mTrust = m.trustScore || m.User?.trust_score || 50
-            const mReliability = m.reliabilityScore || m.User?.reliability_score || 100
-            
-            return (
-              <div key={uid} style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', padding: '12px 14px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                  <Avatar src={mAvatar} name={mName} size="sm" score={mTrust} />
-                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mName}</span>
-                    <span style={{ fontSize: '11px', color: '#9ba6ad', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      Trust: {mTrust} · Reliability: {mReliability}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  <button
-                    onClick={() => setMuteTargetUser(m)}
-                    style={{
-                      height: '28px',
-                      padding: '0 10px',
-                      border: '1px solid rgba(255,255,255,0.14)',
-                      background: '#212b33',
-                      borderRadius: '8px',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      color: '#9ba6ad',
-                      cursor: 'pointer'
-                    }}
-                    title="Mute traveler"
-                  >
-                    🔇 Mute
-                  </button>
-                  <button
-                    onClick={() => setKickTargetUser(m)}
-                    style={{
-                      height: '28px',
-                      padding: '0 10px',
-                      border: 'none',
-                      background: 'rgba(255,84,112,0.14)',
-                      color: '#ff5470',
-                      borderRadius: '8px',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      cursor: 'pointer'
-                    }}
-                    title="Remove traveler"
-                  >
-                    🥾 Kick
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* SECTION B: CHAT CONTROLS */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px' }}>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Chat Configuration
-        </span>
-        <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxWidth: '75%' }}>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#f3f1ea' }}>Enable Participant Chat</span>
-            <span style={{ fontSize: '11px', color: '#9ba6ad', lineHeight: 1.4 }}>
+        {/* CHAT CONTROLS */}
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-1 max-w-[75%]">
+            <span className="text-sm font-bold text-[#f3f1ea]">Participant Chat Active</span>
+            <span className="text-xs text-[#9ba6ad] leading-relaxed">
               When toggled off, only host announcements are permitted inside the channel.
             </span>
           </div>
-          <label style={{ position: 'relative', inlineFlex: 'true', alignItems: 'center', cursor: 'pointer', width: '44px', height: '24px' }}>
+          <label className="relative inline-flex items-center cursor-pointer w-11 h-6 flex-shrink-0">
             <input
               type="checkbox"
               checked={chatEnabled}
@@ -186,187 +111,131 @@ const ManageTab = ({
                 setChatEnabled(e.target.checked)
                 onToggleChat(e.target.checked)
               }}
-              style={{ display: 'none' }}
+              className="sr-only"
             />
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                borderRadius: '100px',
-                background: chatEnabled ? '#ff6a2c' : '#212b33',
-                border: '1px solid rgba(255,255,255,0.08)',
-                transition: 'background-color 200ms ease'
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                top: '3px',
-                left: chatEnabled ? 'calc(100% - 21px)' : '3px',
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                background: 'white',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                transition: 'left 200ms ease'
-              }}
-            />
+            <div className={`w-11 h-6 rounded-full transition-colors ${chatEnabled ? 'bg-[#ff6a2c]' : 'bg-[#212b33] border border-white/10'}`} />
+            <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-md ${chatEnabled ? 'transform translate-x-5' : ''}`} />
           </label>
         </div>
-      </div>
 
-      {/* SECTION C: TRIP STATUS CONTROLS */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px' }}>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Trip Status Actions
-        </span>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <button
-            onClick={() => {
-              setGroupLocked(!groupLocked)
-              onToggleLock(!groupLocked)
-            }}
-            style={{
-              height: '44px',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: '700',
-              border: groupLocked ? '1px solid #ff5470' : '1px solid rgba(255,255,255,0.14)',
-              background: groupLocked ? 'rgba(255,84,112,0.14)' : '#212b33',
-              color: groupLocked ? '#ff5470' : '#f3f1ea',
-              cursor: 'pointer',
-              transition: 'all 150ms ease'
-            }}
-          >
-            {groupLocked ? '🔓 Open Group Entry' : '🔒 Lock Group Entries'}
-          </button>
-          <button
-            onClick={onMarkStarted}
-            style={{
-              height: '44px',
-              background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
-              color: '#1a0e08',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: '700',
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(255,106,44,0.2)'
-            }}
-          >
-            🏁 Mark Trip Started
-          </button>
-          <button
-            onClick={onMarkEnded}
-            style={{
-              height: '44px',
-              background: 'rgba(79,190,142,0.14)',
-              color: '#4fbe8e',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: '700',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            🏁 Mark Trip Completed
-          </button>
-          <button
-            onClick={() => setCancelOpen(true)}
-            style={{
-              height: '44px',
-              background: 'rgba(255,84,112,0.14)',
-              color: '#ff5470',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: '700',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            🚫 Cancel This Trip
-          </button>
+        {/* TRIP STATE CONTROLS */}
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
+            Trip Lifecycle Controls
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button
+              onClick={onMarkStarted}
+              className="h-10 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 text-xs font-bold rounded-xl text-[#f3f1ea] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <span>🚀</span>
+              <span>Mark Trip Started</span>
+            </button>
+            <button
+              onClick={onMarkEnded}
+              className="h-10 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 text-xs font-bold rounded-xl text-[#f3f1ea] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <span>🏁</span>
+              <span>Mark Trip Ended</span>
+            </button>
+            <button
+              onClick={() => setCancelOpen(true)}
+              className="h-10 bg-[rgba(255,84,112,0.12)] hover:bg-[rgba(255,84,112,0.2)] border border-[rgba(255,84,112,0.3)] text-xs font-bold rounded-xl text-[#ff5470] transition-all cursor-pointer sm:col-span-2 flex items-center justify-center gap-1.5"
+            >
+              <span>⚠️</span>
+              <span>Cancel Trip & Close Room</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* SECTION D: EXPENSE LEDGER CONTROLS */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px' }}>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Ledger Management
-        </span>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <button
-            onClick={() => {
-              setExpensesLocked(!expensesLocked)
-              onLockExpenses(!expensesLocked)
-            }}
-            style={{
-              height: '44px',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: '700',
-              border: expensesLocked ? '1px solid #ff5470' : '1px solid rgba(255,255,255,0.14)',
-              background: expensesLocked ? 'rgba(255,84,112,0.14)' : '#212b33',
-              color: expensesLocked ? '#ff5470' : '#f3f1ea',
-              cursor: 'pointer',
-              transition: 'all 150ms ease'
-            }}
-          >
-            {expensesLocked ? '🔓 Unlock Ledger' : '🔒 Lock Ledger'}
-          </button>
-          <button
-            onClick={onMarkAllSettled}
-            style={{
-              height: '44px',
-              background: '#212b33',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: '#f3f1ea',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: '700',
-              cursor: 'pointer'
-            }}
-          >
-            💸 Mark All Settled
-          </button>
+      {/* RIGHT COLUMN: MEMBER ROSTER MANAGEMENT */}
+      <div className="lg:col-span-6 flex flex-col gap-3">
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+            <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
+              Member Roster ({(Array.isArray(members) ? members : []).length})
+            </span>
+            <span className="text-[11px] text-[#9ba6ad]">Host moderation</span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {(Array.isArray(members) ? members : []).map((m) => {
+              if (!m) return null
+              const uid = m.userId || m.user_id || m.User?.id || m.id
+              const mName = m.name || m.User?.Profile?.name || 'Explorer'
+              const mAvatar = m.avatarUrl || m.User?.Profile?.avatar_url
+              const mTrust = m.trustScore || m.User?.trust_score || 50
+              const mReliability = m.reliabilityScore || m.User?.reliability_score || 100
+              
+              return (
+                <div
+                  key={uid}
+                  className="p-3 bg-[#1a2129] border border-white/5 rounded-xl flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Avatar src={mAvatar} name={mName} size="sm" score={mTrust} />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-[#f3f1ea] truncate">{mName}</span>
+                      <span className="text-[10px] text-[#9ba6ad]">
+                        Trust: {mTrust} · Reliability: {mReliability}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => setMuteTargetUser(m)}
+                      className="h-7 px-2.5 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 text-[#9ba6ad] hover:text-white rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                    >
+                      🔇 Mute
+                    </button>
+                    <button
+                      onClick={() => setKickTargetUser(m)}
+                      className="h-7 px-2.5 bg-[rgba(255,84,112,0.12)] hover:bg-[rgba(255,84,112,0.2)] text-[#ff5470] rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                    >
+                      🥾 Kick
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
 
       {/* Mute Modal overlay */}
       <AnimatePresence>
         {muteTargetUser && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(12,16,19,0.75)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-            <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '320px', boxShadow: '0 12px 36px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h4 style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#9ba6ad' }}>
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 w-full max-w-xs shadow-2xl flex flex-col gap-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#9ba6ad]">
                 Mute {getDisplayName(muteTargetUser)}
               </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
-                <span style={{ fontWeight: '700', color: '#9ba6ad' }}>Select Mute Expiry</span>
+              <div className="flex flex-col gap-1.5 text-xs">
+                <span className="font-bold text-[#9ba6ad]">Select Mute Expiry</span>
                 <select
                   value={muteDuration}
                   onChange={(e) => setMuteDuration(e.target.value)}
-                  style={{
-                    width: '100%',
-                    height: '40px',
-                    background: '#212b33',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '100px',
-                    padding: '0 16px',
-                    color: '#f3f1ea',
-                    outline: 'none',
-                    fontSize: '12px'
-                  }}
+                  className="w-full h-10 bg-[#1a2129] border border-white/10 rounded-xl px-3 text-xs text-[#f3f1ea] outline-none"
                 >
                   <option value="1">Mute for 1 Hour</option>
                   <option value="24">Mute for 24 Hours</option>
                   <option value="72">Mute for 72 Hours (Trip expiry)</option>
                 </select>
               </div>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button onClick={() => setMuteTargetUser(null)} style={{ flex: 1, height: '36px', border: '1px solid rgba(255,255,255,0.08)', background: '#212b33', borderRadius: '100px', color: '#9ba6ad', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+              <div className="flex gap-2 mt-1">
+                <button
+                  onClick={() => setMuteTargetUser(null)}
+                  className="flex-1 h-9 border border-white/10 bg-[#1a2129] rounded-xl text-[#9ba6ad] text-xs font-bold cursor-pointer"
+                >
                   Cancel
                 </button>
-                <button onClick={handleMuteSubmit} style={{ flex: 1, height: '36px', border: 'none', background: 'rgba(255,84,112,0.14)', color: '#ff5470', borderRadius: '100px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+                <button
+                  onClick={handleMuteSubmit}
+                  className="flex-1 h-9 bg-[rgba(255,84,112,0.14)] text-[#ff5470] rounded-xl text-xs font-bold cursor-pointer"
+                >
                   Confirm Mute
                 </button>
               </div>
@@ -378,20 +247,26 @@ const ManageTab = ({
       {/* Kick Modal overlay */}
       <AnimatePresence>
         {kickTargetUser && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(12,16,19,0.75)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-            <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '320px', boxShadow: '0 12px 36px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
-              <span style={{ fontSize: '32px' }}>🥾</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <h4 style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#ff5470' }}>Remove Member?</h4>
-                <p style={{ fontSize: '12px', color: '#9ba6ad', marginTop: '6px' }}>
-                  Are you sure you want to kick {getDisplayName(kickTargetUser)} from this trip room? This will promote the next waitlisted traveler.
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 w-full max-w-xs shadow-2xl flex flex-col gap-4 text-center">
+              <span className="text-3xl">🥾</span>
+              <div className="flex flex-col gap-1">
+                <h4 className="text-xs font-bold uppercase text-[#ff5470]">Remove Member?</h4>
+                <p className="text-xs text-[#9ba6ad] mt-1">
+                  Are you sure you want to remove {getDisplayName(kickTargetUser)} from this trip room?
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button onClick={() => setKickTargetUser(null)} style={{ flex: 1, height: '36px', border: '1px solid rgba(255,255,255,0.08)', background: '#212b33', borderRadius: '100px', color: '#9ba6ad', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+              <div className="flex gap-2 mt-1">
+                <button
+                  onClick={() => setKickTargetUser(null)}
+                  className="flex-1 h-9 border border-white/10 bg-[#1a2129] rounded-xl text-[#9ba6ad] text-xs font-bold cursor-pointer"
+                >
                   Cancel
                 </button>
-                <button onClick={handleKickSubmit} style={{ flex: 1, height: '36px', border: 'none', background: 'rgba(255,84,112,0.14)', color: '#ff5470', borderRadius: '100px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+                <button
+                  onClick={handleKickSubmit}
+                  className="flex-1 h-9 bg-[rgba(255,84,112,0.14)] text-[#ff5470] rounded-xl text-xs font-bold cursor-pointer"
+                >
                   Yes, Remove
                 </button>
               </div>
@@ -400,51 +275,37 @@ const ManageTab = ({
         )}
       </AnimatePresence>
 
-      {/* Cancel Modal overlay */}
+      {/* Cancel Trip Modal overlay */}
       <AnimatePresence>
         {cancelOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(12,16,19,0.75)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-            <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '320px', boxShadow: '0 12px 36px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h4 style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#ff5470' }}>Cancel Activity</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
-                <span style={{ fontWeight: '700', color: '#9ba6ad' }}>Provide Cancellation Reason</span>
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 w-full max-w-sm shadow-2xl flex flex-col gap-4">
+              <h4 className="text-xs font-bold uppercase text-[#ff5470]">Cancel Activity</h4>
+              <div className="flex flex-col gap-1.5 text-xs">
+                <span className="font-bold text-[#9ba6ad]">Provide Cancellation Reason</span>
                 <textarea
                   rows={3}
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="e.g. Incessant monsoon rain warnings"
-                  style={{
-                    width: '100%',
-                    background: '#212b33',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '12px',
-                    padding: '10px 14px',
-                    fontSize: '12px',
-                    color: '#f3f1ea',
-                    resize: 'none',
-                    outline: 'none'
-                  }}
+                  placeholder="e.g. Weather warning or road closure"
+                  className="w-full bg-[#1a2129] border border-white/10 rounded-xl p-3 text-xs text-[#f3f1ea] resize-none outline-none focus:border-[#ff5470]"
                 />
               </div>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button onClick={() => setCancelOpen(false)} style={{ flex: 1, height: '36px', border: '1px solid rgba(255,255,255,0.08)', background: '#212b33', borderRadius: '100px', color: '#9ba6ad', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+              <div className="flex gap-2 mt-1">
+                <button
+                  onClick={() => setCancelOpen(false)}
+                  className="flex-1 h-9 border border-white/10 bg-[#1a2129] rounded-xl text-[#9ba6ad] text-xs font-bold cursor-pointer"
+                >
                   Cancel
                 </button>
                 <button
                   disabled={!cancelReason.trim()}
                   onClick={handleCancelSubmit}
-                  style={{
-                    flex: 1,
-                    height: '36px',
-                    border: 'none',
-                    borderRadius: '100px',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    background: cancelReason.trim() ? 'rgba(255,84,112,0.14)' : '#212b33',
-                    color: cancelReason.trim() ? '#ff5470' : '#6b757c',
-                    cursor: cancelReason.trim() ? 'pointer' : 'not-allowed',
-                    transition: 'all 150ms ease'
-                  }}
+                  className={`flex-1 h-9 rounded-xl text-xs font-bold transition-all ${
+                    cancelReason.trim()
+                      ? 'bg-[rgba(255,84,112,0.14)] text-[#ff5470] cursor-pointer'
+                      : 'bg-white/5 text-[#6b757c] cursor-not-allowed'
+                  }`}
                 >
                   Confirm Cancel
                 </button>
