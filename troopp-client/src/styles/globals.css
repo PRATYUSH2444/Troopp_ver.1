@@ -119,7 +119,6 @@ h1, h2, h3, h4, h5, h6 {
   min-height: 100vh;
   position: relative;
   background: #10151a;
-  overflow-x: hidden;
 }
 
 /* Desktop Sidebar — sticky rail beside main content */
@@ -155,17 +154,16 @@ h1, h2, h3, h4, h5, h6 {
   gap: 10px;
 }
 
-/* Main Content Area — dynamically expands/shrinks without bounds */
+/* Main Content Area — fills remaining space after sidebar */
 .main-content {
   flex: 1 1 0%;
   min-width: 0;
-  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   padding: 28px clamp(16px, 3.5vw, 48px) 80px;
   background: #10151a;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
 }
 
 /* Responsive Container System */
@@ -199,6 +197,24 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   gap: 24px;
   min-width: 0;
+}
+
+/* Trip Room Workspace — wider than medium, capped for readability on ultrawide */
+.page-container-trip {
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* Trip Room Info Tab — proportional 2-column grid at desktop */
+@media (min-width: 1024px) {
+  .info-tab-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(340px, 1fr);
+  }
 }
 
 /* ============================================================================
