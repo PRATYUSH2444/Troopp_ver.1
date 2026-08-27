@@ -5,8 +5,9 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { haptics } from '../../utils/haptics.js'
 
 /**
- * Modernized InfoTab — Comprehensive Expedition Logistics, Live GPS & Interactive Waypoints Hub.
- * Strictly adheres to Troopp's design system (24-28px spacing, rounded-[20px] cards, and rich interactive states).
+ * Precision-Refined InfoTab Component.
+ * Implements strict component-level spacing, 2x2 equal-width traveler grid,
+ * aligned 3-col stat tiles, indented waypoint progress, and proportionate map hero.
  */
 const InfoTab = ({
   activity,
@@ -93,11 +94,11 @@ const InfoTab = ({
           ========================================================================= */}
       <div className="lg:col-span-6 flex flex-col gap-6">
         
-        {/* 1. MEETING POINT & ROUTE HERO CARD */}
+        {/* 1. PROPORTIONATE MEETING POINT & ROUTE HERO CARD */}
         <div className="bg-[#151c24] border border-[#242f3d] rounded-[20px] overflow-hidden shadow-lg flex flex-col">
-          {/* Simulated Satellite Map Header */}
-          <div className="w-full h-44 sm:h-48 bg-[#11171d] relative flex items-center justify-center p-4 border-b border-white/5 overflow-hidden">
-            {/* Ambient Map Grid lines */}
+          {/* Proportionate Map Header (~150px height) */}
+          <div className="w-full h-36 sm:h-40 bg-[#11171d] relative flex items-center justify-center p-4 border-b border-white/5 overflow-hidden">
+            {/* Ambient Map Grid */}
             <div
               className="absolute inset-0 opacity-15"
               style={{
@@ -107,25 +108,25 @@ const InfoTab = ({
               }}
             />
             
-            {/* Map Pin Pulse */}
+            {/* Centered Map Pin & Coordinates */}
             <div className="relative flex flex-col items-center z-10">
               <div className="relative">
-                <span className="w-9 h-9 rounded-full bg-[#ff6a2c]/20 border border-[#ff6a2c] flex items-center justify-center text-lg animate-bounce">
+                <span className="w-8 h-8 rounded-full bg-[#ff6a2c]/20 border border-[#ff6a2c] flex items-center justify-center text-base animate-bounce">
                   📍
                 </span>
                 <span className="absolute -inset-1 rounded-full bg-[#ff6a2c]/30 animate-ping" />
               </div>
-              <span className="mt-2 text-[11px] font-mono font-bold text-[#9ba6ad] bg-[#0c1013]/90 px-3 py-1 rounded-full border border-white/10 shadow-md">
+              <span className="mt-1.5 text-[11px] font-mono font-bold text-[#9ba6ad] bg-[#0c1013]/90 px-3 py-0.5 rounded-full border border-white/10 shadow-md">
                 {meetingLat.toFixed(4)}° N, {meetingLng.toFixed(4)}° E
               </span>
             </div>
 
-            {/* Top Right Directions Action */}
+            {/* Inset Directions Action */}
             <a
               href={`https://maps.google.com/?q=${meetingLat},${meetingLng}`}
               target="_blank"
               rel="noreferrer"
-              className="absolute top-3.5 right-3.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/15 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md z-10"
+              className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/15 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md z-10"
             >
               <span>🧭</span>
               <span>Open Maps</span>
@@ -133,22 +134,22 @@ const InfoTab = ({
           </div>
 
           {/* Meeting Point Content Body */}
-          <div className="p-6 flex flex-col gap-2">
+          <div className="p-5 sm:p-6 flex flex-col gap-2">
             <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
               Designated Meeting Point
             </span>
             <h3 className="text-lg sm:text-xl font-bold text-[#f3f1ea] font-display">
               {meetingLabel}
             </h3>
-            <p className="text-xs text-[#9ba6ad] leading-relaxed mt-1">
+            <p className="text-xs text-[#9ba6ad] leading-relaxed mt-0.5">
               Assemble at this location at the scheduled departure time. All confirmed travelers will verify attendance via waypoint check-in.
             </p>
           </div>
         </div>
 
         {/* 2. DESTINATION & EXPEDITION SCHEDULE CARD */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-6 sm:p-7 rounded-[20px] shadow-lg flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3.5">
+        <div className="bg-[#151c24] border border-[#242f3d] p-5 sm:p-6 rounded-[20px] shadow-lg flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <div>
               <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
                 Destination & Itinerary
@@ -164,34 +165,43 @@ const InfoTab = ({
             )}
           </div>
 
-          {/* 3-Col Key Metrics Strip */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">📅 Departure</span>
-              <span className="text-xs font-bold text-[#f3f1ea]">
+          {/* Equal-Width 3-Column Stats Grid with Uniform Baselines */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch">
+            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between min-h-[76px]">
+              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase flex items-center gap-1.5">
+                <span>📅</span>
+                <span>Departure</span>
+              </span>
+              <span className="text-xs sm:text-[13px] font-bold text-[#f3f1ea] mt-2 leading-tight">
                 {formatTripDate(activity?.date_time)}
               </span>
             </div>
 
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">💰 Estimated Budget</span>
-              <span className="text-xs font-bold text-[#4fbe8e]">
+            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between min-h-[76px]">
+              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase flex items-center gap-1.5">
+                <span>💰</span>
+                <span>Estimated Budget</span>
+              </span>
+              <span className="text-xs sm:text-[13px] font-bold text-[#4fbe8e] mt-2 leading-tight">
                 ₹{Number(activity?.cost_per_person || activity?.cost_estimate || 0).toLocaleString('en-IN')} / person
               </span>
             </div>
 
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">👥 Capacity</span>
-              <span className="text-xs font-bold text-[#f3f1ea]">
+            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between min-h-[76px]">
+              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase flex items-center gap-1.5">
+                <span>👥</span>
+                <span>Capacity</span>
+              </span>
+              <span className="text-xs sm:text-[13px] font-bold text-[#f3f1ea] mt-2 leading-tight">
                 {safeMembers.length} of {activity?.max_capacity || activity?.max_group_size || 5} Spots
               </span>
             </div>
           </div>
 
-          {/* Trip Description if available */}
+          {/* Trip Brief & Notes Card */}
           {activity?.description && (
-            <div className="mt-1 p-4 bg-[#1a2129]/60 border border-white/5 rounded-xl">
-              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider block mb-1.5">
+            <div className="p-4 sm:p-5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider block">
                 Trip Brief & Notes
               </span>
               <p className="text-xs text-[#d1d7dc] leading-relaxed m-0">
@@ -201,8 +211,8 @@ const InfoTab = ({
           )}
         </div>
 
-        {/* 3. TRIP ORGANIZER & LIVE GPS COMBINED CARD */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-6 rounded-[20px] shadow-lg flex flex-col gap-5">
+        {/* 3. TRIP ORGANIZER & LIVE GPS CARD */}
+        <div className="bg-[#151c24] border border-[#242f3d] p-5 sm:p-6 rounded-[20px] shadow-lg flex flex-col gap-4">
           {/* Organizer Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3.5">
@@ -266,9 +276,9 @@ const InfoTab = ({
           ========================================================================= */}
       <div className="lg:col-span-6 flex flex-col gap-6">
         
-        {/* 1. CONFIRMED TRAVELERS ROSTER CARD */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-6 sm:p-7 rounded-[20px] shadow-lg flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3.5">
+        {/* 1. CONFIRMED TRAVELERS 2x2 RIGID GRID */}
+        <div className="bg-[#151c24] border border-[#242f3d] p-5 sm:p-6 rounded-[20px] shadow-lg flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <div>
               <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider">
                 Group Roster
@@ -283,37 +293,39 @@ const InfoTab = ({
             </span>
           </div>
 
-          {/* Travelers Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Rigid 2-Column Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
             {safeMembers.map((m) => {
               const rawName = m?.name || m?.User?.Profile?.name || 'Explorer'
               const isCurrentUser = m?.userId === user?.id || m?.id === user?.id
-              const score = m.trustScore || m.User?.trust_score || 80
+              const score = m.trustScore || m.User?.trust_score || 60
 
               return (
                 <div
                   key={m.userId || m.id || rawName}
                   onClick={() => onMemberTap && onMemberTap(m)}
-                  className="p-3.5 bg-[#1a2129] border border-white/5 hover:border-[#ff6a2c]/40 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all active:scale-98 group"
+                  className="h-[62px] p-3 bg-[#1a2129] border border-white/5 hover:border-[#ff6a2c]/40 rounded-xl flex items-center justify-between gap-2.5 cursor-pointer transition-all active:scale-98 group w-full min-w-0"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Avatar
-                      src={m.avatarUrl || m.User?.Profile?.avatar_url}
-                      name={rawName}
-                      size="sm"
-                      score={score}
-                    />
-                    <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="flex-shrink-0">
+                      <Avatar
+                        src={m.avatarUrl || m.User?.Profile?.avatar_url}
+                        name={rawName}
+                        size="sm"
+                        score={score}
+                      />
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-xs font-bold text-[#f3f1ea] truncate group-hover:text-[#ff6a2c] transition-colors" title={rawName}>
                         {rawName} {isCurrentUser && '(You)'}
                       </span>
-                      <span className="text-[10px] text-[#9ba6ad] mt-0.5">
+                      <span className="text-[10px] text-[#9ba6ad] truncate">
                         Verified Explorer
                       </span>
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-bold text-[#4fbe8e] bg-[#212b33] px-2 py-0.5 rounded-md flex-shrink-0">
+                  <span className="text-[10px] font-bold text-[#4fbe8e] bg-[#212b33] px-2 py-0.5 rounded-md flex-shrink-0 ml-1.5">
                     🛡️ {score}
                   </span>
                 </div>
@@ -323,8 +335,8 @@ const InfoTab = ({
         </div>
 
         {/* 2. CHECK-IN WAYPOINTS INTERACTIVE TIMELINE CARD */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-6 sm:p-7 rounded-[20px] shadow-lg flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3.5">
+        <div className="bg-[#151c24] border border-[#242f3d] p-5 sm:p-6 rounded-[20px] shadow-lg flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <div>
               <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
                 Expedition Checkpoints
@@ -338,8 +350,8 @@ const InfoTab = ({
             </span>
           </div>
 
-          {/* Interactive Timeline List */}
-          <div className="flex flex-col gap-3.5 relative">
+          {/* Interactive Timeline with Indented Checked-In Alignment */}
+          <div className="flex flex-col gap-3">
             {localWaypoints.map((pt, idx) => {
               const isCheckedIn = pt.confirmed?.includes(currentUserName)
               const confirmedCount = pt.confirmed?.length || 0
@@ -348,58 +360,58 @@ const InfoTab = ({
               return (
                 <div
                   key={pt.id}
-                  className={`p-4 sm:p-4.5 rounded-xl border transition-all flex flex-col gap-3 ${
+                  className={`p-4 rounded-xl border transition-all flex items-start justify-between gap-3.5 ${
                     isCheckedIn
                       ? 'bg-[rgba(79,190,142,0.06)] border-[rgba(79,190,142,0.3)]'
                       : 'bg-[#1a2129] border-white/5'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {/* Step Indicator Badge */}
-                      <span
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
-                          isCheckedIn
-                            ? 'bg-[#4fbe8e] text-[#10151a]'
-                            : 'bg-[#212b33] text-[#9ba6ad] border border-white/10'
-                        }`}
-                      >
-                        {isCheckedIn ? '✓' : idx + 1}
-                      </span>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-xs sm:text-sm font-bold text-[#f3f1ea] truncate">
-                          {pt.label}
-                        </span>
-                        <span className="text-[11px] text-[#9ba6ad] mt-0.5">
-                          Scheduled: {pt.time} · {confirmedCount}/{totalRequired} Checked In
-                        </span>
-                      </div>
-                    </div>
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    {/* Milestone Number */}
+                    <span
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 mt-0.5 ${
+                        isCheckedIn
+                          ? 'bg-[#4fbe8e] text-[#10151a]'
+                          : 'bg-[#212b33] text-[#9ba6ad] border border-white/10'
+                      }`}
+                    >
+                      {isCheckedIn ? '✓' : idx + 1}
+                    </span>
 
-                    {/* Interactive Check-in Button */}
+                    {/* Checkpoint Details & Indented Status */}
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-xs sm:text-sm font-bold text-[#f3f1ea] truncate">
+                        {pt.label}
+                      </span>
+                      <span className="text-[11px] text-[#9ba6ad] mt-0.5">
+                        Scheduled: {pt.time} · {confirmedCount}/{totalRequired} Checked In
+                      </span>
+
+                      {/* Indented Checked In Line */}
+                      {pt.confirmed?.length > 0 && (
+                        <div className="flex items-center gap-1.5 mt-2 text-[11px] text-[#9ba6ad]">
+                          <span className="font-semibold text-[#4fbe8e]">Checked In:</span>
+                          <span className="text-[#f3f1ea] truncate">{pt.confirmed.join(', ')}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Fixed-Width Check-in Button */}
+                  <div className="w-[96px] flex justify-end flex-shrink-0">
                     {isCheckedIn ? (
-                      <span className="text-xs font-bold text-[#4fbe8e] bg-[rgba(79,190,142,0.15)] px-3 py-1 rounded-lg flex-shrink-0">
+                      <span className="w-full h-8 flex items-center justify-center text-xs font-bold text-[#4fbe8e] bg-[rgba(79,190,142,0.15)] rounded-lg">
                         ✓ Verified
                       </span>
                     ) : (
                       <button
                         onClick={() => handleCheckIn(pt.id)}
-                        className="h-8 px-4 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-lg text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer flex-shrink-0"
+                        className="w-full h-8 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-lg text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center"
                       >
                         Check In
                       </button>
                     )}
                   </div>
-
-                  {/* Confirmed list avatars strip */}
-                  {pt.confirmed?.length > 0 && (
-                    <div className="flex items-center gap-2 pt-2 border-t border-white/5 text-[11px] text-[#9ba6ad]">
-                      <span className="font-semibold text-[#4fbe8e]">Checked In:</span>
-                      <span className="truncate text-[#f3f1ea]">
-                        {pt.confirmed.join(', ')}
-                      </span>
-                    </div>
-                  )}
                 </div>
               )
             })}

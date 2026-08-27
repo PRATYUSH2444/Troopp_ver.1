@@ -895,10 +895,10 @@ const TripRoom = () => {
       </div>
 
       {/* Tabs Navigation Headers */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 select-none">
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 select-none">
         {[
           { id: 'chat', label: 'CHAT', icon: '💬' },
-          { id: 'info', label: 'INFO', icon: 'ℹ' },
+          { id: 'info', label: 'INFO', icon: '📍' },
           { id: 'expenses', label: 'SPLIT', icon: '💰' },
           { id: 'checklist', label: 'PACKING', icon: '🎒' },
           { id: 'polls', label: 'POLLS', icon: '📊' }
@@ -908,13 +908,13 @@ const TripRoom = () => {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`min-h-[42px] px-4 sm:px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+              className={`h-10 px-5 rounded-full text-xs uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-[rgba(255,106,44,0.15)] text-[#f3f1ea] border border-[#ff6a2c] shadow-[0_0_12px_rgba(255,106,44,0.25)]'
-                  : 'text-[#9ba6ad] hover:text-[#f3f1ea] hover:bg-white/5 border border-transparent'
+                  ? 'bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] text-[#1a0e08] font-black shadow-lg shadow-[#ff6a2c]/20'
+                  : 'bg-[#151c24] border border-[#242f3d] text-[#9ba6ad] hover:text-[#f3f1ea] hover:border-white/20 font-bold'
               }`}
             >
-              <span>{tab.icon}</span>
+              <span className="text-sm">{tab.icon}</span>
               <span>{tab.label}</span>
             </button>
           )
@@ -922,13 +922,13 @@ const TripRoom = () => {
         {isHost && (
           <button
             onClick={() => handleTabChange('manage')}
-            className={`min-h-[42px] px-4 sm:px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+            className={`h-10 px-5 rounded-full text-xs uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'manage'
-                ? 'bg-[rgba(255,106,44,0.15)] text-[#f3f1ea] border border-[#ff6a2c] shadow-[0_0_12px_rgba(255,106,44,0.25)]'
-                : 'text-[#9ba6ad] hover:text-[#f3f1ea] hover:bg-white/5 border border-transparent'
+                ? 'bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] text-[#1a0e08] font-black shadow-lg shadow-[#ff6a2c]/20'
+                : 'bg-[#151c24] border border-[#242f3d] text-[#9ba6ad] hover:text-[#f3f1ea] hover:border-white/20 font-bold'
             }`}
           >
-            <span>⚙</span>
+            <span className="text-sm">⚙️</span>
             <span>MANAGE</span>
           </button>
         )}
