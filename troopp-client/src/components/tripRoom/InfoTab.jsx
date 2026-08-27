@@ -5,9 +5,8 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { haptics } from '../../utils/haptics.js'
 
 /**
- * Precision-Refined InfoTab Component.
- * Implements strict component-level spacing, 2x2 equal-width traveler grid,
- * aligned 3-col stat tiles, indented waypoint progress, and proportionate map hero.
+ * Modernized InfoTab — Seamlessly integrates the new Tungnath / TripMate design
+ * with existing dynamic backend data, WebSockets, and state management.
  */
 const InfoTab = ({
   activity,
@@ -21,9 +20,9 @@ const InfoTab = ({
 
   // Check-in Waypoints state
   const [localWaypoints, setLocalWaypoints] = useState([
-    { id: 1, label: 'Start Point Meeting', time: '06:00 AM', confirmed: ['Amit', 'Priya'], pending: ['Vikram', user?.name || 'Explorer'] },
-    { id: 2, label: 'Midway Halt Breakfast', time: '09:30 AM', confirmed: ['Amit'], pending: ['Priya', 'Vikram', user?.name || 'Explorer'] },
-    { id: 3, label: 'Summit Base Camp', time: '02:00 PM', confirmed: [], pending: ['Amit', 'Priya', 'Vikram', user?.name || 'Explorer'] }
+    { id: 1, label: 'Start point meeting', time: 'Scheduled 06:00 AM', confirmed: ['Amit', 'Priya'], total: 4 },
+    { id: 2, label: 'Midway halt breakfast', time: 'Scheduled 09:30 AM', confirmed: ['Amit'], total: 4 },
+    { id: 3, label: 'Summit base camp', time: 'Scheduled 02:00 PM', confirmed: [], total: 4 }
   ])
 
   // GPS Sharing simulation
@@ -41,208 +40,215 @@ const InfoTab = ({
     return () => clearInterval(interval)
   }, [sharing])
 
-  const meetingLabel = activity?.meeting_point_label || activity?.destination || 'City Meeting Hub'
+  const meetingLabel = activity?.meeting_point_label || activity?.destination || 'Delhi'
   const meetingLat = activity?.meeting_point_lat || 19.6175
   const meetingLng = activity?.meeting_point_lng || 73.7845
-  const hostName = activity?.Creator?.Profile?.name || 'Trip Leader'
+  const hostName = activity?.Creator?.Profile?.name || 'Dev Shrivastav'
   const hostAvatar = activity?.Creator?.Profile?.avatar_url
-  const hostTrustScore = activity?.Creator?.trust_score || 85
+  const hostTrustScore = activity?.Creator?.trust_score || 60
+
+  const currentUserName = user?.name || user?.Profile?.name || 'Explorer'
 
   const handleCheckIn = (waypointId) => {
-    const currentUserName = user?.name || user?.Profile?.name || 'Explorer'
     haptics.waypointCheckin?.()
     setLocalWaypoints((prev) =>
       prev.map((pt) => {
         if (pt.id !== waypointId) return pt
         const conf = Array.isArray(pt.confirmed) ? pt.confirmed : []
-        const pend = Array.isArray(pt.pending) ? pt.pending : []
         if (conf.includes(currentUserName)) return pt
         return {
           ...pt,
-          confirmed: [...conf, currentUserName],
-          pending: pend.filter((n) => n !== currentUserName)
+          confirmed: [...conf, currentUserName]
         }
       })
     )
   }
 
+  // Calculate trail progress metrics
+  const totalCheckinsPossible = localWaypoints.length * (safeMembers.length || 4)
+  const currentCheckinsDone = localWaypoints.reduce((acc, pt) => acc + (pt.confirmed?.length || 0), 0)
+  const progressPercent = totalCheckinsPossible > 0 ? Math.round((currentCheckinsDone / totalCheckinsPossible) * 100) : 0
+
   const formatTripDate = (dateVal) => {
-    if (!dateVal) return 'Upcoming'
+    if (!dateVal) return { date: 'Fri, Oct 2, 2026', time: '10:59 PM' }
     try {
       const d = new Date(dateVal)
-      if (isNaN(d.getTime())) return 'Upcoming'
-      return d.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      if (isNaN(d.getTime())) return { date: 'Upcoming', time: '10:00 AM' }
+      return {
+        date: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+        time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      }
     } catch {
-      return 'Upcoming'
+      return { date: 'Upcoming', time: '10:00 AM' }
     }
   }
 
-  const currentUserName = user?.name || user?.Profile?.name || 'Explorer'
+  const { date: tripDateFormatted, time: tripTimeFormatted } = formatTripDate(activity?.date_time)
+  const maxCapacity = activity?.max_capacity || activity?.max_group_size || 5
+  const spotsLeft = Math.max(0, maxCapacity - safeMembers.length)
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-[#f3f1ea] pb-16">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-[#f3f4f8] pb-16">
       
       {/* =========================================================================
           LEFT COLUMN: Trip Logistics, Destination, Organizer & GPS
           ========================================================================= */}
-      <div className="lg:col-span-6 flex flex-col gap-6">
+      <div className="lg:col-span-7 flex flex-col gap-5">
         
-        {/* 1. PROPORTIONATE MEETING POINT & ROUTE HERO CARD */}
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-[20px] overflow-hidden shadow-lg flex flex-col">
-          {/* Proportionate Map Header (~150px height) */}
-          <div className="w-full h-36 sm:h-40 bg-[#11171d] relative flex items-center justify-center p-4 border-b border-white/5 overflow-hidden">
-            {/* Ambient Map Grid */}
-            <div
-              className="absolute inset-0 opacity-15"
-              style={{
-                backgroundImage: 'radial-gradient(#ff6a2c 1px, transparent 1px), radial-gradient(#242f3d 1px, transparent 1px)',
-                backgroundSize: '24px 24px',
-                backgroundPosition: '0 0, 12px 12px'
-              }}
-            />
-            
-            {/* Centered Map Pin & Coordinates */}
-            <div className="relative flex flex-col items-center z-10">
-              <div className="relative">
-                <span className="w-8 h-8 rounded-full bg-[#ff6a2c]/20 border border-[#ff6a2c] flex items-center justify-center text-base animate-bounce">
-                  📍
-                </span>
-                <span className="absolute -inset-1 rounded-full bg-[#ff6a2c]/30 animate-ping" />
+        {/* 1. DESIGNATED MEETING POINT CARD */}
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-[20px] p-6 shadow-xl flex flex-col">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#ffa471] mb-1 font-bold">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13z"/></svg>
+                Designated meeting point
               </div>
-              <span className="mt-1.5 text-[11px] font-mono font-bold text-[#9ba6ad] bg-[#0c1013]/90 px-3 py-0.5 rounded-full border border-white/10 shadow-md">
-                {meetingLat.toFixed(4)}° N, {meetingLng.toFixed(4)}° E
-              </span>
+              <div className="text-2xl font-bold font-display text-[#f3f4f8] capitalize">
+                {meetingLabel}
+              </div>
             </div>
-
-            {/* Inset Directions Action */}
+            
             <a
               href={`https://maps.google.com/?q=${meetingLat},${meetingLng}`}
               target="_blank"
               rel="noreferrer"
-              className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/15 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md z-10"
+              className="flex items-center gap-1.5 text-xs font-semibold text-[#9096ab] hover:text-[#f3f4f8] bg-[#1f2431] hover:border-[#ff7a3d] border border-[#262b3a] px-3.5 py-2 rounded-full transition-all flex-shrink-0"
             >
-              <span>🧭</span>
-              <span>Open Maps</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+              <span>Open maps</span>
             </a>
           </div>
 
-          {/* Meeting Point Content Body */}
-          <div className="p-5 sm:p-6 flex flex-col gap-2">
-            <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
-              Designated Meeting Point
-            </span>
-            <h3 className="text-lg sm:text-xl font-bold text-[#f3f1ea] font-display">
-              {meetingLabel}
-            </h3>
-            <p className="text-xs text-[#9ba6ad] leading-relaxed mt-0.5">
-              Assemble at this location at the scheduled departure time. All confirmed travelers will verify attendance via waypoint check-in.
-            </p>
+          {/* Map Canvas with Topographic Texture & Animated Pin */}
+          <div className="relative h-48 rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-[#141a24] to-[#0c1017] border border-[#1c2130] flex items-center justify-center">
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
+              <path d="M0,150 Q80,110 160,140 T400,120" stroke="#2a3040" strokeWidth="1" fill="none" />
+              <path d="M0,110 Q90,70 180,100 T400,80" stroke="#2a3040" strokeWidth="1" fill="none" />
+              <path d="M0,180 Q100,150 220,175 T400,155" stroke="#20242f" strokeWidth="1" fill="none" />
+            </svg>
+
+            {/* Central Animated Map Pin */}
+            <div className="relative flex flex-col items-center z-10">
+              <div className="w-8 h-8 rounded-t-full rounded-bl-full bg-[#ff7a3d] -rotate-45 flex items-center justify-center shadow-[0_0_0_6px_rgba(255,122,61,0.15)] animate-bounce">
+                <svg className="rotate-45 w-4 h-4 fill-[#2a1204]" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+              </div>
+              <div className="w-3 h-1 rounded-full bg-black/40 blur-[2px] mt-1" />
+            </div>
+
+            {/* Coordinates Badge */}
+            <div className="absolute bottom-2.5 left-3 font-mono text-xs text-[#9096ab] bg-[#0a0c13]/70 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-white/5">
+              {meetingLat.toFixed(4)}° N, {meetingLng.toFixed(4)}° E
+            </div>
           </div>
+
+          <p className="text-sm text-[#9096ab] leading-relaxed m-0">
+            Assemble at this location at the scheduled departure time. All confirmed travelers verify attendance via waypoint check-in below.
+          </p>
         </div>
 
-        {/* 2. DESTINATION & EXPEDITION SCHEDULE CARD */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-5 sm:p-6 rounded-[20px] shadow-lg flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        {/* 2. DESTINATION AND ITINERARY CARD */}
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-[20px] p-6 shadow-xl flex flex-col">
+          <div className="flex items-center justify-between gap-4 mb-4">
             <div>
-              <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
-                Destination & Itinerary
-              </span>
-              <h3 className="text-xl sm:text-2xl font-black text-[#f3f1ea] font-display mt-0.5 capitalize">
-                {activity?.destination || activity?.title || 'Trip Destination'}
-              </h3>
-            </div>
-            {activity?.category && (
-              <span className="text-xs font-bold text-[#ff6a2c] bg-[rgba(255,106,44,0.14)] border border-[#ff6a2c]/30 px-3 py-1 rounded-full capitalize">
-                {activity.category}
-              </span>
-            )}
-          </div>
-
-          {/* Equal-Width 3-Column Stats Grid with Uniform Baselines */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch">
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between min-h-[76px]">
-              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase flex items-center gap-1.5">
-                <span>📅</span>
-                <span>Departure</span>
-              </span>
-              <span className="text-xs sm:text-[13px] font-bold text-[#f3f1ea] mt-2 leading-tight">
-                {formatTripDate(activity?.date_time)}
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between min-h-[76px]">
-              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase flex items-center gap-1.5">
-                <span>💰</span>
-                <span>Estimated Budget</span>
-              </span>
-              <span className="text-xs sm:text-[13px] font-bold text-[#4fbe8e] mt-2 leading-tight">
-                ₹{Number(activity?.cost_per_person || activity?.cost_estimate || 0).toLocaleString('en-IN')} / person
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between min-h-[76px]">
-              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase flex items-center gap-1.5">
-                <span>👥</span>
-                <span>Capacity</span>
-              </span>
-              <span className="text-xs sm:text-[13px] font-bold text-[#f3f1ea] mt-2 leading-tight">
-                {safeMembers.length} of {activity?.max_capacity || activity?.max_group_size || 5} Spots
-              </span>
-            </div>
-          </div>
-
-          {/* Trip Brief & Notes Card */}
-          {activity?.description && (
-            <div className="p-4 sm:p-5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider block">
-                Trip Brief & Notes
-              </span>
-              <p className="text-xs text-[#d1d7dc] leading-relaxed m-0">
-                {activity.description}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* 3. TRIP ORGANIZER & LIVE GPS CARD */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-5 sm:p-6 rounded-[20px] shadow-lg flex flex-col gap-4">
-          {/* Organizer Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <Avatar
-                src={hostAvatar}
-                name={hostName}
-                size="md"
-                score={hostTrustScore}
-              />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
-                  Trip Organizer & Host
-                </span>
-                <span className="text-sm sm:text-base font-bold text-[#f3f1ea]">{hostName}</span>
-                <span className="text-[11px] text-[#4fbe8e] font-semibold mt-0.5">
-                  Verified Host · {hostTrustScore}/100 Trust Score
-                </span>
+              <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#ffa471] mb-1 font-bold">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0 0 21 18.618V7.618a1 1 0 0 0-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                Destination and itinerary
+              </div>
+              <div className="text-2xl font-bold font-display text-[#f3f4f8] capitalize">
+                {activity?.destination || activity?.title || 'Chopta'}
               </div>
             </div>
           </div>
 
-          {/* Live GPS Tracker Row */}
-          <div className="p-4 bg-[#1a2129] border border-white/5 rounded-xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">📡</span>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-[#f3f1ea]">Live GPS Location Broadcast</span>
-                <span className="text-[11px] text-[#9ba6ad] mt-0.5">
-                  {sharing ? '🟢 Actively broadcasting location to travelers' : 'Share your real-time coordinates with the group'}
+          {/* 3-Column Itinerary Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-[#181c29] border border-[#1c2130] rounded-xl p-3.5 flex flex-col justify-between">
+              <div className="flex items-center gap-1.5 text-[11.5px] text-[#5c6178] uppercase font-bold tracking-wider mb-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                Departure
+              </div>
+              <div className="font-bold text-[15px] font-display text-[#f3f4f8]">
+                {tripDateFormatted}
+              </div>
+              <div className="text-xs text-[#9096ab] mt-1">{tripTimeFormatted}</div>
+            </div>
+
+            <div className="bg-[#181c29] border border-[#1c2130] rounded-xl p-3.5 flex flex-col justify-between">
+              <div className="flex items-center gap-1.5 text-[11.5px] text-[#5c6178] uppercase font-bold tracking-wider mb-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Estimated budget
+              </div>
+              <div className="font-bold text-[15px] font-display text-[#33d189]">
+                ₹{Number(activity?.cost_per_person || activity?.cost_estimate || 15000).toLocaleString('en-IN')}
+              </div>
+              <div className="text-xs text-[#9096ab] mt-1">per person</div>
+            </div>
+
+            <div className="bg-[#181c29] border border-[#1c2130] rounded-xl p-3.5 flex flex-col justify-between">
+              <div className="flex items-center gap-1.5 text-[11.5px] text-[#5c6178] uppercase font-bold tracking-wider mb-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Capacity
+              </div>
+              <div className="font-bold text-[15px] font-display text-[#f3f4f8]">
+                {safeMembers.length} of {maxCapacity} spots
+              </div>
+              <div className="text-xs text-[#9096ab] mt-1">{spotsLeft > 0 ? `${spotsLeft} spot left` : 'Fully booked'}</div>
+            </div>
+          </div>
+
+          {/* Brief Box */}
+          <div className="mt-3.5 p-4 bg-[#181c29] rounded-xl border border-[#1c2130]">
+            <div className="text-[11.5px] text-[#5c6178] uppercase font-bold tracking-wider mb-1.5">
+              Trip brief and notes
+            </div>
+            <p className="text-sm text-[#f3f4f8] leading-relaxed m-0">
+              {activity?.description || 'Trek of 13 km and 13,000 ft. Pack for sub-zero nights and carry a headlamp for the summit push.'}
+            </p>
+          </div>
+        </div>
+
+        {/* 3. TRIP ORGANIZER AND HOST CARD */}
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-[20px] p-6 shadow-xl flex flex-col">
+          <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#ffa471] mb-4 font-bold">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M12 1v6M12 17v6M4.2 4.2l4.2 4.2M15.6 15.6l4.2 4.2M1 12h6M17 12h6M4.2 19.8l4.2-4.2M15.6 8.4l4.2-4.2"/></svg>
+            Trip organizer and host
+          </div>
+
+          <div className="flex items-center gap-3.5">
+            <Avatar
+              src={hostAvatar}
+              name={hostName}
+              size="md"
+              score={hostTrustScore}
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-base font-display text-[#f3f4f8]">{hostName}</span>
+                <span className="w-4 h-4 rounded-full bg-[#4a9eff] flex items-center justify-center flex-shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>
                 </span>
+              </div>
+              <div className="text-xs text-[#9096ab] mt-0.5">
+                Verified host · <span className="text-[#33d189] font-semibold">{hostTrustScore}/100</span> trust score
+              </div>
+            </div>
+          </div>
+
+          <div className="h-[1px] bg-[#1c2130] my-4" />
+
+          {/* Live GPS Broadcast Toggle Row */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                sharing ? 'bg-[#3a2517] text-[#ffa471]' : 'bg-[#181c29] text-[#9096ab]'
+              }`}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              </div>
+              <div>
+                <div className="font-semibold text-sm text-[#f3f4f8]">Live GPS location broadcast</div>
+                <div className="text-xs text-[#9096ab] mt-0.5">
+                  {sharing ? '🟢 Broadcasting real-time coordinates' : 'Share your real-time coordinates with the group'}
+                </div>
               </div>
             </div>
 
@@ -256,160 +262,169 @@ const InfoTab = ({
                 }}
                 className="sr-only"
               />
-              <div
-                className={`w-11 h-6 rounded-full transition-colors ${
-                  sharing ? 'bg-[#ff6a2c]' : 'bg-[#212b33] border border-white/10'
-                }`}
-              />
-              <div
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-md ${
-                  sharing ? 'transform translate-x-5' : ''
-                }`}
-              />
+              <div className={`w-11 h-6 rounded-full transition-colors ${
+                sharing ? 'bg-[#ff7a3d]' : 'bg-[#1f2431] border border-[#262b3a]'
+              }`} />
+              <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-md ${
+                sharing ? 'transform translate-x-5' : ''
+              }`} />
             </label>
           </div>
         </div>
+
       </div>
 
       {/* =========================================================================
-          RIGHT COLUMN: Confirmed Travelers & Interactive Waypoints Timeline
+          RIGHT COLUMN (SIDEBAR): Group Roster & Expedition Checkpoints
           ========================================================================= */}
-      <div className="lg:col-span-6 flex flex-col gap-6">
+      <div className="lg:col-span-5 flex flex-col gap-5">
         
-        {/* 1. CONFIRMED TRAVELERS 2x2 RIGID GRID */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-5 sm:p-6 rounded-[20px] shadow-lg flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        {/* 1. GROUP ROSTER CARD */}
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-[20px] p-6 shadow-xl flex flex-col">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider">
-                Group Roster
-              </span>
-              <h3 className="text-base sm:text-lg font-bold text-[#f3f1ea] font-display mt-0.5">
-                Confirmed Travelers ({safeMembers.length})
-              </h3>
+              <div className="text-[11px] font-mono uppercase tracking-wider text-[#ffa471] mb-1 font-bold">
+                Group roster
+              </div>
+              <div className="font-bold text-lg font-display text-[#f3f4f8]">
+                Confirmed travelers ({safeMembers.length})
+              </div>
             </div>
-            <span className="text-xs font-bold text-[#4fbe8e] bg-[rgba(79,190,142,0.12)] border border-[#4fbe8e]/30 px-3 py-1 rounded-full flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#4fbe8e] animate-pulse" />
-              <span>Active Expedition</span>
-            </span>
+            <div className="flex items-center gap-1.5 text-[11.5px] font-bold text-[#33d189] bg-[#122a20] px-3 py-1 rounded-full uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#33d189] animate-pulse" />
+              Active
+            </div>
           </div>
 
-          {/* Rigid 2-Column Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+          {/* Traveler Rows */}
+          <div className="flex flex-col gap-1.5">
             {safeMembers.map((m) => {
               const rawName = m?.name || m?.User?.Profile?.name || 'Explorer'
               const isCurrentUser = m?.userId === user?.id || m?.id === user?.id
               const score = m.trustScore || m.User?.trust_score || 60
+              const isHostMember = m?.isHost || m?.role === 'host' || m?.userId === activity?.creator_id
 
               return (
                 <div
                   key={m.userId || m.id || rawName}
                   onClick={() => onMemberTap && onMemberTap(m)}
-                  className="h-[62px] p-3 bg-[#1a2129] border border-white/5 hover:border-[#ff6a2c]/40 rounded-xl flex items-center justify-between gap-2.5 cursor-pointer transition-all active:scale-98 group w-full min-w-0"
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#181c29] transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="flex-shrink-0">
-                      <Avatar
-                        src={m.avatarUrl || m.User?.Profile?.avatar_url}
-                        name={rawName}
-                        size="sm"
-                        score={score}
-                      />
+                  <Avatar
+                    src={m.avatarUrl || m.User?.Profile?.avatar_url}
+                    name={rawName}
+                    size="sm"
+                    score={score}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm text-[#f3f4f8] flex items-center gap-2 truncate">
+                      <span className="truncate">{rawName}</span>
+                      {isCurrentUser && (
+                        <span className="text-[10.5px] text-[#ffa471] bg-[#3a2517] px-1.5 py-0.5 rounded-md font-bold flex-shrink-0">
+                          You
+                        </span>
+                      )}
                     </div>
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-xs font-bold text-[#f3f1ea] truncate group-hover:text-[#ff6a2c] transition-colors" title={rawName}>
-                        {rawName} {isCurrentUser && '(You)'}
-                      </span>
-                      <span className="text-[10px] text-[#9ba6ad] truncate">
-                        Verified Explorer
-                      </span>
+                    <div className="text-xs text-[#9096ab] mt-0.5 truncate">
+                      {isHostMember ? 'Verified host' : 'Verified explorer'}
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-bold text-[#4fbe8e] bg-[#212b33] px-2 py-0.5 rounded-md flex-shrink-0 ml-1.5">
-                    🛡️ {score}
-                  </span>
+                  <div className="flex items-center gap-1 font-mono text-xs font-semibold text-[#4a9eff] bg-[rgba(74,158,255,0.1)] px-2.5 py-1 rounded-full flex-shrink-0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2l2.9 6.3 6.9.9-5 4.9 1.2 6.9-6-3.3-6 3.3 1.2-6.9-5-4.9 6.9-.9z"/></svg>
+                    <span>{score}</span>
+                  </div>
                 </div>
               )
             })}
           </div>
         </div>
 
-        {/* 2. CHECK-IN WAYPOINTS INTERACTIVE TIMELINE CARD */}
-        <div className="bg-[#151c24] border border-[#242f3d] p-5 sm:p-6 rounded-[20px] shadow-lg flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3">
-            <div>
-              <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
-                Expedition Checkpoints
-              </span>
-              <h3 className="text-base sm:text-lg font-bold text-[#f3f1ea] font-display mt-0.5">
-                Check-in Waypoints
-              </h3>
+        {/* 2. EXPEDITION CHECKPOINTS / TRAIL CARD */}
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-[20px] p-6 shadow-xl flex flex-col">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-[11px] font-mono uppercase tracking-wider text-[#ffa471] font-bold">
+              Expedition checkpoints
             </div>
-            <span className="text-xs font-bold text-[#ff6a2c] bg-[rgba(255,106,44,0.12)] border border-[#ff6a2c]/30 px-3 py-1 rounded-full">
-              Live Progress
+            <span className="text-[11.5px] font-bold text-[#ffa471] bg-[#3a2517] px-3 py-0.5 rounded-full">
+              Live progress
             </span>
           </div>
 
-          {/* Interactive Timeline with Indented Checked-In Alignment */}
-          <div className="flex flex-col gap-3">
+          <div className="font-bold text-lg font-display text-[#f3f4f8] mb-1.5">
+            Check-in waypoints
+          </div>
+
+          {/* Progress Summary & Track */}
+          <div className="text-xs text-[#9096ab] mb-3">
+            <b className="text-[#f3f4f8]">{currentCheckinsDone}</b> of {totalCheckinsPossible} check-ins complete across the trail
+          </div>
+          <div className="h-1.5 bg-[#181c29] rounded-full overflow-hidden mb-5">
+            <div
+              className="h-full bg-gradient-to-r from-[#ff7a3d] to-[#ffa471] rounded-full transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* Vertical Trail Stem */}
+          <div className="relative pl-1 flex flex-col gap-5">
+            <div className="absolute left-[17px] top-4 bottom-4 w-[2px] bg-[#262b3a] z-0" />
+
             {localWaypoints.map((pt, idx) => {
               const isCheckedIn = pt.confirmed?.includes(currentUserName)
-              const confirmedCount = pt.confirmed?.length || 0
-              const totalRequired = (pt.confirmed?.length || 0) + (pt.pending?.length || 0)
+              const isDone = pt.confirmed?.length >= pt.total
+              const isPartial = pt.confirmed?.length > 0 && !isDone
 
               return (
-                <div
-                  key={pt.id}
-                  className={`p-4 rounded-xl border transition-all flex items-start justify-between gap-3.5 ${
-                    isCheckedIn
-                      ? 'bg-[rgba(79,190,142,0.06)] border-[rgba(79,190,142,0.3)]'
-                      : 'bg-[#1a2129] border-white/5'
-                  }`}
-                >
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
-                    {/* Milestone Number */}
-                    <span
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 mt-0.5 ${
-                        isCheckedIn
-                          ? 'bg-[#4fbe8e] text-[#10151a]'
-                          : 'bg-[#212b33] text-[#9ba6ad] border border-white/10'
-                      }`}
-                    >
-                      {isCheckedIn ? '✓' : idx + 1}
-                    </span>
-
-                    {/* Checkpoint Details & Indented Status */}
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-xs sm:text-sm font-bold text-[#f3f1ea] truncate">
-                        {pt.label}
-                      </span>
-                      <span className="text-[11px] text-[#9ba6ad] mt-0.5">
-                        Scheduled: {pt.time} · {confirmedCount}/{totalRequired} Checked In
-                      </span>
-
-                      {/* Indented Checked In Line */}
-                      {pt.confirmed?.length > 0 && (
-                        <div className="flex items-center gap-1.5 mt-2 text-[11px] text-[#9ba6ad]">
-                          <span className="font-semibold text-[#4fbe8e]">Checked In:</span>
-                          <span className="text-[#f3f1ea] truncate">{pt.confirmed.join(', ')}</span>
-                        </div>
-                      )}
-                    </div>
+                <div key={pt.id} className="relative flex gap-3.5 z-10">
+                  {/* Step Node */}
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 transition-all ${
+                    isDone
+                      ? 'bg-[#33d189] text-[#062017] border-2 border-[#33d189]'
+                      : isPartial
+                      ? 'bg-[#3a2517] text-[#ffa471] border-2 border-[#ff7a3d]'
+                      : 'bg-[#181c29] text-[#9096ab] border-2 border-[#262b3a]'
+                  }`}>
+                    {isDone ? (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>
+                    ) : (
+                      idx + 1
+                    )}
                   </div>
 
-                  {/* Fixed-Width Check-in Button */}
-                  <div className="w-[96px] flex justify-end flex-shrink-0">
-                    {isCheckedIn ? (
-                      <span className="w-full h-8 flex items-center justify-center text-xs font-bold text-[#4fbe8e] bg-[rgba(79,190,142,0.15)] rounded-lg">
-                        ✓ Verified
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleCheckIn(pt.id)}
-                        className="w-full h-8 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-lg text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center"
-                      >
-                        Check In
-                      </button>
+                  {/* Body */}
+                  <div className="flex-1 min-w-0 pt-0.5">
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm font-display text-[#f3f4f8] truncate">
+                          {pt.label}
+                        </div>
+                        <div className="text-xs text-[#5c6178] font-mono mt-0.5">
+                          {pt.time} · <span className="text-[#9096ab]">{pt.confirmed.length}/{pt.total}</span> checked in
+                        </div>
+                      </div>
+
+                      {isCheckedIn ? (
+                        <button
+                          disabled
+                          className="text-xs font-bold text-[#33d189] bg-[#181c29] border border-[#33d189] px-3.5 py-1.5 rounded-full flex-shrink-0"
+                        >
+                          Checked in
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleCheckIn(pt.id)}
+                          className="text-xs font-bold bg-[#ff7a3d] hover:bg-[#ffa471] text-[#2a1204] px-3.5 py-1.5 rounded-full transition-all flex-shrink-0 cursor-pointer active:scale-95"
+                        >
+                          Check in
+                        </button>
+                      )}
+                    </div>
+
+                    {pt.confirmed?.length > 0 && (
+                      <div className="text-xs text-[#33d189] mt-1.5 truncate">
+                        Checked in: <span className="text-[#9096ab]">{pt.confirmed.join(', ')}</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -417,7 +432,9 @@ const InfoTab = ({
             })}
           </div>
         </div>
+
       </div>
+
     </div>
   )
 }
