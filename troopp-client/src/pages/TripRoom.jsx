@@ -683,6 +683,27 @@ const TripRoom = () => {
     }
   }
 
+  // Add Checklist Item dispatcher
+  const handleAddChecklistItem = async (itemName) => {
+    try {
+      let currentList = activity?.packing_checklist || []
+      if (typeof currentList === 'string') {
+        try { currentList = JSON.parse(currentList) } catch { currentList = [] }
+      }
+      const updatedList = [...(Array.isArray(currentList) ? currentList : []), { item: itemName, checked: false, checked_by_id: null }]
+      
+      await apiRequest(`/trip-rooms/${roomId}/checklist`, {
+        method: 'POST',
+        body: JSON.stringify({ item: itemName, packing_checklist: updatedList })
+      }).catch(() => null)
+
+      setActivity((prev) => (prev ? { ...prev, packing_checklist: updatedList } : prev))
+      toast.success('Added item to checklist!')
+    } catch (err) {
+      toast.error('Failed adding item to checklist.')
+    }
+  }
+
   // Create Poll dispatcher
   const handleCreatePoll = async (newPoll) => {
     try {
@@ -963,6 +984,7 @@ const TripRoom = () => {
             checklist={activity?.packing_checklist}
             members={safeMembers}
             onToggleItem={handleToggleChecklistItem}
+            onAddItem={handleAddChecklistItem}
           />
         )}
 

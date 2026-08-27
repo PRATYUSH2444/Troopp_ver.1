@@ -41,9 +41,9 @@ const NumberTicker = ({ value, duration = 400 }) => {
   return <span>{displayValue}%</span>
 }
 
-
 /**
  * Shared voting polls dashboard for trip logistics.
+ * Follows the standard Troopp card and spacing system.
  */
 const PollsTab = ({
   polls = [],
@@ -58,6 +58,7 @@ const PollsTab = ({
   const [options, setOptions] = useState(['', ''])
 
   const handleOpenModal = () => {
+    haptics.lightTap?.()
     setQuestion('')
     setOptions(['', ''])
     setModalOpen(true)
@@ -81,7 +82,8 @@ const PollsTab = ({
     setOptions(updated)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = (e) => {
+    e.preventDefault()
     const filledOptions = options.map((o) => (typeof o === 'string' ? o.trim() : '')).filter(Boolean)
     if (!question.trim() || filledOptions.length < 2) return
 
@@ -92,17 +94,22 @@ const PollsTab = ({
     setModalOpen(false)
   }
 
+  const safePolls = Array.isArray(polls) ? polls : []
+
   return (
-    <div className="flex flex-col gap-5 text-[#f3f1ea] relative min-h-[460px]">
+    <div className="flex flex-col gap-6 text-[#f3f1ea] pb-16">
       
-      {/* Top Header & Actions */}
-      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* 1. TOP HEADER & ACTION BAR */}
+      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-base font-bold text-[#f3f1ea] font-display">Trip Room Polls</h3>
+          <h3 className="text-base sm:text-lg font-bold text-[#f3f1ea] font-display">
+            📊 Trip Room Polls
+          </h3>
           <p className="text-xs text-[#9ba6ad] mt-1">
             Decide on departure times, meal spots, and group logistics together.
           </p>
         </div>
+
         <button
           onClick={handleOpenModal}
           className="h-9 px-4 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
@@ -112,17 +119,30 @@ const PollsTab = ({
         </button>
       </div>
 
-      {/* Polls grid */}
-      <div className="pb-16">
-        {(!Array.isArray(polls) || polls.length === 0) ? (
-          <div className="text-center py-16 bg-[#151c24] border border-[#242f3d] rounded-2xl flex flex-col items-center gap-2">
-            <span className="text-3xl">📊</span>
-            <h4 className="text-sm font-bold text-[#f3f1ea]">No active polls</h4>
-            <p className="text-xs text-[#9ba6ad]">Create a poll to coordinate group votes and decisions.</p>
+      {/* 2. MAIN CONTENT CARD */}
+      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 min-h-[460px] shadow-lg flex flex-col">
+        {safePolls.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center py-16 text-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-[#1a2129] border border-white/5 flex items-center justify-center text-3xl shadow-inner">
+              📊
+            </div>
+            <h4 className="text-base font-bold text-[#f3f1ea] mt-1 font-display">
+              No active group polls
+            </h4>
+            <p className="text-xs text-[#9ba6ad] max-w-sm leading-relaxed">
+              Create a vote to decide on departure checkpoints, meal spots, or activities with all travelers.
+            </p>
+            <button
+              onClick={handleOpenModal}
+              className="mt-2 h-9 px-5 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 hover:border-[#ff6a2c]/50 text-xs font-bold text-[#f3f1ea] rounded-xl flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <span>＋</span>
+              <span>Create First Poll</span>
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-            {polls.map((poll) => {
+            {safePolls.map((poll) => {
               if (!poll) return null
 
               const rawOptions = poll.options
@@ -160,8 +180,8 @@ const PollsTab = ({
               return (
                 <div
                   key={poll.id}
-                  className={`p-4 sm:p-5 rounded-2xl border flex flex-col gap-3 shadow-lg transition-all ${
-                    poll.is_closed ? 'bg-[#121920] border-white/5 opacity-80' : 'bg-[#151c24] border-[#242f3d]'
+                  className={`p-4 sm:p-5 rounded-xl border flex flex-col gap-3.5 shadow-md transition-all ${
+                    poll.is_closed ? 'bg-[#121920] border-white/5 opacity-80' : 'bg-[#1a2129] border-white/5'
                   }`}
                 >
                   <div className="flex justify-between items-start gap-3">
@@ -182,7 +202,7 @@ const PollsTab = ({
                   </div>
 
                   {/* Options List */}
-                  <div className="flex flex-col gap-2 mt-1">
+                  <div className="flex flex-col gap-2">
                     {pollOptions.map((option, idx) => {
                       const optVotes = votes[idx] ? (Array.isArray(votes[idx]) ? votes[idx].length : (typeof votes[idx] === 'number' ? votes[idx] : 0)) : 0
                       const percentage = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0
@@ -194,7 +214,7 @@ const PollsTab = ({
                           key={idx}
                           onClick={() => {
                             if (!hasVoted && !poll.is_closed) {
-                              haptics.pollVote()
+                              haptics.pollVote?.()
                               onVotePoll(poll.id, idx)
                             }
                           }}
@@ -213,9 +233,9 @@ const PollsTab = ({
                           />
 
                           {/* Label Content */}
-                          <span className="text-xs font-semibold text-[#f3f1ea] z-10 flex items-center gap-1.5">
-                            <span>{option}</span>
-                            {didVoteThis && <span className="text-[10px] font-bold text-[#ff6a2c]">(You)</span>}
+                          <span className="text-xs font-semibold text-[#f3f1ea] z-10 flex items-center gap-1.5 truncate pr-2">
+                            <span className="truncate">{option}</span>
+                            {didVoteThis && <span className="text-[10px] font-bold text-[#ff6a2c] flex-shrink-0">(You)</span>}
                             {isMajority && (
                               <motion.span
                                 initial={{ y: -15, opacity: 0, scale: 0.5 }}
@@ -226,7 +246,7 @@ const PollsTab = ({
                                   damping: 15,
                                   delay: 0.4
                                 }}
-                                className="inline-block"
+                                className="inline-block flex-shrink-0"
                                 title="Majority leader"
                               >
                                 👑
@@ -235,7 +255,7 @@ const PollsTab = ({
                           </span>
 
                           {/* Percent Output */}
-                          <span className="text-[11px] font-bold text-[#9ba6ad] z-10 font-mono">
+                          <span className="text-[11px] font-bold text-[#9ba6ad] z-10 font-mono flex-shrink-0">
                             <NumberTicker value={percentage} /> ({optVotes})
                           </span>
                         </div>
@@ -249,137 +269,70 @@ const PollsTab = ({
         )}
       </div>
 
-      {/* Create Poll FAB */}
-      <button
-        onClick={handleOpenModal}
-        style={{
-          position: 'fixed',
-          bottom: '80px',
-          right: '24px',
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
-          color: '#1a0e08',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: '700',
-          fontSize: '24px',
-          border: 'none',
-          boxShadow: '0 8px 24px rgba(255,106,44,0.3)',
-          zIndex: 20,
-          cursor: 'pointer'
-        }}
-      >
-        ＋
-      </button>
-
-      {/* CreatePollModal overlay */}
+      {/* 3. CREATE POLL MODAL */}
       <AnimatePresence>
         {modalOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(12,16,19,0.75)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              style={{
-                width: '100%',
-                maxWidth: '380px',
-                background: '#1a2129',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '20px',
-                padding: '24px',
-                boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
-              }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-4"
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
-                <h4 style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ba6ad' }}>Create Group Poll</h4>
-                <button onClick={() => setModalOpen(false)} style={{ background: 'none', border: 'none', color: '#9ba6ad', fontWeight: '700', cursor: 'pointer' }}>✕</button>
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <h4 className="text-sm font-bold text-[#f3f1ea] font-display">
+                  Create Group Poll
+                </h4>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="text-[#9ba6ad] hover:text-white text-base cursor-pointer"
+                >
+                  ✕
+                </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
-                {/* Question */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontWeight: '700', color: '#9ba6ad' }}>Poll Question</span>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-[#9ba6ad]">Question</label>
                   <input
                     type="text"
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     placeholder="e.g. What time should we start trekking?"
-                    style={{
-                      width: '100%',
-                      height: '44px',
-                      background: '#212b33',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '100px',
-                      padding: '0 16px',
-                      color: '#f3f1ea',
-                      outline: 'none'
-                    }}
+                    autoFocus
+                    className="w-full bg-[#1a2129] border border-white/10 rounded-xl p-3 text-xs text-[#f3f1ea] outline-none focus:border-[#ff6a2c]"
                   />
                 </div>
 
-                {/* Options list */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: '700', color: '#9ba6ad' }}>Options (min 2, max 4)</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-[#9ba6ad]">Options (2 to 4)</label>
                     {options.length < 4 && (
                       <button
+                        type="button"
                         onClick={handleAddOption}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#ff6a2c',
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          cursor: 'pointer'
-                        }}
+                        className="text-[11px] font-bold text-[#ff6a2c] hover:underline cursor-pointer"
                       >
                         ＋ Add Option
                       </button>
                     )}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {options.map((option, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+
+                  <div className="flex flex-col gap-2">
+                    {options.map((opt, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
                         <input
                           type="text"
-                          value={option}
+                          value={opt}
                           onChange={(e) => handleOptionChange(idx, e.target.value)}
                           placeholder={`Option ${idx + 1}`}
-                          style={{
-                            flex: 1,
-                            height: '38px',
-                            background: '#212b33',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: '100px',
-                            padding: '0 16px',
-                            color: '#f3f1ea',
-                            fontSize: '12px',
-                            outline: 'none'
-                          }}
+                          className="flex-1 bg-[#1a2129] border border-white/10 rounded-xl px-3 py-2 text-xs text-[#f3f1ea] outline-none focus:border-[#ff6a2c]"
                         />
                         {options.length > 2 && (
                           <button
+                            type="button"
                             onClick={() => handleRemoveOption(idx)}
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '8px',
-                              background: '#212b33',
-                              border: 'none',
-                              color: '#9ba6ad',
-                              fontWeight: '700',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '12px'
-                            }}
+                            className="w-8 h-8 rounded-lg bg-[#212b33] text-[#9ba6ad] hover:text-[#ff5470] text-xs font-bold flex items-center justify-center cursor-pointer"
                           >
                             ✕
                           </button>
@@ -388,26 +341,28 @@ const PollsTab = ({
                     ))}
                   </div>
                 </div>
-              </div>
 
-              <button
-                onClick={handleSubmit}
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
-                  color: '#1a0e08',
-                  borderRadius: '100px',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(255,106,44,0.25)',
-                  marginTop: '8px'
-                }}
-              >
-                Launch Vote Poll
-              </button>
+                <div className="flex gap-2.5 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="flex-1 h-10 border border-white/10 bg-[#1a2129] rounded-xl text-[#9ba6ad] text-xs font-bold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!question.trim() || options.filter((o) => o.trim()).length < 2}
+                    className={`flex-1 h-10 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      question.trim() && options.filter((o) => o.trim()).length >= 2
+                        ? 'bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] text-[#1a0e08] shadow-md'
+                        : 'bg-white/5 text-[#6b757c] cursor-not-allowed'
+                    }`}
+                  >
+                    Launch Poll
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

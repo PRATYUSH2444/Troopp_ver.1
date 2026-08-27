@@ -307,31 +307,31 @@ const InfoTab = ({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-[#f3f1ea]">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-[#f3f1ea] pb-16">
       
       {/* LEFT COLUMN: Trip Logistics & Organizer */}
-      <div className="lg:col-span-6 flex flex-col gap-4">
+      <div className="lg:col-span-6 flex flex-col gap-5">
         
         {/* Meeting Point Interactive Route Map */}
-        <div className="w-full h-44 bg-[#1a2129] border border-[#242f3d] rounded-2xl overflow-hidden relative flex flex-col justify-end p-3.5 shadow-lg">
+        <div className="w-full h-48 sm:h-52 bg-[#1a2129] border border-[#242f3d] rounded-2xl overflow-hidden relative flex flex-col justify-end p-4 sm:p-5 shadow-lg">
           <div className="absolute inset-0 bg-[#161d24] flex items-center justify-center text-xs font-semibold text-[#6b757c]">
             🗺️ Interactive Route Meeting Point · [Lat: {activity?.meeting_point_lat || 19.07}, Lng: {activity?.meeting_point_lng || 72.87}]
           </div>
-          <div className="bg-[#0c1013]/90 backdrop-blur-md p-2.5 px-3.5 rounded-xl z-10 flex flex-col text-white max-w-[85%] border border-white/10 shadow-md">
+          <div className="bg-[#0c1013]/90 backdrop-blur-md p-3 px-4 rounded-xl z-10 flex flex-col text-white max-w-[85%] border border-white/10 shadow-md">
             <span className="text-[9px] font-bold uppercase tracking-wider text-[#ff6a2c]">Meeting Point</span>
-            <span className="text-xs font-bold truncate mt-0.5">{meetingLabel}</span>
+            <span className="text-xs sm:text-sm font-bold truncate mt-0.5">{meetingLabel}</span>
           </div>
         </div>
 
         {/* Destination Details Card */}
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 shadow-lg flex flex-col gap-2">
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 shadow-lg flex flex-col gap-2.5">
           <span className="text-[10px] font-bold text-[#ff6a2c] uppercase tracking-wider">
             Destination & Schedule
           </span>
           <h3 className="text-xl font-black text-[#f3f1ea] font-display">
             {activity?.destination || activity?.title || 'Trip Destination'}
           </h3>
-          <div className="text-xs text-[#9ba6ad] flex flex-col gap-1.5 mt-2 bg-[#1a2129] p-3.5 rounded-xl border border-white/5">
+          <div className="text-xs text-[#9ba6ad] flex flex-col gap-2 mt-2 bg-[#1a2129] p-4 rounded-xl border border-white/5">
             <span className="flex items-center gap-2">
               <span>📅</span>
               <span><strong>Scheduled:</strong> {parseActivityDate(activity?.date_time)}</span>
@@ -348,8 +348,8 @@ const InfoTab = ({
         </div>
 
         {/* Host Profile Card */}
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 shadow-lg flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3.5">
             <Avatar
               src={activity?.Creator?.Profile?.avatar_url}
               name={hostName}
@@ -367,7 +367,7 @@ const InfoTab = ({
         </div>
 
         {/* Live Location Share Toggle */}
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex items-center justify-between gap-3">
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 shadow-lg flex items-center justify-between gap-3">
           <div className="flex flex-col gap-1 max-w-[75%]">
             <span className="text-sm font-bold text-[#f3f1ea]">Live GPS Location Sharing</span>
             <span className="text-xs text-[#9ba6ad] leading-relaxed">
@@ -396,10 +396,10 @@ const InfoTab = ({
       </div>
 
       {/* RIGHT COLUMN: Confirmed Members & Waypoints */}
-      <div className="lg:col-span-6 flex flex-col gap-4">
+      <div className="lg:col-span-6 flex flex-col gap-5">
         
         {/* Confirmed Members Card */}
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 shadow-lg flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
             <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
               Confirmed Travelers ({safeMembers.length})
@@ -432,7 +432,7 @@ const InfoTab = ({
         </div>
 
         {/* Waypoints Checkpoints Card */}
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
+        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 shadow-lg flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
             <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
               Check-in Waypoints
@@ -440,12 +440,12 @@ const InfoTab = ({
             <span className="text-[11px] text-[#ff6a2c] font-bold">Live Status</span>
           </div>
           <div className="flex flex-col gap-2.5">
-            {(Array.isArray(localWaypoints) ? localWaypoints : []).map((point) => (
+            {localWaypoints.map((pt) => (
               <WaypointRow
-                key={point.id}
-                point={point}
-                onCheckIn={handleCheckIn}
+                key={pt.id}
+                point={pt}
                 user={user}
+                onCheckIn={handleCheckIn}
               />
             ))}
           </div>
