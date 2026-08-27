@@ -643,16 +643,29 @@ const ChatTab = ({
 
                         {/* Rich Media Renderers */}
                         {/* Image */}
-                        {msg.message_type === 'image' && msg.media?.url && (
-                          <div style={{ borderRadius: '10px', overflow: 'hidden', marginBottom: '6px', cursor: 'pointer' }} onClick={() => setLightboxMedia(msg.media.url)}>
-                            <img src={msg.media.url} alt="Shared" style={{ maxWidth: '100%', maxHeight: '240px', objectFit: 'cover', borderRadius: '10px' }} />
+                        {((msg.message_type === 'image' && (msg.media?.url || msg.media_url || msg.image_url)) || (msg.media?.url && (msg.media.url.match(/\.(jpeg|jpg|gif|png|webp|avif)($|\?)/i) || msg.media.type?.startsWith('image/')))) && (
+                          <div
+                            className="rounded-xl overflow-hidden mb-2 cursor-pointer relative group bg-black/20 border border-white/10"
+                            onClick={() => setLightboxMedia(msg.media?.url || msg.media_url || msg.image_url)}
+                          >
+                            <img
+                              src={msg.media?.url || msg.media_url || msg.image_url}
+                              alt="Shared in trip room"
+                              loading="lazy"
+                              className="w-full max-h-[260px] sm:max-h-[300px] object-cover rounded-xl transition-transform duration-200 group-hover:scale-[1.02]"
+                            />
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                              <span className="bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-white flex items-center gap-1.5 shadow-lg border border-white/10">
+                                🔍 Tap to View
+                              </span>
+                            </div>
                           </div>
                         )}
 
                         {/* Video */}
                         {msg.message_type === 'video' && msg.media?.url && (
-                          <div style={{ borderRadius: '10px', overflow: 'hidden', marginBottom: '6px' }}>
-                            <video src={msg.media.url} controls style={{ maxWidth: '100%', maxHeight: '240px', borderRadius: '10px' }} />
+                          <div className="rounded-xl overflow-hidden mb-2 border border-white/10 bg-black/40">
+                            <video src={msg.media.url} controls className="w-full max-h-[260px] sm:max-h-[300px] rounded-xl" />
                           </div>
                         )}
 
@@ -983,11 +996,46 @@ const ChatTab = ({
       )}
 
       {/* Lightbox Media Viewer Modal */}
-      {lightboxMedia && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setLightboxMedia(null)}>
-          <img src={lightboxMedia} alt="Enlarged view" style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '12px' }} />
-        </div>
-      )}
+      <AnimatePresence>
+        {lightboxMedia && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 backdrop-blur-md z-[150] flex flex-col items-center justify-center p-4 sm:p-6"
+            onClick={() => setLightboxMedia(null)}
+          >
+            {/* Top Toolbar */}
+            <div className="absolute top-4 right-4 flex items-center gap-3 z-10" onClick={(e) => e.stopPropagation()}>
+              <a
+                href={lightboxMedia}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+              >
+                <span>↗</span> Open Full
+              </a>
+              <button
+                onClick={() => setLightboxMedia(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-sm transition-all cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <motion.img
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              src={lightboxMedia}
+              alt="Enlarged view"
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-[92vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Starred Messages View Modal */}
       {starredOpen && (

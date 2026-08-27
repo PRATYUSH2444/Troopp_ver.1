@@ -505,19 +505,23 @@ const ExpensesTab = ({
                           : 'bg-[#1a2129] border-white/5'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <Avatar size="sm" src={tx.fromUser?.avatarUrl} name={tx.fromUser?.name} />
-                        <span className="text-xs font-bold text-[#f3f1ea]">
-                          {tx.fromUser?.name || 'Traveler'}
-                        </span>
-                        <span className="text-xs text-[#ff6a2c]">➔</span>
-                        <Avatar size="sm" src={tx.toUser?.avatarUrl} name={tx.toUser?.name} />
-                        <span className="text-xs font-bold text-[#f3f1ea]">
-                          {tx.toUser?.name || 'Traveler'}
-                        </span>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 max-w-[130px] sm:max-w-[155px]">
+                          <Avatar size="xs" src={tx.fromUser?.avatarUrl} name={tx.fromUser?.name} />
+                          <span className="text-xs font-bold text-[#f3f1ea] truncate" title={tx.fromUser?.name}>
+                            {tx.fromUser?.name || 'Traveler'}
+                          </span>
+                        </div>
+                        <span className="text-xs text-[#ff6a2c] flex-shrink-0 font-black">➔</span>
+                        <div className="flex items-center gap-2 min-w-0 max-w-[130px] sm:max-w-[155px]">
+                          <Avatar size="xs" src={tx.toUser?.avatarUrl} name={tx.toUser?.name} />
+                          <span className="text-xs font-bold text-[#f3f1ea] truncate" title={tx.toUser?.name}>
+                            {tx.toUser?.name || 'Traveler'}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto flex-shrink-0">
                         <span className="text-sm font-black text-[#f3f1ea] font-mono">
                           ₹{formatINR(tx.amount)}
                         </span>
