@@ -1,103 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { haptics } from '../../utils/haptics.js'
+import toast from 'react-hot-toast'
 import confetti from 'canvas-confetti'
+import { haptics } from '../../utils/haptics.js'
+import Avatar from '../common/Avatar.jsx'
+import { apiRequest } from '../../utils/api.js'
 
-// Settlement Row Component with checkmark draw, bg flash, and strikethrough animations
-const ExpenseSplitRow = ({ split, isMySplit, onSettleSplit, currentUserId }) => {
-  if (!split) return null
-  const [justSettled, setJustSettled] = useState(false)
-  const prevSettledRef = useRef(split.is_settled)
-
-  useEffect(() => {
-    if (split.is_settled && !prevSettledRef.current) {
-      setJustSettled(true)
-      haptics.expenseSettle()
-      const timer = setTimeout(() => setJustSettled(false), 2000)
-      return () => clearTimeout(timer)
+// Dynamically load Razorpay SDK
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true)
+      return
     }
-    prevSettledRef.current = split.is_settled
-  }, [split.is_settled])
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: '11px',
-        padding: '6px 8px',
-        borderRadius: '8px',
-        transition: 'all 1000ms ease',
-        background: justSettled ? 'rgba(79,190,142,0.14)' : 'transparent'
-      }}
-    >
-      <span style={{ color: '#9ba6ad' }}>
-        {split.User?.Profile?.name || 'Member'}
-      </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ position: 'relative', fontWeight: '700', color: split.is_settled ? '#6b757c' : '#f3f1ea', fontFamily: 'var(--font-mono)' }}>
-          ₹{parseFloat(split.share_amount)}
-          {split.is_settled && (
-            <motion.span
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: '50%',
-                height: '1.5px',
-                background: '#4fbe8e',
-                originX: 0
-              }}
-            />
-          )}
-        </span>
-        {split.is_settled ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#4fbe8e', fontWeight: '700' }}>
-            <svg
-              style={{ width: '14px', height: '14px', stroke: '#4fbe8e', strokeWidth: '3', fill: 'none' }}
-              viewBox="0 0 24 24"
-            >
-              <motion.path
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            <span>Settled</span>
-          </div>
-        ) : isMySplit ? (
-          <button
-            onClick={() => onSettleSplit(split.id)}
-            style={{
-              padding: '3px 8px',
-              background: 'rgba(255,106,44,0.14)',
-              color: '#ff6a2c',
-              border: 'none',
-              borderRadius: '100px',
-              fontWeight: '700',
-              fontSize: '10px',
-              cursor: 'pointer',
-              transition: 'background-color 150ms'
-            }}
-          >
-            Pay & Settle
-          </button>
-        ) : (
-          <span style={{ color: '#ffc94d', fontWeight: '700' }}>⏳ Pending</span>
-        )}
-      </div>
-    </div>
-  )
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
 }
 
-
 /**
- * Shared ledger interface for expense splits and settling.
+ * Troopp Expense & Settlement Management Engine
+ * Features:
+ * - Single-source-of-truth computed net ledger
+ * - Greedy debt minimization (min-cash-flow optimizer)
+ * - Real UPI / Card payment via Razorpay Checkout
+ * - Multi-split modes: Equal, Custom, Percentage, Multi-Payer
+ * - Real-time Socket.IO synchronization
  */
 const ExpensesTab = ({
   expenses = [],
@@ -106,436 +37,744 @@ const ExpensesTab = ({
   isHost = false,
   onAddExpense,
   onDeleteExpense,
-  onSettleSplit
+  activityId
 }) => {
+  // Navigation sub-tab: 'ledger' (Summary & Settle Up) | 'bills' (Expense History)
+  const [subTab, setSubTab] = useState('ledger')
+
+  // Ledger state from server
+  const [ledger, setLedger] = useState(null)
+  const [loadingLedger, setLoadingLedger] = useState(true)
+  const [payingSettlementId, setPayingSettlementId] = useState(null)
+
+  // Add Expense Modal state
   const [modalOpen, setModalOpen] = useState(false)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [splitType, setSplitType] = useState('equal') // 'equal' | 'custom'
-  const [customShares, setCustomShares] = useState({}) // { userId: amount }
-  
-  const [expensesLocked, setExpensesLocked] = useState(false)
+  const [splitType, setSplitType] = useState('equal') // 'equal' | 'custom' | 'percentage' | 'multi_payer_equal'
+  const [customShares, setCustomShares] = useState({})
+  const [percentages, setPercentages] = useState({})
+  const [payers, setPayers] = useState({})
+  const [submittingExpense, setSubmittingExpense] = useState(false)
 
-  const safeExpenses = Array.isArray(expenses)
-    ? expenses
-    : typeof expenses === 'string'
-    ? (() => { try { return JSON.parse(expenses) } catch { return [] } })()
-    : []
+  // Celebration trigger
+  const [celebrated, setCelebrated] = useState(false)
 
   const safeMembers = Array.isArray(members) ? members : []
+  const safeExpenses = Array.isArray(expenses) ? expenses : []
 
-  // Summary statistics
-  const totalLogged = safeExpenses.reduce((acc, cur) => acc + parseFloat(cur?.amount || 0), 0)
-
-  let totalSplits = 0
-  let settledSplits = 0
-  safeExpenses.forEach((e) => {
-    if (!e) return
-    const splits = Array.isArray(e.Splits) ? e.Splits : []
-    splits.forEach((s) => {
-      totalSplits += 1
-      if (s?.is_settled) {
-        settledSplits += 1
+  // Fetch computed ledger from single-source-of-truth endpoint
+  const fetchLedger = async () => {
+    if (!activityId) return
+    try {
+      const res = await apiRequest(`/trip-rooms/${activityId}/ledger`)
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && json.data) {
+          setLedger(json.data)
+        }
       }
-    })
-  })
-  const settlementPercentage = totalSplits > 0 ? Math.round((settledSplits / totalSplits) * 100) : 0
-
-  const [allSettledCelebrated, setAllSettledCelebrated] = useState(false)
+    } catch (err) {
+      console.warn('Failed to load trip ledger:', err)
+    } finally {
+      setLoadingLedger(false)
+    }
+  }
 
   useEffect(() => {
-    if (settlementPercentage === 100 && totalSplits > 0 && !allSettledCelebrated) {
-      setAllSettledCelebrated(true)
+    fetchLedger()
+  }, [activityId, expenses.length])
+
+  // Listen for real-time WebSocket updates
+  useEffect(() => {
+    const handleSettlementUpdate = () => {
+      fetchLedger()
+    }
+    window.addEventListener('admin:live_update', handleSettlementUpdate)
+    return () => window.removeEventListener('admin:live_update', handleSettlementUpdate)
+  }, [])
+
+  // Calculate settlement progress
+  const memberBalances = ledger?.memberBalances || []
+  const simplifiedTransactions = ledger?.simplifiedTransactions || []
+  const totalTripSpend = ledger?.totalTripSpend ?? safeExpenses.reduce((acc, cur) => acc + parseFloat(cur?.amount || 0), 0)
+
+  const settledMembersCount = memberBalances.filter((m) => m.status === 'settled').length
+  const totalMembersCount = memberBalances.length || safeMembers.length || 1
+  const settlementPercentage = totalMembersCount > 0 ? Math.round((settledMembersCount / totalMembersCount) * 100) : 0
+
+  // Current user's net position
+  const myBalance = memberBalances.find((m) => m.userId === currentUserId)
+  const myNet = myBalance?.net ?? 0
+
+  // 100% Settled celebration
+  useEffect(() => {
+    if (settlementPercentage === 100 && memberBalances.length > 1 && !celebrated) {
+      setCelebrated(true)
       confetti({
-        particleCount: 60,
-        spread: 50,
+        particleCount: 70,
+        spread: 60,
         origin: { y: 0.5 }
       })
-      import('../../utils/sounds.js').then((m) => m.playSuccess())
+      import('../../utils/sounds.js').then((m) => m.playSuccess?.()).catch(() => {})
     } else if (settlementPercentage < 100) {
-      setAllSettledCelebrated(false)
+      setCelebrated(false)
     }
-  }, [settlementPercentage, totalSplits, allSettledCelebrated])
-  
-  // Balance calculation
-  let myOutstanding = 0
-  safeExpenses.forEach((exp) => {
-    if (!exp) return
-    const splits = Array.isArray(exp.Splits) ? exp.Splits : []
-    splits.forEach((split) => {
-      if (split?.user_id === currentUserId && !split?.is_settled) {
-        myOutstanding += parseFloat(split?.share_amount || 0)
-      }
-    })
-  })
+  }, [settlementPercentage, memberBalances.length, celebrated])
 
+  // Open Add Expense Modal
   const handleOpenModal = () => {
-    if (expensesLocked) return
     setDescription('')
     setAmount('')
     setSplitType('equal')
-    
+
     const initialShares = {}
+    const initialPcts = {}
+    const initialPayers = {}
+
     safeMembers.forEach((m) => {
-      if (m?.userId || m?.id) initialShares[m.userId || m.id] = ''
+      const uId = m.userId || m.id
+      if (uId) {
+        initialShares[uId] = ''
+        initialPcts[uId] = ''
+        initialPayers[uId] = uId === currentUserId ? '' : '0'
+      }
     })
+
     setCustomShares(initialShares)
+    setPercentages(initialPcts)
+    setPayers(initialPayers)
     setModalOpen(true)
   }
 
-  const handleCustomShareChange = (userId, value) => {
-    setCustomShares((prev) => ({
-      ...prev,
-      [userId]: value
-    }))
-  }
-
-  const handleSubmit = () => {
+  // Submit Expense
+  const handleSubmitExpense = async () => {
     const totalAmt = parseFloat(amount)
-    if (!description.trim() || isNaN(totalAmt) || totalAmt <= 0) return
-
-    let finalCustomList = []
-    if (splitType === 'custom') {
-      let sumCustom = 0
-      finalCustomList = (Array.isArray(members) ? members : []).map((m) => {
-        if (!m) return { userId: null, amount: 0 }
-        const amt = parseFloat(customShares[m.userId] || 0)
-        sumCustom += amt
-        return {
-          userId: m.userId,
-          amount: amt
-        }
-      })
-
-      // Validation check
-      if (Math.abs(sumCustom - totalAmt) > 1) {
-        alert(`Validation Error: The custom sum is ₹${sumCustom}, but total amount is ₹${totalAmt}. Details must match.`)
-        return
-      }
+    if (!description.trim() || isNaN(totalAmt) || totalAmt <= 0) {
+      toast.error('Please provide a valid description and amount.')
+      return
     }
 
-    onAddExpense({
-      amount: totalAmt,
-      description: description.trim(),
-      splitType,
-      customSplits: finalCustomList
-    })
+    setSubmittingExpense(true)
+    try {
+      const payload = {
+        description: description.trim(),
+        amount: totalAmt,
+        splitType
+      }
 
-    setModalOpen(false)
+      if (splitType === 'custom') {
+        let customSum = 0
+        payload.customSplits = safeMembers.map((m) => {
+          const uId = m.userId || m.id
+          const val = parseFloat(customShares[uId] || 0)
+          customSum += val
+          return { userId: uId, amount: val }
+        })
+
+        if (Math.abs(customSum - totalAmt) > 0.1) {
+          toast.error(`Custom splits sum to ₹${customSum.toFixed(2)}, expected ₹${totalAmt.toFixed(2)}.`)
+          setSubmittingExpense(false)
+          return
+        }
+      } else if (splitType === 'percentage') {
+        let pctSum = 0
+        payload.percentages = safeMembers.map((m) => {
+          const uId = m.userId || m.id
+          const val = parseFloat(percentages[uId] || 0)
+          pctSum += val
+          return { userId: uId, percentage: val }
+        })
+
+        if (Math.abs(pctSum - 100) > 0.1) {
+          toast.error(`Percentages sum to ${pctSum}%, expected 100%.`)
+          setSubmittingExpense(false)
+          return
+        }
+      } else if (splitType === 'multi_payer_equal') {
+        let payerSum = 0
+        payload.payers = safeMembers.map((m) => {
+          const uId = m.userId || m.id
+          const val = parseFloat(payers[uId] || 0)
+          payerSum += val
+          return { userId: uId, amount: val }
+        })
+
+        if (Math.abs(payerSum - totalAmt) > 0.1) {
+          toast.error(`Payers contribution sum to ₹${payerSum.toFixed(2)}, expected ₹${totalAmt.toFixed(2)}.`)
+          setSubmittingExpense(false)
+          return
+        }
+      }
+
+      await onAddExpense(payload)
+      setModalOpen(false)
+      fetchLedger()
+    } catch (err) {
+      toast.error(err.message || 'Failed to log expense.')
+    } finally {
+      setSubmittingExpense(false)
+    }
+  }
+
+  // Pay Settlement via Razorpay / Sandbox
+  const handlePaySettlement = async (transaction) => {
+    const { toUserId, toUser, amount: payAmount } = transaction
+    const idempotencyKey = `set_${currentUserId}_${toUserId}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+
+    setPayingSettlementId(toUserId)
+    haptics.impact?.()
+
+    try {
+      const res = await apiRequest(`/trip-rooms/${activityId}/settlements/initiate`, {
+        method: 'POST',
+        body: JSON.stringify({
+          payeeId: toUserId,
+          amount: payAmount,
+          idempotencyKey,
+          paymentMethod: 'upi'
+        })
+      })
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        throw new Error(errJson.message || 'Failed to initiate payment.')
+      }
+
+      const json = await res.json()
+      const { settlement, orderId, keyId } = json.data
+
+      // Check if Razorpay SDK is available
+      const sdkLoaded = await loadRazorpayScript()
+
+      if (sdkLoaded && window.Razorpay && keyId && !keyId.includes('mock')) {
+        const options = {
+          key: keyId,
+          amount: Math.round(payAmount * 100),
+          currency: 'INR',
+          name: 'Troopp Trip Settlement',
+          description: `Settling ₹${payAmount} to ${toUser?.name || 'Explorer'}`,
+          order_id: orderId,
+          handler: async function (response) {
+            toast.success(`Payment captured! ID: ${response.razorpay_payment_id}`)
+            fetchLedger()
+          },
+          prefill: {
+            name: toUser?.name || 'Traveler'
+          },
+          theme: {
+            color: '#ff6a2c'
+          }
+        }
+
+        const rzp = new window.Razorpay(options)
+        rzp.open()
+      } else {
+        // Sandbox / Test Mode fallback
+        const mockRes = await apiRequest(`/trip-rooms/${activityId}/settlements/${settlement.id}/mock-settle`, {
+          method: 'POST'
+        })
+
+        if (mockRes.ok) {
+          haptics.expenseSettle?.()
+          toast.success(`Sandbox payment of ₹${payAmount} to ${toUser?.name || 'Explorer'} confirmed! 🎉`)
+          fetchLedger()
+        } else {
+          throw new Error('Sandbox settlement failed.')
+        }
+      }
+    } catch (err) {
+      toast.error(err.message || 'Payment initiation failed.')
+    } finally {
+      setPayingSettlementId(null)
+    }
   }
 
   // Export WhatsApp Summary Text
   const handleExportSummary = () => {
-    let summaryText = `*💸 Troopp Trip Expense Summary - ${new Date().toLocaleDateString()}*\n\n`
-    summaryText += `Total Logged: ₹${totalLogged.toLocaleString()}\n`
+    let summaryText = `*💸 Troopp Trip Expense Summary - ${new Date().toLocaleDateString()}*\n`
+    summaryText += `Total Spent: ₹${totalTripSpend.toLocaleString()}\n`
     summaryText += `--------------------------------------\n`
-    
-    ;(Array.isArray(expenses) ? expenses : []).forEach((e) => {
-      if (!e) return
-      summaryText += `• *${e.description || 'Unnamed'}*: ₹${parseFloat(e.amount || 0).toLocaleString()}\n`
+    summaryText += `*Member Balances:*\n`
+    memberBalances.forEach((m) => {
+      const statusText = m.net > 0 ? `Gets back ₹${m.net}` : m.net < 0 ? `Owes ₹${Math.abs(m.net)}` : `Settled (₹0)`
+      summaryText += `• *${m.user?.name || 'Member'}*: Paid ₹${m.paid} | Share ₹${m.share} | ${statusText}\n`
     })
+    summaryText += `\n*Simplified Settlement Plan:*\n`
+    if (simplifiedTransactions.length === 0) {
+      summaryText += `✨ All debts are settled!\n`
+    } else {
+      simplifiedTransactions.forEach((t) => {
+        summaryText += `👉 ${t.fromUser?.name || 'Member'} pays ₹${t.amount} to ${t.toUser?.name || 'Member'}\n`
+      })
+    }
 
     navigator.clipboard.writeText(summaryText)
-    alert('Expense summary text copied to clipboard! Ready to share on WhatsApp.')
+    toast.success('Expense summary copied to clipboard! Ready to paste into WhatsApp.')
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: '#f3f1ea', position: 'relative', minHeight: '460px' }}>
+    <div className="flex flex-col gap-5 text-[#f3f1ea] relative min-h-[480px]">
       
-      {/* Top status dashboard cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-        <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Your Debt</span>
-          <h4 style={{ fontSize: '20px', fontWeight: '800', color: '#ff5470', marginTop: '4px', fontFamily: 'var(--font-display)' }}>₹{myOutstanding.toLocaleString()}</h4>
-          <span style={{ fontSize: '9px', color: '#6b757c', marginTop: '4px' }}>Outstanding Splits</span>
+      {/* 1. TOP STATS DASHBOARD */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        
+        {/* Net Position Banner */}
+        <div className="bg-[#151c24] border border-[#242f3d] p-4 sm:p-5 rounded-2xl flex flex-col justify-between shadow-lg">
+          <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider">
+            Your Net Position
+          </span>
+          <div className="flex items-baseline gap-2 mt-1">
+            <h4
+              className={`text-2xl font-black font-display ${
+                myNet > 0.5 ? 'text-[#4fbe8e]' : myNet < -0.5 ? 'text-[#ff5470]' : 'text-[#f3f1ea]'
+              }`}
+            >
+              {myNet > 0.5 ? `+₹${myNet.toLocaleString()}` : myNet < -0.5 ? `-₹${Math.abs(myNet).toLocaleString()}` : '₹0'}
+            </h4>
+            <span
+              className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                myNet > 0.5
+                  ? 'bg-[rgba(79,190,142,0.15)] text-[#4fbe8e]'
+                  : myNet < -0.5
+                  ? 'bg-[rgba(255,84,112,0.15)] text-[#ff5470]'
+                  : 'bg-white/10 text-[#9ba6ad]'
+              }`}
+            >
+              {myNet > 0.5 ? 'You get back' : myNet < -0.5 ? 'You owe' : 'All Settled'}
+            </span>
+          </div>
+          <span className="text-[10px] text-[#6b757c] mt-2">
+            Reconciled across all bills & payments
+          </span>
         </div>
-        <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Ledger</span>
-          <h4 style={{ fontSize: '20px', fontWeight: '800', color: '#f3f1ea', marginTop: '4px', fontFamily: 'var(--font-display)' }}>₹{totalLogged.toLocaleString()}</h4>
-          <span style={{ fontSize: '9px', color: '#6b757c', marginTop: '4px' }}>For all members</span>
+
+        {/* Total Trip Pool */}
+        <div className="bg-[#151c24] border border-[#242f3d] p-4 sm:p-5 rounded-2xl flex flex-col justify-between shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider">
+              Total Trip Pool
+            </span>
+            <span className="text-xs font-bold text-[#ff6a2c] font-mono">
+              {safeExpenses.length} {safeExpenses.length === 1 ? 'bill' : 'bills'}
+            </span>
+          </div>
+          <h4 className="text-2xl font-black text-[#f3f1ea] font-display mt-1">
+            ₹{totalTripSpend.toLocaleString()}
+          </h4>
+          <span className="text-[10px] text-[#6b757c] mt-2">
+            Shared expenditure for {totalMembersCount} members
+          </span>
         </div>
       </div>
 
-      {/* Settlement Progress Bar */}
-      <div style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', fontWeight: '700', color: '#9ba6ad' }}>
-          <span>Settlement Progress</span>
-          <span style={{ color: settlementPercentage === 100 ? '#4fbe8e' : '#ff6a2c', fontWeight: '800' }}>
-            {settlementPercentage === 100 ? 'All settled! 🎉' : `${settlementPercentage}% Settled`}
+      {/* 2. SETTLEMENT PROGRESS BAR */}
+      <div className="bg-[#151c24] border border-[#242f3d] p-4 rounded-2xl flex flex-col gap-2 shadow-lg">
+        <div className="flex justify-between items-center text-xs font-bold text-[#9ba6ad]">
+          <span>Settlement Completion</span>
+          <span className={settlementPercentage === 100 ? 'text-[#4fbe8e] font-black' : 'text-[#ff6a2c] font-black'}>
+            {settlementPercentage === 100 ? 'All Settled! 🎉' : `${settlementPercentage}% Settled (${settledMembersCount}/${totalMembersCount})`}
           </span>
         </div>
-        <div style={{ width: '100%', height: '8px', background: '#212b33', borderRadius: '100px', overflow: 'hidden', position: 'relative' }}>
+        <div className="w-full h-2.5 bg-[#212b33] rounded-full overflow-hidden relative">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${settlementPercentage}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            style={{
-              height: '100%',
-              borderRadius: '100px',
-              background: settlementPercentage === 100 ? '#4fbe8e' : '#ff6a2c',
-              transition: 'background-color 300ms'
-            }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className={`h-full rounded-full transition-all ${
+              settlementPercentage === 100 ? 'bg-[#4fbe8e]' : 'bg-[#ff6a2c]'
+            }`}
           />
         </div>
       </div>
 
-      {/* Control row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', padding: '10px 16px', borderRadius: '12px' }}>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase' }}>Ledger Lock</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {isHost && (
-            <>
-              <button
-                onClick={handleExportSummary}
-                style={{
-                  height: '32px',
-                  padding: '0 12px',
-                  border: '1px solid rgba(255,255,255,0.14)',
-                  background: '#212b33',
-                  borderRadius: '8px',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  color: '#9ba6ad',
-                  cursor: 'pointer'
-                }}
-              >
-                📤 Export Text
-              </button>
-              <button
-                onClick={() => setExpensesLocked(!expensesLocked)}
-                style={{
-                  height: '32px',
-                  padding: '0 12px',
-                  borderRadius: '8px',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  border: expensesLocked ? '1px solid #ff5470' : '1px solid rgba(255,255,255,0.14)',
-                  background: expensesLocked ? 'rgba(255,84,112,0.14)' : '#212b33',
-                  color: expensesLocked ? '#ff5470' : '#9ba6ad',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease'
-                }}
-              >
-                {expensesLocked ? '🔓 Unlock Ledger' : '🔒 Lock Ledger'}
-              </button>
-            </>
-          )}
+      {/* 3. SUB-TAB SWITCHER & ACTION BAR */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#151c24] border border-[#242f3d] p-2 rounded-2xl">
+        <div className="flex items-center gap-1.5 p-1 bg-[#1a2129] rounded-xl">
+          <button
+            onClick={() => setSubTab('ledger')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              subTab === 'ledger'
+                ? 'bg-[#ff6a2c] text-[#1a0e08] shadow-md'
+                : 'text-[#9ba6ad] hover:text-[#f3f1ea]'
+            }`}
+          >
+            📊 Settle Up & Ledger
+          </button>
+          <button
+            onClick={() => setSubTab('bills')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              subTab === 'bills'
+                ? 'bg-[#ff6a2c] text-[#1a0e08] shadow-md'
+                : 'text-[#9ba6ad] hover:text-[#f3f1ea]'
+            }`}
+          >
+            🧾 All Bills ({safeExpenses.length})
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 px-1">
+          <button
+            onClick={handleExportSummary}
+            className="h-9 px-3.5 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 rounded-xl text-xs font-bold text-[#9ba6ad] hover:text-[#f3f1ea] flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Export WhatsApp Summary"
+          >
+            <span>📤</span>
+            <span className="hidden sm:inline">WhatsApp Export</span>
+          </button>
+          <button
+            onClick={handleOpenModal}
+            className="h-9 px-4 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer"
+          >
+            <span>＋</span>
+            <span>Add Bill</span>
+          </button>
         </div>
       </div>
 
-      {/* Expenses list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '64px' }}>
-        {safeExpenses.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 20px', background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '32px' }}>💸</span>
-            <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>Ledger is empty</h4>
-            <p style={{ fontSize: '11px', color: '#9ba6ad' }}>Tap the orange button to log the first expense.</p>
-          </div>
-        ) : (
-          safeExpenses.map((exp) => (
-            <div key={exp?.id} style={{ background: '#1a2129', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#f3f1ea' }}>{exp?.description}</span>
-                  <span style={{ fontSize: '11px', color: '#9ba6ad', marginTop: '2px' }}>Paid by {exp?.Payer?.Profile?.name || 'Explorer'}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '15px', fontWeight: '700', color: '#ff6a2c', fontFamily: 'var(--font-mono)' }}>₹{parseFloat(exp?.amount || 0).toLocaleString()}</span>
-                  {isHost && (
-                    <button
-                      onClick={() => onDeleteExpense(exp.id)}
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '6px',
-                        background: 'none',
-                        border: 'none',
-                        color: '#ff5470',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        fontSize: '14px'
-                      }}
-                      title="Delete expense"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
+      {/* 4. MAIN CONTENT CONTAINER */}
+      {subTab === 'ledger' ? (
+        <div className="flex flex-col gap-5 pb-20">
+          
+          {/* SECTION A: OPTIMIZED SETTLE UP (Who Pays Whom) */}
+          <div className="bg-[#151c24] border border-[#242f3d] p-4 sm:p-5 rounded-2xl flex flex-col gap-3 shadow-lg">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div>
+                <h3 className="text-sm font-bold font-display text-[#f3f1ea]">
+                  ⚡ Smart Settle Up Plan
+                </h3>
+                <p className="text-[11px] text-[#9ba6ad] mt-0.5">
+                  Minimized direct payments (no complex loops)
+                </p>
               </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#ff6a2c] bg-[rgba(255,106,44,0.12)] px-2.5 py-1 rounded-full">
+                {simplifiedTransactions.length} {simplifiedTransactions.length === 1 ? 'Payment' : 'Payments'}
+              </span>
+            </div>
 
-              {/* Splits rows */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {(Array.isArray(exp?.Splits) ? exp.Splits : []).map((split) => (
-                  <ExpenseSplitRow
-                    key={split?.id}
-                    split={split}
-                    isMySplit={split?.user_id === currentUserId}
-                    onSettleSplit={onSettleSplit}
-                    currentUserId={currentUserId}
-                  />
-                ))}
+            {simplifiedTransactions.length === 0 ? (
+              <div className="text-center py-8 flex flex-col items-center gap-2">
+                <span className="text-3xl">🎉</span>
+                <h4 className="text-sm font-bold text-[#4fbe8e]">All debts settled!</h4>
+                <p className="text-xs text-[#9ba6ad]">No pending transfers required across the group.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {simplifiedTransactions.map((tx, idx) => {
+                  const isMyDebt = tx.fromUserId === currentUserId
+                  const isOwedToMe = tx.toUserId === currentUserId
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-3.5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all ${
+                        isMyDebt
+                          ? 'bg-[rgba(255,84,112,0.06)] border-[rgba(255,84,112,0.3)]'
+                          : isOwedToMe
+                          ? 'bg-[rgba(79,190,142,0.06)] border-[rgba(79,190,142,0.3)]'
+                          : 'bg-[#1a2129] border-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar size="sm" src={tx.fromUser?.avatarUrl} name={tx.fromUser?.name} />
+                        <span className="text-xs font-bold text-[#f3f1ea]">
+                          {tx.fromUser?.name || 'Traveler'}
+                        </span>
+                        <span className="text-xs text-[#ff6a2c]">➔</span>
+                        <Avatar size="sm" src={tx.toUser?.avatarUrl} name={tx.toUser?.name} />
+                        <span className="text-xs font-bold text-[#f3f1ea]">
+                          {tx.toUser?.name || 'Traveler'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                        <span className="text-sm font-black text-[#f3f1ea] font-mono">
+                          ₹{tx.amount.toLocaleString()}
+                        </span>
+
+                        {isMyDebt ? (
+                          <button
+                            disabled={payingSettlementId === tx.toUserId}
+                            onClick={() => handlePaySettlement(tx)}
+                            className="h-8 px-4 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                          >
+                            {payingSettlementId === tx.toUserId ? (
+                              <span>Processing...</span>
+                            ) : (
+                              <>
+                                <span>⚡ Pay UPI</span>
+                              </>
+                            )}
+                          </button>
+                        ) : isOwedToMe ? (
+                          <span className="text-xs font-bold text-[#4fbe8e] bg-[rgba(79,190,142,0.15)] px-2.5 py-1 rounded-md">
+                            Pending receipt
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold text-[#9ba6ad]">
+                            Group transfer
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* SECTION B: MEMBER-WISE NET LEDGER GRID */}
+          <div className="bg-[#151c24] border border-[#242f3d] p-4 sm:p-5 rounded-2xl flex flex-col gap-3 shadow-lg">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div>
+                <h3 className="text-sm font-bold font-display text-[#f3f1ea]">
+                  👥 Member Balance Sheet
+                </h3>
+                <p className="text-[11px] text-[#9ba6ad] mt-0.5">
+                  Breakdown of total paid, consumption share, and net balance
+                </p>
               </div>
             </div>
-          ))
-        )}
-      </div>
 
-      {/* Add Expense FAB */}
-      {!expensesLocked && (
-        <button
-          onClick={handleOpenModal}
-          style={{
-            position: 'fixed',
-            bottom: '80px',
-            right: '24px',
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
-            color: '#1a0e08',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: '700',
-            fontSize: '24px',
-            border: 'none',
-            boxShadow: '0 8px 24px rgba(255,106,44,0.3)',
-            zIndex: 20,
-            cursor: 'pointer'
-          }}
-        >
-          ＋
-        </button>
+            <div className="flex flex-col gap-2">
+              {memberBalances.map((m) => (
+                <div
+                  key={m.userId}
+                  className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar size="sm" src={m.user?.avatarUrl} name={m.user?.name} />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-[#f3f1ea] truncate">
+                        {m.user?.name || 'Member'} {m.userId === currentUserId && '(You)'}
+                      </span>
+                      <span className="text-[11px] text-[#9ba6ad] mt-0.5">
+                        Paid: ₹{m.paid.toLocaleString()} · Share: ₹{m.share.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        m.status === 'gets_back'
+                          ? 'bg-[rgba(79,190,142,0.15)] text-[#4fbe8e]'
+                          : m.status === 'owes'
+                          ? 'bg-[rgba(255,84,112,0.15)] text-[#ff5470]'
+                          : 'bg-white/5 text-[#9ba6ad]'
+                      }`}
+                    >
+                      {m.status === 'gets_back'
+                        ? `+₹${m.net.toLocaleString()}`
+                        : m.status === 'owes'
+                        ? `-₹${Math.abs(m.net).toLocaleString()}`
+                        : 'Settled'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* BILLS LIST VIEW */
+        <div className="flex flex-col gap-3 pb-20">
+          {safeExpenses.length === 0 ? (
+            <div className="text-center py-16 bg-[#151c24] border border-[#242f3d] rounded-2xl flex flex-col items-center gap-2">
+              <span className="text-3xl">💸</span>
+              <h4 className="text-sm font-bold text-[#f3f1ea]">No bills logged yet</h4>
+              <p className="text-xs text-[#9ba6ad]">Tap "+ Add Bill" to record an expense for this trip.</p>
+            </div>
+          ) : (
+            safeExpenses.map((exp) => (
+              <div
+                key={exp?.id}
+                className="bg-[#151c24] border border-[#242f3d] p-4 rounded-2xl flex flex-col gap-3 shadow-md"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-[#f3f1ea]">{exp?.description}</span>
+                    <span className="text-xs text-[#9ba6ad] mt-0.5">
+                      Paid by <span className="font-semibold text-white">{exp?.Payer?.Profile?.name || 'Explorer'}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-base font-black text-[#ff6a2c] font-mono">
+                      ₹{parseFloat(exp?.amount || 0).toLocaleString()}
+                    </span>
+                    {(isHost || exp?.payer_id === currentUserId) && (
+                      <button
+                        onClick={() => onDeleteExpense(exp.id)}
+                        className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-[#ff5470] text-xs font-bold flex items-center justify-center cursor-pointer transition-colors"
+                        title="Delete bill"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Split details */}
+                <div className="border-t border-white/5 pt-2.5 flex flex-col gap-1.5 text-xs text-[#9ba6ad]">
+                  {(Array.isArray(exp?.Splits) ? exp.Splits : []).map((split) => (
+                    <div key={split?.id} className="flex justify-between items-center py-0.5">
+                      <span>{split?.User?.Profile?.name || 'Member'}</span>
+                      <span className="font-mono text-white/80">₹{parseFloat(split?.share_amount || 0).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       )}
 
-      {/* AddExpenseModal overlay */}
+      {/* 5. ADD EXPENSE MODAL */}
       <AnimatePresence>
         {modalOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(12,16,19,0.75)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              style={{
-                width: '100%',
-                maxWidth: '380px',
-                background: '#1a2129',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '20px',
-                padding: '24px',
-                boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
-              }}
+              className="w-full max-w-md bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
-                <h4 style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ba6ad' }}>Log New Expense</h4>
-                <button onClick={() => setModalOpen(false)} style={{ background: 'none', border: 'none', color: '#9ba6ad', fontWeight: '700', cursor: 'pointer' }}>✕</button>
+              <div className="flex justify-between items-center border-b border-white/10 pb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#9ba6ad]">
+                  Log New Trip Expense
+                </h4>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="w-7 h-7 rounded-lg text-[#9ba6ad] hover:text-white flex items-center justify-center cursor-pointer"
+                >
+                  ✕
+                </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
+              <div className="flex flex-col gap-3.5 text-xs">
                 {/* Description */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontWeight: '700', color: '#9ba6ad' }}>Expense Description</span>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-[#9ba6ad]">Description</label>
                   <input
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="e.g. Campsite Booking or Lunch"
-                    style={{
-                      width: '100%',
-                      height: '44px',
-                      background: '#212b33',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '100px',
-                      padding: '0 16px',
-                      color: '#f3f1ea',
-                      outline: 'none'
-                    }}
+                    placeholder="e.g. Campsite Booking, Lunch, Fuel"
+                    className="w-full h-11 bg-[#1a2129] border border-white/10 rounded-xl px-3.5 text-sm text-[#f3f1ea] outline-none focus:border-[#ff6a2c]"
                   />
                 </div>
 
                 {/* Amount */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontWeight: '700', color: '#9ba6ad' }}>Total Amount</span>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: '16px', top: '10px', color: '#6b757c' }}>₹</span>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-[#9ba6ad]">Total Bill Amount</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-2.5 text-base text-[#6b757c]">₹</span>
                     <input
                       type="number"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
-                      style={{
-                        width: '100%',
-                        height: '44px',
-                        background: '#212b33',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '100px',
-                        padding: '0 16px 0 32px',
-                        color: '#f3f1ea',
-                        outline: 'none'
-                      }}
+                      className="w-full h-11 bg-[#1a2129] border border-white/10 rounded-xl pl-8 pr-3.5 text-sm text-[#f3f1ea] outline-none focus:border-[#ff6a2c]"
                     />
                   </div>
                 </div>
 
-                {/* Split Type */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontWeight: '700', color: '#9ba6ad' }}>Split Policy</span>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '2px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '8px 12px', cursor: 'pointer', userSelect: 'none' }}>
-                      <input
-                        type="radio"
-                        checked={splitType === 'equal'}
-                        onChange={() => setSplitType('equal')}
-                        style={{ accentColor: '#ff6a2c' }}
-                      />
-                      <span>Equally</span>
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '8px 12px', cursor: 'pointer', userSelect: 'none' }}>
-                      <input
-                        type="radio"
-                        checked={splitType === 'custom'}
-                        onChange={() => setSplitType('custom')}
-                        style={{ accentColor: '#ff6a2c' }}
-                      />
-                      <span>Custom</span>
-                    </label>
+                {/* Split Policy Mode Selector */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-[#9ba6ad]">Split Policy</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {[
+                      { id: 'equal', label: 'Equal' },
+                      { id: 'custom', label: 'Custom' },
+                      { id: 'percentage', label: 'Percent %' },
+                      { id: 'multi_payer_equal', label: 'Multi-Payer' }
+                    ].map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => setSplitType(mode.id)}
+                        className={`py-2 px-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center ${
+                          splitType === mode.id
+                            ? 'bg-[#ff6a2c] text-[#1a0e08]'
+                            : 'bg-[#1a2129] border border-white/5 text-[#9ba6ad] hover:text-white'
+                        }`}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Custom Split input list */}
+                {/* Custom Split breakdown */}
                 {splitType === 'custom' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', border: '1px dashed rgba(255,255,255,0.14)', padding: '12px', borderRadius: '12px', maxHeight: '160px', overflowY: 'auto' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '700', color: '#9ba6ad', textTransform: 'uppercase' }}>Assign Shares</span>
-                    {(Array.isArray(members) ? members : []).map((m) => {
-                      if (!m) return null
+                  <div className="flex flex-col gap-2 border border-dashed border-white/10 p-3 rounded-xl max-h-40 overflow-y-auto">
+                    <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Assign Exact Shares (₹)</span>
+                    {safeMembers.map((m) => {
+                      const uId = m.userId || m.id
                       return (
-                      <div key={m.userId || m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#f3f1ea', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name || 'Member'}</span>
-                        <div style={{ position: 'relative', width: '100px' }}>
-                          <span style={{ position: 'absolute', left: '10px', top: '6px', fontSize: '10px', color: '#6b757c' }}>₹</span>
-                          <input
-                            type="number"
-                            value={customShares[m.userId] || ''}
-                            onChange={(e) => handleCustomShareChange(m.userId, e.target.value)}
-                            placeholder="0"
-                            style={{
-                              width: '100%',
-                              height: '28px',
-                              background: '#212b33',
-                              border: '1px solid rgba(255,255,255,0.08)',
-                              borderRadius: '8px',
-                              padding: '0 8px 0 20px',
-                              textAlign: 'right',
-                              fontSize: '11px',
-                              color: '#f3f1ea',
-                              outline: 'none'
-                            }}
-                          />
+                        <div key={uId} className="flex justify-between items-center gap-2">
+                          <span className="text-xs font-semibold text-[#f3f1ea] truncate">{m.name || 'Member'}</span>
+                          <div className="relative w-28">
+                            <span className="absolute left-2.5 top-1.5 text-xs text-[#6b757c]">₹</span>
+                            <input
+                              type="number"
+                              value={customShares[uId] || ''}
+                              onChange={(e) => setCustomShares({ ...customShares, [uId]: e.target.value })}
+                              placeholder="0"
+                              className="w-full h-8 bg-[#1a2129] border border-white/10 rounded-lg pl-6 pr-2 text-right text-xs text-[#f3f1ea] outline-none"
+                            />
+                          </div>
                         </div>
-                      </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Percentage Split breakdown */}
+                {splitType === 'percentage' && (
+                  <div className="flex flex-col gap-2 border border-dashed border-white/10 p-3 rounded-xl max-h-40 overflow-y-auto">
+                    <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Assign Percentages (%)</span>
+                    {safeMembers.map((m) => {
+                      const uId = m.userId || m.id
+                      return (
+                        <div key={uId} className="flex justify-between items-center gap-2">
+                          <span className="text-xs font-semibold text-[#f3f1ea] truncate">{m.name || 'Member'}</span>
+                          <div className="relative w-24">
+                            <input
+                              type="number"
+                              value={percentages[uId] || ''}
+                              onChange={(e) => setPercentages({ ...percentages, [uId]: e.target.value })}
+                              placeholder="0"
+                              className="w-full h-8 bg-[#1a2129] border border-white/10 rounded-lg px-2 text-right text-xs text-[#f3f1ea] outline-none"
+                            />
+                            <span className="absolute right-2 top-1.5 text-xs text-[#6b757c]">%</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Multi-Payer breakdown */}
+                {splitType === 'multi_payer_equal' && (
+                  <div className="flex flex-col gap-2 border border-dashed border-white/10 p-3 rounded-xl max-h-40 overflow-y-auto">
+                    <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Who Paid What Upfront (₹)</span>
+                    {safeMembers.map((m) => {
+                      const uId = m.userId || m.id
+                      return (
+                        <div key={uId} className="flex justify-between items-center gap-2">
+                          <span className="text-xs font-semibold text-[#f3f1ea] truncate">{m.name || 'Member'}</span>
+                          <div className="relative w-28">
+                            <span className="absolute left-2.5 top-1.5 text-xs text-[#6b757c]">₹</span>
+                            <input
+                              type="number"
+                              value={payers[uId] || ''}
+                              onChange={(e) => setPayers({ ...payers, [uId]: e.target.value })}
+                              placeholder="0"
+                              className="w-full h-8 bg-[#1a2129] border border-white/10 rounded-lg pl-6 pr-2 text-right text-xs text-[#f3f1ea] outline-none"
+                            />
+                          </div>
+                        </div>
                       )
                     })}
                   </div>
@@ -543,22 +782,11 @@ const ExpensesTab = ({
               </div>
 
               <button
-                onClick={handleSubmit}
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
-                  color: '#1a0e08',
-                  borderRadius: '100px',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(255,106,44,0.25)',
-                  marginTop: '8px'
-                }}
+                disabled={submittingExpense}
+                onClick={handleSubmitExpense}
+                className="w-full h-11 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-xl font-bold text-xs shadow-lg active:scale-95 transition-all mt-2 cursor-pointer"
               >
-                Log Expense Ledger
+                {submittingExpense ? 'Logging Expense...' : 'Confirm & Log Bill'}
               </button>
             </motion.div>
           </div>

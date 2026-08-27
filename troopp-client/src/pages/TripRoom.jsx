@@ -934,13 +934,13 @@ const TripRoom = () => {
 
         {activeTab === 'expenses' && (
           <ExpensesTab
+            activityId={roomId}
             expenses={safeExpenses}
             members={safeMembers}
             currentUserId={user?.id}
             isHost={isHost}
             onAddExpense={handleAddExpense}
             onDeleteExpense={(id) => setExpenses((prev) => (Array.isArray(prev) ? prev : []).filter((e) => e.id !== id))}
-            onSettleSplit={handleSettleSplit}
           />
         )}
 

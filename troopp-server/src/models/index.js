@@ -9,6 +9,8 @@ import TripRoom from './TripRoom.js'
 import Message from './Message.js'
 import Expense from './Expense.js'
 import ExpenseSplit from './ExpenseSplit.js'
+import ExpensePayer from './ExpensePayer.js'
+import Settlement from './Settlement.js'
 import Poll from './Poll.js'
 import CheckInPoint from './CheckInPoint.js'
 import CheckInLog from './CheckInLog.js'
@@ -128,7 +130,7 @@ MessageDeletedUser.belongsTo(Message, { foreignKey: 'message_id' })
 User.hasMany(MessageDeletedUser, { foreignKey: 'user_id', onDelete: 'CASCADE' })
 MessageDeletedUser.belongsTo(User, { foreignKey: 'user_id' })
 
-// 7. Activity & Expenses & Splits
+// 7. Activity & Expenses & Splits & Payers & Settlements
 Activity.hasMany(Expense, { foreignKey: 'activity_id', onDelete: 'CASCADE' })
 Expense.belongsTo(Activity, { foreignKey: 'activity_id' })
 
@@ -140,6 +142,21 @@ ExpenseSplit.belongsTo(Expense, { foreignKey: 'expense_id' })
 
 User.hasMany(ExpenseSplit, { foreignKey: 'user_id', onDelete: 'CASCADE' })
 ExpenseSplit.belongsTo(User, { foreignKey: 'user_id' })
+
+Expense.hasMany(ExpensePayer, { foreignKey: 'expense_id', as: 'Payers', onDelete: 'CASCADE' })
+ExpensePayer.belongsTo(Expense, { foreignKey: 'expense_id' })
+
+User.hasMany(ExpensePayer, { foreignKey: 'user_id', onDelete: 'CASCADE' })
+ExpensePayer.belongsTo(User, { foreignKey: 'user_id', as: 'User' })
+
+Activity.hasMany(Settlement, { foreignKey: 'activity_id', as: 'Settlements', onDelete: 'CASCADE' })
+Settlement.belongsTo(Activity, { foreignKey: 'activity_id' })
+
+User.hasMany(Settlement, { foreignKey: 'payer_id', as: 'PaidSettlements', onDelete: 'CASCADE' })
+Settlement.belongsTo(User, { foreignKey: 'payer_id', as: 'Payer' })
+
+User.hasMany(Settlement, { foreignKey: 'payee_id', as: 'ReceivedSettlements', onDelete: 'CASCADE' })
+Settlement.belongsTo(User, { foreignKey: 'payee_id', as: 'Payee' })
 
 // 8. Activity & Polls
 Activity.hasMany(Poll, { foreignKey: 'activity_id', onDelete: 'CASCADE' })
@@ -356,6 +373,8 @@ export {
   Message,
   Expense,
   ExpenseSplit,
+  ExpensePayer,
+  Settlement,
   Poll,
   CheckInPoint,
   CheckInLog,

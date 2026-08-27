@@ -3,6 +3,8 @@ import {
   Message,
   Expense,
   ExpenseSplit,
+  ExpensePayer,
+  Settlement,
   Poll,
   CheckInPoint,
   CheckInLog,
@@ -389,6 +391,18 @@ export const getExpensesWithSplits = async (activityId) => {
         include: [{ model: Profile, as: 'Profile', attributes: ['name'] }]
       },
       {
+        model: ExpensePayer,
+        as: 'Payers',
+        include: [
+          {
+            model: User,
+            as: 'User',
+            attributes: ['id'],
+            include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'] }]
+          }
+        ]
+      },
+      {
         model: ExpenseSplit,
         as: 'Splits',
         include: [
@@ -396,7 +410,7 @@ export const getExpensesWithSplits = async (activityId) => {
             model: User,
             as: 'User',
             attributes: ['id'],
-            include: [{ model: Profile, as: 'Profile', attributes: ['name'] }]
+            include: [{ model: Profile, as: 'Profile', attributes: ['name', 'avatar_url'] }]
           }
         ]
       }
@@ -404,7 +418,7 @@ export const getExpensesWithSplits = async (activityId) => {
   })
 }
 
-export const createExpenseWithSplits = async (activityId, payerId, amount, description, splitsList) => {
+export const createExpenseWithSplits = async (activityId, payerId, amount, description, splitsList, payersList = []) => {
   const expense = await Expense.create({
     activity_id: activityId,
     payer_id: payerId,
@@ -418,13 +432,28 @@ export const createExpenseWithSplits = async (activityId, payerId, amount, descr
       expense_id: expense.id,
       user_id: split.userId,
       share_amount: split.shareAmount,
-      is_settled: split.userId === payerId
+      is_settled: false // Settlement layer governs settlement, splits remain raw liability
     })
   )
   await Promise.all(splitPromises)
 
+  // Create multi-payers if provided
+  if (Array.isArray(payersList) && payersList.length > 0) {
+    const payerPromises = payersList.map((p) =>
+      ExpensePayer.create({
+        expense_id: expense.id,
+        user_id: p.userId,
+        amount_paid: p.amount
+      })
+    )
+    await Promise.all(payerPromises)
+  }
+
   return await Expense.findByPk(expense.id, {
-    include: [{ model: ExpenseSplit, as: 'Splits' }]
+    include: [
+      { model: ExpenseSplit, as: 'Splits' },
+      { model: ExpensePayer, as: 'Payers' }
+    ]
   })
 }
 

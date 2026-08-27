@@ -160,7 +160,10 @@ export const muteRoomNotifications = async (req, res, next) => {
   }
 }
 
-// 2. EXPENSES
+// 2. EXPENSES & LEDGER & SETTLEMENTS
+import * as settlementService from './settlement.service.js'
+import * as ledgerService from './ledger.service.js'
+
 export const getExpenses = async (req, res, next) => {
   try {
     const expenses = await tripRoomService.tripRoomRepo.getExpensesWithSplits(req.params.id)
@@ -173,22 +176,35 @@ export const getExpenses = async (req, res, next) => {
   }
 }
 
+export const getLedger = async (req, res, next) => {
+  try {
+    const ledger = await ledgerService.computeTripLedger(req.params.id)
+    res.status(200).json({
+      success: true,
+      data: ledger
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const createExpense = async (req, res, next) => {
   try {
-    const { amount, description, splitType, customSplits } = req.body
+    const { amount, description, splitType, customSplits, percentages, payers } = req.body
     const expense = await tripRoomService.createExpense(
       req.params.id,
       req.user.id,
       amount,
       description,
-      splitType,
-      customSplits
+      splitType || 'equal',
+      { customSplits, percentages, payers }
     )
 
-    // Broadcast update via sockets
+    // Recompute ledger and broadcast update via sockets
     const io = req.app.get('io')
     if (io) {
-      io.to(req.params.id).emit('expense_updated', { expense })
+      const ledger = await ledgerService.computeTripLedger(req.params.id)
+      io.to(req.params.id).emit('expense_updated', { expense, ledger })
     }
 
     res.status(201).json({
@@ -207,7 +223,8 @@ export const deleteExpense = async (req, res, next) => {
 
     const io = req.app.get('io')
     if (io) {
-      io.to(req.params.id).emit('expense_deleted', { expenseId: req.params.expenseId })
+      const ledger = await ledgerService.computeTripLedger(req.params.id)
+      io.to(req.params.id).emit('expense_deleted', { expenseId: req.params.expenseId, ledger })
     }
 
     res.status(200).json({
@@ -219,19 +236,58 @@ export const deleteExpense = async (req, res, next) => {
   }
 }
 
-export const settleSplit = async (req, res, next) => {
+export const initiateSettlement = async (req, res, next) => {
   try {
-    const split = await tripRoomService.settleSplit(req.params.splitId)
+    const { payeeId, amount, idempotencyKey, paymentMethod } = req.body
+    const result = await settlementService.initiateSettlement(
+      req.params.id,
+      req.user.id,
+      payeeId,
+      amount,
+      idempotencyKey,
+      paymentMethod
+    )
 
     const io = req.app.get('io')
     if (io) {
-      io.to(req.params.id).emit('split_settled', { splitId: req.params.splitId, split })
+      io.to(req.params.id).emit('settlement_initiated', {
+        settlementId: result.settlement.id,
+        payerId: req.user.id,
+        payeeId,
+        amount: result.amount
+      })
     }
 
+    res.status(201).json({
+      success: true,
+      message: 'Settlement initiated.',
+      data: result
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const mockSettlePayment = async (req, res, next) => {
+  try {
+    const io = req.app.get('io')
+    const settlement = await settlementService.mockSettlePayment(req.params.settlementId, req.user.id, io)
     res.status(200).json({
       success: true,
-      message: 'Expense split marked settled.',
-      data: split
+      message: 'Payment settled in sandbox mode.',
+      data: settlement
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const getSettlements = async (req, res, next) => {
+  try {
+    const settlements = await settlementService.getSettlementHistory(req.params.id)
+    res.status(200).json({
+      success: true,
+      data: settlements
     })
   } catch (error) {
     next(error)

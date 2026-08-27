@@ -93,11 +93,14 @@ router.delete('/:id/messages/:messageId', checkTripRoomMember, tripRoomControlle
 router.patch('/:id/settings', checkTripHost, tripRoomController.updateRoomSettings)
 router.patch('/:id/notification-mute', checkTripRoomMember, tripRoomController.muteRoomNotifications)
 
-// Expense management
+// Expense & Ledger & Settlement management
 router.get('/:id/expenses', checkTripRoomMember, tripRoomController.getExpenses)
+router.get('/:id/ledger', checkTripRoomMember, tripRoomController.getLedger)
 router.post('/:id/expenses', checkTripRoomMember, tripRoomController.createExpense)
 router.delete('/:id/expenses/:expenseId', checkTripRoomMember, tripRoomController.deleteExpense)
-router.post('/:id/expenses/splits/:splitId/settle', checkTripRoomMember, tripRoomController.settleSplit)
+router.post('/:id/settlements/initiate', checkTripRoomMember, tripRoomController.initiateSettlement)
+router.post('/:id/settlements/:settlementId/mock-settle', checkTripRoomMember, tripRoomController.mockSettlePayment)
+router.get('/:id/settlements', checkTripRoomMember, tripRoomController.getSettlements)
 
 // Group Polls
 router.get('/:id/polls', checkTripRoomMember, tripRoomController.getPolls)

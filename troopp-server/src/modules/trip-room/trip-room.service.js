@@ -46,8 +46,10 @@ export const muteRoomNotifications = async (roomId, userId, duration) => {
   return await tripRoomRepo.muteRoomNotifications(roomId, userId, duration)
 }
 
-// 2. EXPENSES SERVICE
-export const createExpense = async (activityId, payerId, amount, description, splitType, customSplits = []) => {
+// 2. EXPENSES & LEDGER SERVICE
+import { calculateSplit, computeTripLedger } from './ledger.service.js'
+
+export const createExpense = async (activityId, payerId, amount, description, splitType = 'equal', options = {}) => {
   // Fetch all confirmed members
   const members = await ActivityMember.findAll({
     where: { activity_id: activityId, status: 'confirmed' }
@@ -57,41 +59,43 @@ export const createExpense = async (activityId, payerId, amount, description, sp
     throw new AppError('No confirmed members found for this trip.', 400, 'NO_MEMBERS')
   }
 
-  let splitsList = []
+  const customShares = options.customSplits || options.customShares || []
+  const percentages = options.percentages || []
+  const payersList = options.payers || []
 
-  if (splitType === 'equal') {
-    const shareAmount = parseFloat((amount / members.length).toFixed(2))
-    splitsList = members.map((m) => ({
-      userId: m.user_id,
-      shareAmount
-    }))
-  } else {
-    // Custom split
-    let totalCustom = 0
-    splitsList = customSplits.map((cs) => {
-      const sAmt = parseFloat(cs.amount)
-      totalCustom += sAmt
-      return {
-        userId: cs.userId,
-        shareAmount: sAmt
-      }
-    })
-
-    // Validate sum matches total amount (allow delta of 0.1)
-    if (Math.abs(totalCustom - amount) > 0.1) {
-      throw new AppError('The sum of custom splits must match the total expense amount.', 400, 'INVALID_SPLIT_SUM')
+  // If multi-payer, validate total paid matches expense amount
+  if (Array.isArray(payersList) && payersList.length > 0) {
+    const totalPaid = payersList.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0)
+    if (Math.abs(totalPaid - parseFloat(amount)) > 0.1) {
+      throw new AppError(
+        `Total paid by all payers (₹${totalPaid}) must match expense amount (₹${amount}).`,
+        400,
+        'INVALID_PAYER_SUM'
+      )
     }
   }
 
-  return await tripRoomRepo.createExpenseWithSplits(activityId, payerId, amount, description, splitsList)
+  const splitsList = calculateSplit(amount, splitType, members, {
+    customShares,
+    percentages
+  })
+
+  return await tripRoomRepo.createExpenseWithSplits(
+    activityId,
+    payerId,
+    amount,
+    description,
+    splitsList,
+    payersList
+  )
+}
+
+export const getTripLedger = async (activityId) => {
+  return await computeTripLedger(activityId)
 }
 
 export const deleteExpense = async (expenseId, userId) => {
   return await tripRoomRepo.deleteExpense(expenseId)
-}
-
-export const settleSplit = async (splitId) => {
-  return await tripRoomRepo.settleSplit(splitId)
 }
 
 // 3. POLLS SERVICE

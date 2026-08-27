@@ -17,6 +17,7 @@ import ipBlockMiddleware from './middleware/ipBlock.middleware.js'
 import { generalLimiter } from './middleware/rateLimit.middleware.js'
 import errorHandler, { AppError } from './middleware/errorHandler.middleware.js'
 import apiRouter from './routes/index.js'
+import { processWebhookPayment } from './modules/trip-room/settlement.service.js'
 
 // Initialize Sentry SDK
 initSentry()
@@ -83,6 +84,20 @@ app.use((req, res, next) => {
     'geolocation=(self), camera=(self), microphone=()'
   )
   next()
+})
+
+// 3.5. Top-Level Raw Webhook Endpoint for Payment Gateway (Razorpay)
+app.post('/webhooks/razorpay', express.raw({ type: 'application/json' }), async (req, res, next) => {
+  try {
+    const signature = req.headers['x-razorpay-signature']
+    const io = req.app.get('io') || global.io
+    const rawBody = req.body ? req.body.toString('utf8') : ''
+    await processWebhookPayment(rawBody, signature, io)
+    res.status(200).json({ status: 'ok' })
+  } catch (err) {
+    logger.error('Razorpay Webhook verification error:', err.message)
+    res.status(400).json({ error: err.message })
+  }
 })
 
 // 4. Request Body Parsers (10mb payload limit)
