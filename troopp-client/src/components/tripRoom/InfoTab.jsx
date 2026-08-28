@@ -101,7 +101,7 @@ const InfoTab = ({
   /* Shared sub-components for consistent section headers            */
   /* ──────────────────────────────────────────────────────────────── */
   const SectionLabel = ({ children }) => (
-    <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#ffb95f] font-bold">
+    <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#ffa471] font-bold">
       {children}
     </div>
   )
@@ -121,7 +121,7 @@ const InfoTab = ({
       <div className="flex flex-col gap-5 min-w-0">
 
         {/* 1. MEETING POINT CARD */}
-        <div className="glass-panel rounded-2xl p-6 shadow-lg">
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="min-w-0">
               <SectionLabel>
@@ -167,7 +167,7 @@ const InfoTab = ({
         </div>
 
         {/* 2. DESTINATION & ITINERARY CARD */}
-        <div className="glass-panel rounded-2xl p-6 shadow-lg">
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
           <div className="mb-4">
             <SectionLabel>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0 0 21 18.618V7.618a1 1 0 0 0-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
@@ -230,7 +230,7 @@ const InfoTab = ({
         </div>
 
         {/* 3. ORGANIZER & GPS CARD */}
-        <div className="glass-panel rounded-2xl p-6 shadow-lg">
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
           <SectionLabel>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M12 1v6M12 17v6M4.2 4.2l4.2 4.2M15.6 15.6l4.2 4.2M1 12h6M17 12h6M4.2 19.8l4.2-4.2M15.6 8.4l4.2-4.2"/></svg>
             Trip organizer and host
@@ -301,7 +301,7 @@ const InfoTab = ({
       <div className="flex flex-col gap-5 min-w-0">
 
         {/* 1. GROUP ROSTER CARD */}
-        <div className="glass-panel rounded-2xl p-6 shadow-lg">
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <div>
               <SectionLabel>Group roster</SectionLabel>
@@ -360,7 +360,7 @@ const InfoTab = ({
         </div>
 
         {/* 2. EXPEDITION CHECKPOINTS CARD */}
-        <div className="glass-panel rounded-2xl p-6 shadow-lg">
+        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
           <div className="flex items-center justify-between mb-1">
             <SectionLabel>Expedition checkpoints</SectionLabel>
             <span className="text-[11px] font-bold text-[#ffa471] bg-[#3a2517] px-3 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">

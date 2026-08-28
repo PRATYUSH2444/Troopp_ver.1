@@ -19,7 +19,6 @@ import SOSConfirmModal from '../components/safety/SOSConfirmModal.jsx'
 import Spinner from '../components/common/Spinner.jsx'
 import Avatar from '../components/common/Avatar.jsx'
 import { encryptMessageText, decryptMessageText, decryptMessagesList } from '../utils/e2ee.js'
-import { useNotifications } from '../context/NotificationContext.jsx'
 
 class TripRoomErrorBoundary extends React.Component {
   constructor(props) {
@@ -65,7 +64,6 @@ class TripRoomErrorBoundary extends React.Component {
 const TripRoom = () => {
   const { id: roomId } = useParams()
   const { user } = useAuth()
-  const { unreadCount } = useNotifications()
   const navigate = useNavigate()
 
   // State managers
@@ -816,61 +814,7 @@ const TripRoom = () => {
   }
 
   return (
-    <div className="trip-room-hero-bg min-h-screen">
-      {/* ── TOPBAR (Trip Room only, not app-wide) ────────────────────── */}
-      <div className="trip-room-topbar">
-        <div className="flex items-center justify-between px-6 sm:px-8 py-3.5 max-w-7xl mx-auto gap-4">
-          {/* Search */}
-          <div className="flex-1 max-w-md relative hidden sm:block">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b757c]">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            </span>
-            <input
-              type="text"
-              placeholder="Search trips, bills, members..."
-              className="w-full h-9 bg-[#201f1f]/60 border border-white/10 rounded-lg pl-9 pr-3 text-sm text-[#e5e2e1] placeholder:text-[#6b757c] outline-none focus:border-[#b8c3ff] transition-colors"
-            />
-          </div>
-
-          {/* Right actions */}
-          <div className="flex items-center gap-3 ml-auto">
-            {/* Notification bell */}
-            <button className="relative text-[#9096ab] hover:text-[#e5e2e1] transition-colors">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* Dark mode toggle */}
-            <button className="text-[#9096ab] hover:text-[#e5e2e1] transition-colors">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-              </svg>
-            </button>
-
-            {/* User chip */}
-            <div className="flex items-center gap-2.5 pl-3 border-l border-white/10">
-              <Avatar
-                src={user?.Profile?.avatar_url || user?.avatarUrl}
-                name={user?.name || 'Explorer'}
-                size="xs"
-              />
-              <div className="hidden sm:block text-left">
-                <div className="text-xs font-semibold text-[#e5e2e1] leading-tight">{user?.name || 'Explorer'}</div>
-                <div className="text-[10px] text-[#9096ab] leading-tight">{isHost ? 'Host' : 'Traveler'}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── PAGE CONTENT ─────────────────────────────────────────────── */}
-      <div className="page-container-trip flex flex-col gap-6 text-[#e5e2e1] min-w-0 pb-16 px-6 sm:px-8 pt-8 mx-auto">
+    <div className="page-container-trip flex flex-col gap-6 text-[#f3f1ea] min-w-0 pb-16">
       
       {/* Persistent SOS Alert Banner */}
       {sosActiveInfo && (
@@ -911,10 +855,20 @@ const TripRoom = () => {
         </motion.div>
       )}
 
-      {/* HERO / HEADER SECTION — glass-panel Stitch style */}
-      <div className="glass-panel rounded-2xl shadow-xl overflow-hidden">
-        {/* Content */}
-        <div className="relative p-6 sm:p-8">
+      {/* HERO / HEADER SECTION */}
+      <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl shadow-xl overflow-hidden">
+        {/* Topographic Contour Background SVG */}
+        <div className="relative p-6 sm:p-7">
+          <svg
+            className="absolute inset-0 w-full h-full opacity-15 pointer-events-none"
+            viewBox="0 0 1200 320"
+            preserveAspectRatio="none"
+          >
+            <path d="M-20,260 Q150,200 300,240 T600,220 T900,260 T1220,210" stroke="#ff7a3d" strokeWidth="1" fill="none" opacity="0.5" />
+            <path d="M-20,290 Q180,235 340,270 T650,250 T950,285 T1220,245" stroke="#ff7a3d" strokeWidth="1" fill="none" opacity="0.35" />
+            <path d="M-20,220 Q200,150 380,195 T680,170 T980,210 T1220,160" stroke="#ff7a3d" strokeWidth="1" fill="none" opacity="0.25" />
+          </svg>
+
           <div className="relative z-10 flex flex-col gap-5">
             {/* Group 1: Title Block + Roster Stack */}
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -969,55 +923,48 @@ const TripRoom = () => {
 
             {/* Group 2: 4 Stat Chips */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="glass-panel rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
-                <div className="w-10 h-10 rounded-lg bg-[rgba(255,185,95,0.12)] flex items-center justify-center text-[#ffb95f] flex-shrink-0">
+              <div className="bg-[#181c29] border border-[#262b3a] rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
+                <div className="w-10 h-10 rounded-lg bg-[rgba(255,122,61,0.12)] flex items-center justify-center text-[#ffa471] flex-shrink-0">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3v18M16 3v18M3 8h18M3 16h18"/></svg>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[10.5px] uppercase font-bold text-[#c4c5d9] tracking-wider leading-tight">Trek / Category</div>
-                  <div className="text-sm font-bold text-[#e5e2e1] truncate capitalize mt-0.5">{activity?.category || 'Expedition'}</div>
+                  <div className="text-[10.5px] uppercase font-bold text-[#5c6178] tracking-wider leading-tight">Trek / Category</div>
+                  <div className="text-sm font-bold text-[#f3f4f8] truncate capitalize mt-0.5">{activity?.category || 'Expedition'}</div>
                 </div>
               </div>
 
-              <div className="glass-panel rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
-                <div className="w-10 h-10 rounded-lg bg-[rgba(255,120,50,0.12)] flex items-center justify-center text-orange-400 flex-shrink-0">
+              <div className="bg-[#181c29] border border-[#262b3a] rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
+                <div className="w-10 h-10 rounded-lg bg-[rgba(255,122,61,0.12)] flex items-center justify-center text-[#ffa471] flex-shrink-0">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[10.5px] uppercase font-bold text-[#c4c5d9] tracking-wider leading-tight">Departure</div>
-                  <div className="text-sm font-bold text-[#e5e2e1] truncate mt-0.5">
+                  <div className="text-[10.5px] uppercase font-bold text-[#5c6178] tracking-wider leading-tight">Departure</div>
+                  <div className="text-sm font-bold text-[#f3f4f8] truncate mt-0.5">
                     {activity?.date_time ? new Date(activity.date_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '10:00 AM'}
-                  </div>
-                  <div className="text-[11px] text-[#9096ab] mt-0.5">
-                    {activity?.date_time ? new Date(activity.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : ''}
                   </div>
                 </div>
               </div>
 
-              <div className="glass-panel rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
-                <div className="w-10 h-10 rounded-lg bg-[rgba(78,222,163,0.12)] flex items-center justify-center text-[#4edea3] flex-shrink-0">
+              <div className="bg-[#181c29] border border-[#262b3a] rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
+                <div className="w-10 h-10 rounded-lg bg-[rgba(51,209,137,0.12)] flex items-center justify-center text-[#33d189] flex-shrink-0">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[10.5px] uppercase font-bold text-[#c4c5d9] tracking-wider leading-tight">Per Person</div>
-                  <div className="text-sm font-bold text-[#4edea3] truncate mt-0.5">
+                  <div className="text-[10.5px] uppercase font-bold text-[#5c6178] tracking-wider leading-tight">Per Person</div>
+                  <div className="text-sm font-bold text-[#33d189] truncate mt-0.5">
                     ₹{Number(activity?.cost_per_person || activity?.cost_estimate || 0).toLocaleString('en-IN')}
                   </div>
-                  <div className="text-[11px] text-[#9096ab] mt-0.5">Avg. per person</div>
                 </div>
               </div>
 
-              <div className="glass-panel rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
-                <div className="w-10 h-10 rounded-lg bg-[rgba(184,195,255,0.12)] flex items-center justify-center text-[#b8c3ff] flex-shrink-0">
+              <div className="bg-[#181c29] border border-[#262b3a] rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
+                <div className="w-10 h-10 rounded-lg bg-[rgba(255,122,61,0.12)] flex items-center justify-center text-[#ffa471] flex-shrink-0">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[10.5px] uppercase font-bold text-[#c4c5d9] tracking-wider leading-tight">Capacity</div>
-                  <div className="text-sm font-bold text-[#e5e2e1] truncate mt-0.5">
+                  <div className="text-[10.5px] uppercase font-bold text-[#5c6178] tracking-wider leading-tight">Capacity</div>
+                  <div className="text-sm font-bold text-[#f3f4f8] truncate mt-0.5">
                     {safeMembers.length} of {activity?.max_capacity || 5} spots
-                  </div>
-                  <div className="text-[11px] text-[#9096ab] mt-0.5">
-                    {Math.max(0, (activity?.max_capacity || 5) - safeMembers.length)} spot(s) left
                   </div>
                 </div>
               </div>
@@ -1025,30 +972,25 @@ const TripRoom = () => {
           </div>
         </div>
 
-        {/* Navigation Tab Bar — Stitch underline style */}
-        <div className="border-t border-white/10 px-6 sm:px-8 bg-transparent">
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+        {/* Navigation Tab Bar — separate bottom section */}
+        <div className="border-t border-[#1c2130] px-6 sm:px-7 py-2.5 bg-[#0f1219]">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {[
-              { id: 'chat', label: 'Chat', badge: messages?.length > 0 ? null : null,
-                icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5A8.5 8.5 0 1 1 21 11.5z"/></svg> },
-              { id: 'info', label: 'Info',
-                icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> },
-              { id: 'expenses', label: 'Split',
-                icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
-              { id: 'checklist', label: 'Packing',
-                icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7h-3V5a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM9 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2H9z"/></svg> },
-              { id: 'polls', label: 'Polls',
-                icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> }
+              { id: 'chat', label: 'Chat', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5A8.5 8.5 0 1 1 21 11.5z"/></svg>) },
+              { id: 'info', label: 'Info', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>) },
+              { id: 'expenses', label: 'Split', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>) },
+              { id: 'checklist', label: 'Packing', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7h-3V5a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM9 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2H9z"/></svg>) },
+              { id: 'polls', label: 'Polls', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>) }
             ].map((tab) => {
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-2 pb-3 pt-3 px-3 border-b-2 text-sm font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
                     isActive
-                      ? 'border-[#b8c3ff] text-[#b8c3ff]'
-                      : 'border-transparent text-[#9096ab] hover:text-[#e5e2e1]'
+                      ? 'bg-[#ff7a3d] text-[#2a1204] font-bold shadow-md shadow-[#ff7a3d]/25'
+                      : 'text-[#9096ab] hover:text-[#f3f4f8] hover:bg-[#1f2431]'
                   }`}
                 >
                   {tab.icon}
@@ -1059,10 +1001,10 @@ const TripRoom = () => {
             {isHost && (
               <button
                 onClick={() => handleTabChange('manage')}
-                className={`flex items-center gap-2 pb-3 pt-3 px-3 border-b-2 text-sm font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
                   activeTab === 'manage'
-                    ? 'border-[#b8c3ff] text-[#b8c3ff]'
-                    : 'border-transparent text-[#9096ab] hover:text-[#e5e2e1]'
+                    ? 'bg-[#ff7a3d] text-[#2a1204] font-bold shadow-md shadow-[#ff7a3d]/25'
+                    : 'text-[#9096ab] hover:text-[#f3f4f8] hover:bg-[#1f2431]'
                 }`}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1187,7 +1129,6 @@ const TripRoom = () => {
           }}
         />
       )}
-      </div>
     </div>
   )
 }
