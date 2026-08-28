@@ -76,6 +76,20 @@ export const haptics = {
   // Rating submitted
   ratingSubmit() {
     this.vibrate([50, 30, 50, 30, 100])
+  },
+
+  // Aliases for compatibility
+  impactLight() {
+    this.lightTap()
+  },
+  impactMedium() {
+    this.vibrate(50)
+  },
+  impactHeavy() {
+    this.vibrate(100)
+  },
+  sosTriggered() {
+    this.sos()
   }
 }
 
