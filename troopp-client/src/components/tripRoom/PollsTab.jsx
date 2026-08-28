@@ -100,19 +100,19 @@ const PollsTab = ({
     <div className="flex flex-col gap-6 text-[#f3f1ea] pb-16">
       
       {/* 1. TOP HEADER & ACTION BAR */}
-      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-base sm:text-lg font-bold text-[#f3f1ea] font-display">
-            📊 Trip Room Polls
+            📊 Trip Decision Polls
           </h3>
           <p className="text-xs text-[#9ba6ad] mt-1">
-            Decide on departure times, meal spots, and group logistics together.
+            Vote together on route checkpoints, departure timing, and group arrangements.
           </p>
         </div>
 
         <button
           onClick={handleOpenModal}
-          className="h-9 px-4 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
+          className="h-10 px-5 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-90 text-[#1a0e08] rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-[#ff6a2c]/20 transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
         >
           <span>＋</span>
           <span>Create Poll</span>
@@ -120,10 +120,10 @@ const PollsTab = ({
       </div>
 
       {/* 2. MAIN CONTENT CARD */}
-      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 min-h-[460px] shadow-lg flex flex-col">
+      <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 sm:p-6 min-h-[460px] shadow-xl flex flex-col">
         {safePolls.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-16 text-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-[#1a2129] border border-white/5 flex items-center justify-center text-3xl shadow-inner">
+            <div className="w-16 h-16 rounded-2xl bg-[#10151a] border border-white/5 flex items-center justify-center text-3xl shadow-inner">
               📊
             </div>
             <h4 className="text-base font-bold text-[#f3f1ea] mt-1 font-display">
@@ -134,7 +134,7 @@ const PollsTab = ({
             </p>
             <button
               onClick={handleOpenModal}
-              className="mt-2 h-9 px-5 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 hover:border-[#ff6a2c]/50 text-xs font-bold text-[#f3f1ea] rounded-xl flex items-center gap-2 transition-all cursor-pointer"
+              className="mt-2 h-10 px-6 bg-[#10151a] hover:bg-white/5 border border-white/10 hover:border-[#ff6a2c]/50 text-xs font-bold text-[#f3f1ea] rounded-full flex items-center gap-2 transition-all cursor-pointer"
             >
               <span>＋</span>
               <span>Create First Poll</span>

@@ -270,71 +270,71 @@ const ExpensesTab = ({
 
   // ─── JSX ──────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-5 text-[#f3f4f8] relative min-h-[480px] pb-16">
+    <div className="flex flex-col gap-6 text-[#f3f1ea] relative min-h-[480px] pb-16">
 
       {/* ── ROW 1: THREE STAT PANELS ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         
         {/* 1a. Your Net Position */}
-        <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-5 flex flex-col justify-between shadow-sm">
-          <div className="text-[10.5px] font-bold text-[#64748b] uppercase tracking-wider">Your Net Position</div>
+        <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 flex flex-col justify-between shadow-xl">
+          <div className="text-[10.5px] font-bold text-[#9ba6ad] uppercase tracking-wider">Your Net Position</div>
           <div className="flex items-center gap-2.5 mt-2">
             <span className={`text-2xl sm:text-3xl font-black font-display leading-none ${
-              myNet > 0.5 ? 'text-[#34d399]' : myNet < -0.5 ? 'text-[#f87171]' : 'text-[#f3f4f8]'
+              myNet > 0.5 ? 'text-[#4fbe8e]' : myNet < -0.5 ? 'text-[#ff5470]' : 'text-[#f3f1ea]'
             }`}>
               {myNet > 0.5 ? `+₹${formatINR(myNet)}` : myNet < -0.5 ? `-₹${formatINR(Math.abs(myNet))}` : '₹0'}
             </span>
             {myNet !== 0 && (
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${
-                myNet > 0.5 ? 'text-[#34d399] bg-[#0d281e]' : 'text-[#f87171] bg-[#2d1b1b]'
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                myNet > 0.5 ? 'text-[#4fbe8e] bg-[#4fbe8e]/10 border border-[#4fbe8e]/20' : 'text-[#ff5470] bg-[#ff5470]/10 border border-[#ff5470]/20'
               }`}>
                 {myNet > 0.5 ? 'You get back' : 'You owe'}
               </span>
             )}
           </div>
-          <div className="text-[11px] text-[#475569] mt-3">Reconciled across all bills &amp; payments</div>
+          <div className="text-[11px] text-[#6b757c] mt-3">Reconciled across all bills &amp; payments</div>
         </div>
 
         {/* 1b. Total Trip Pool */}
-        <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-5 flex flex-col justify-between shadow-sm">
+        <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 flex flex-col justify-between shadow-xl">
           <div className="flex items-center justify-between">
-            <div className="text-[10.5px] font-bold text-[#64748b] uppercase tracking-wider">Total Trip Pool</div>
-            <div className="w-9 h-9 rounded-xl bg-[#2d1b17] text-[#f97316] flex items-center justify-center flex-shrink-0">
+            <div className="text-[10.5px] font-bold text-[#9ba6ad] uppercase tracking-wider">Total Trip Pool</div>
+            <div className="w-9 h-9 rounded-xl bg-[#ff6a2c]/10 text-[#ff6a2c] flex items-center justify-center flex-shrink-0">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
               </svg>
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-[#f3f4f8] font-display mt-2 leading-none">
+          <div className="text-2xl sm:text-3xl font-black text-[#f3f1ea] font-display mt-2 leading-none">
             ₹{formatINR(totalTripSpend)}
           </div>
-          <div className="text-[11px] text-[#475569] mt-3">
-            {safeExpenses.length} {safeExpenses.length === 1 ? 'bill' : 'bills'} · Shared expenditure
+          <div className="text-[11px] text-[#6b757c] mt-3">
+            {safeExpenses.length} {safeExpenses.length === 1 ? 'bill' : 'bills'} · Shared group expenditure
           </div>
         </div>
 
         {/* 1c. Settlement Completion */}
-        <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-5 flex flex-col justify-between shadow-sm">
+        <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 flex flex-col justify-between shadow-xl">
           <div className="flex items-center justify-between">
-            <div className="text-[10.5px] font-bold text-[#64748b] uppercase tracking-wider">Settlement Completion</div>
+            <div className="text-[10.5px] font-bold text-[#9ba6ad] uppercase tracking-wider">Settlement Completion</div>
             <span className={`text-[11px] font-black ${
-              settlementPercentage === 100 ? 'text-[#34d399]' : 'text-[#f97316]'
+              settlementPercentage === 100 ? 'text-[#4fbe8e]' : 'text-[#ff6a2c]'
             }`}>
               {settlementPercentage}% Settled ({settledMembersCount}/{totalMembersCount})
             </span>
           </div>
-          <div className="my-3 w-full h-2 bg-[#1e2638] rounded-full overflow-hidden">
+          <div className="my-3 w-full h-2 bg-[#10151a] rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${settlementPercentage}%` }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
               className={`h-full rounded-full ${
-                settlementPercentage === 100 ? 'bg-[#34d399]' : 'bg-[#f97316]'
+                settlementPercentage === 100 ? 'bg-[#4fbe8e]' : 'bg-[#ff6a2c]'
               }`}
             />
           </div>
-          <div className="text-[11px] text-[#475569]">
-            {settlementPercentage === 100 ? '🎉 All debts settled!' : 'Keep settling to clear all balances'}
+          <div className="text-[11px] text-[#6b757c]">
+            {settlementPercentage === 100 ? '🎉 All balances settled!' : 'Keep settling to clear group debts'}
           </div>
         </div>
       </div>
@@ -345,10 +345,10 @@ const ExpensesTab = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSubTab('ledger')}
-            className={`h-10 px-4 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`h-10 px-5 rounded-full text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
               subTab === 'ledger'
-                ? 'bg-[#f97316] text-[#1a0a02] shadow-md shadow-[#f97316]/20'
-                : 'bg-[#131826] border border-[#1e2638] text-[#94a3b8] hover:text-[#f3f4f8]'
+                ? 'bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] text-[#1a0e08] shadow-md shadow-[#ff6a2c]/25'
+                : 'bg-[#1a2129] border border-white/10 text-[#9ba6ad] hover:text-[#f3f1ea]'
             }`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -358,10 +358,10 @@ const ExpensesTab = ({
           </button>
           <button
             onClick={() => setSubTab('bills')}
-            className={`h-10 px-4 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`h-10 px-5 rounded-full text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
               subTab === 'bills'
-                ? 'bg-[#f97316] text-[#1a0a02] shadow-md shadow-[#f97316]/20'
-                : 'bg-[#131826] border border-[#1e2638] text-[#94a3b8] hover:text-[#f3f4f8]'
+                ? 'bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] text-[#1a0e08] shadow-md shadow-[#ff6a2c]/25'
+                : 'bg-[#1a2129] border border-white/10 text-[#9ba6ad] hover:text-[#f3f1ea]'
             }`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -379,10 +379,10 @@ const ExpensesTab = ({
                 setExpensesLocked(!expensesLocked)
                 toast.success(expensesLocked ? 'Ledger unlocked for entries.' : 'Ledger locked.')
               }}
-              className={`h-10 px-3.5 border rounded-xl text-sm font-bold transition-all cursor-pointer ${
+              className={`h-10 px-4 border rounded-full text-sm font-bold transition-all cursor-pointer ${
                 expensesLocked
-                  ? 'border-[#f87171] bg-[rgba(248,113,113,0.12)] text-[#f87171]'
-                  : 'border-[#1e2638] bg-[#131826] hover:bg-[#182032] text-[#94a3b8] hover:text-[#f3f4f8]'
+                  ? 'border-[#ff5470]/30 bg-[#ff5470]/10 text-[#ff5470]'
+                  : 'border-white/10 bg-[#1a2129] hover:bg-white/5 text-[#9ba6ad] hover:text-[#f3f1ea]'
               }`}
             >
               {expensesLocked ? '🔒 Locked' : '🔓 Lock Ledger'}
@@ -390,7 +390,7 @@ const ExpensesTab = ({
           )}
           <button
             onClick={handleExportSummary}
-            className="h-10 px-4 bg-[#131826] hover:bg-[#182032] border border-[#1e2638] rounded-xl text-sm font-bold text-[#f3f4f8] flex items-center gap-2 transition-all cursor-pointer"
+            className="h-10 px-4 bg-[#1a2129] hover:bg-white/5 border border-white/10 rounded-full text-sm font-bold text-[#f3f1ea] flex items-center gap-2 transition-all cursor-pointer"
             title="Export WhatsApp Summary"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366">
@@ -401,39 +401,39 @@ const ExpensesTab = ({
           <button
             disabled={expensesLocked}
             onClick={handleOpenModal}
-            className={`h-10 px-5 rounded-xl text-sm font-black flex items-center gap-2 shadow-lg transition-all active:scale-95 cursor-pointer ${
+            className={`h-10 px-5 rounded-full text-sm font-black flex items-center gap-2 shadow-lg transition-all active:scale-95 cursor-pointer ${
               expensesLocked
-                ? 'bg-[#1e2638] text-[#475569] cursor-not-allowed'
-                : 'bg-[#f97316] hover:bg-[#ea580c] text-white shadow-[#f97316]/25'
+                ? 'bg-white/5 text-[#6b757c] cursor-not-allowed'
+                : 'bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-90 text-[#1a0e08] shadow-[#ff6a2c]/25'
             }`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 5v14M5 12h14"/>
             </svg>
-            Add Bill
+            Add Bill +
           </button>
         </div>
       </div>
 
       {/* ── ROW 3: MAIN CONTENT ───────────────────────────────────────────── */}
       {subTab === 'ledger' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
           {/* ── LEFT: Smart Settle Up Plan ─────────────────────────────── */}
-          <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+          <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-6 shadow-xl flex flex-col gap-4">
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff6a2c" strokeWidth="2.5">
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                   </svg>
-                  <h3 className="text-sm font-bold text-[#f3f4f8]">Smart Settle Up Plan</h3>
+                  <h3 className="text-base font-bold text-[#f3f1ea]" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>Smart Settle Up Plan</h3>
                 </div>
-                <p className="text-[11px] text-[#64748b] mt-0.5 ml-6">
+                <p className="text-xs text-[#9ba6ad] mt-0.5 ml-6">
                   Minimized direct payments (no complex loops)
                 </p>
               </div>
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#f97316] bg-[rgba(249,115,22,0.12)] px-2.5 py-1 rounded-full flex-shrink-0">
+              <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#ff6a2c] bg-[#ff6a2c]/10 border border-[#ff6a2c]/20 px-3 py-1 rounded-full flex-shrink-0">
                 {simplifiedTransactions.length} {simplifiedTransactions.length === 1 ? 'Payment' : 'Payments'}
               </span>
             </div>

@@ -64,30 +64,30 @@ const ManageTab = ({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-[#f3f1ea] pb-16">
       
       {/* LEFT COLUMN: Health Metrics & Global Trip Controls */}
-      <div className="lg:col-span-6 flex flex-col gap-5">
+      <div className="lg:col-span-6 flex flex-col gap-6">
         
         {/* GROUP HEALTH DASHBOARD */}
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
-          <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
-            Group Safety & Trust Metrics
+        <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 sm:p-6 shadow-xl flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#4fbe8e] uppercase tracking-wider font-mono">
+            Group Safety &amp; Trust Metrics
           </span>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between text-center">
+          <div className="grid grid-cols-2 gap-3 mt-1">
+            <div className="p-3.5 bg-[#10151a] border border-white/5 rounded-xl flex flex-col justify-between text-center">
               <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Avg Trust</span>
               <span className="text-xl font-black text-[#4fbe8e] font-display mt-1">{averageTrustScore}</span>
               <span className="text-[9px] text-[#6b757c] mt-0.5">Verified Safety</span>
             </div>
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between text-center">
+            <div className="p-3.5 bg-[#10151a] border border-white/5 rounded-xl flex flex-col justify-between text-center">
               <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Trusted</span>
               <span className="text-xl font-black text-[#f3f1ea] font-display mt-1">{trustedMembersCount} / {(Array.isArray(members) ? members : []).length}</span>
               <span className="text-[9px] text-[#6b757c] mt-0.5">Score &gt;= 75</span>
             </div>
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between text-center">
+            <div className="p-3.5 bg-[#10151a] border border-white/5 rounded-xl flex flex-col justify-between text-center">
               <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Check-ins</span>
               <span className="text-xl font-black text-[#ffc94d] font-display mt-1">{pendingCheckins}</span>
               <span className="text-[9px] text-[#6b757c] mt-0.5">Pending</span>
             </div>
-            <div className="p-3.5 bg-[#1a2129] border border-white/5 rounded-xl flex flex-col justify-between text-center">
+            <div className="p-3.5 bg-[#10151a] border border-white/5 rounded-xl flex flex-col justify-between text-center">
               <span className="text-[10px] font-bold text-[#9ba6ad] uppercase">Reports</span>
               <span className="text-xl font-black text-[#ff5470] font-display mt-1">{reportsFiledCount}</span>
               <span className="text-[9px] text-[#6b757c] mt-0.5">Flags</span>
@@ -96,7 +96,7 @@ const ManageTab = ({
         </div>
 
         {/* CHAT CONTROLS */}
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex items-center justify-between gap-3">
+        <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 sm:p-6 shadow-xl flex items-center justify-between gap-3">
           <div className="flex flex-col gap-1 max-w-[75%]">
             <span className="text-sm font-bold text-[#f3f1ea]">Participant Chat Active</span>
             <span className="text-xs text-[#9ba6ad] leading-relaxed">
@@ -113,37 +113,37 @@ const ManageTab = ({
               }}
               className="sr-only"
             />
-            <div className={`w-11 h-6 rounded-full transition-colors ${chatEnabled ? 'bg-[#ff6a2c]' : 'bg-[#212b33] border border-white/10'}`} />
+            <div className={`w-11 h-6 rounded-full transition-colors ${chatEnabled ? 'bg-[#ff6a2c]' : 'bg-[#10151a] border border-white/10'}`} />
             <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-md ${chatEnabled ? 'transform translate-x-5' : ''}`} />
           </label>
         </div>
 
         {/* TRIP STATE CONTROLS */}
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
-          <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
+        <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 sm:p-6 shadow-xl flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#ff6a2c] uppercase tracking-wider font-mono">
             Trip Lifecycle Controls
           </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-1">
             <button
               onClick={onMarkStarted}
-              className="h-10 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 text-xs font-bold rounded-xl text-[#f3f1ea] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              className="h-10 bg-[#10151a] hover:bg-white/5 border border-white/10 text-xs font-bold rounded-full text-[#f3f1ea] transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <span>🚀</span>
               <span>Mark Trip Started</span>
             </button>
             <button
               onClick={onMarkEnded}
-              className="h-10 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 text-xs font-bold rounded-xl text-[#f3f1ea] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              className="h-10 bg-[#10151a] hover:bg-white/5 border border-white/10 text-xs font-bold rounded-full text-[#f3f1ea] transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <span>🏁</span>
               <span>Mark Trip Ended</span>
             </button>
             <button
               onClick={() => setCancelOpen(true)}
-              className="h-10 bg-[rgba(255,84,112,0.12)] hover:bg-[rgba(255,84,112,0.2)] border border-[rgba(255,84,112,0.3)] text-xs font-bold rounded-xl text-[#ff5470] transition-all cursor-pointer sm:col-span-2 flex items-center justify-center gap-1.5"
+              className="h-10 bg-[#ff5470]/10 hover:bg-[#ff5470]/20 border border-[#ff5470]/30 text-xs font-bold rounded-full text-[#ff5470] transition-all cursor-pointer sm:col-span-2 flex items-center justify-center gap-1.5"
             >
               <span>⚠️</span>
-              <span>Cancel Trip & Close Room</span>
+              <span>Cancel Trip &amp; Close Room</span>
             </button>
           </div>
         </div>
@@ -151,12 +151,12 @@ const ManageTab = ({
 
       {/* RIGHT COLUMN: MEMBER ROSTER MANAGEMENT */}
       <div className="lg:col-span-6 flex flex-col gap-3">
-        <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col gap-3">
+        <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 sm:p-6 shadow-xl flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
             <span className="text-xs font-bold text-[#9ba6ad] uppercase tracking-wider">
               Member Roster ({(Array.isArray(members) ? members : []).length})
             </span>
-            <span className="text-[11px] text-[#9ba6ad]">Host moderation</span>
+            <span className="text-[11px] text-[#4fbe8e] font-mono font-bold">Host Moderation</span>
           </div>
 
           <div className="flex flex-col gap-2">

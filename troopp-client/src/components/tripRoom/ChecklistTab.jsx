@@ -37,19 +37,19 @@ const ChecklistTab = ({ checklist = [], onToggleItem, onAddItem, members = [] })
     <div className="flex flex-col gap-6 text-[#f3f1ea] pb-16">
       
       {/* 1. TOP HEADER & ACTION BAR */}
-      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-base sm:text-lg font-bold text-[#f3f1ea] font-display">
             🎒 Trip Packing Checklist
           </h3>
           <p className="text-xs text-[#9ba6ad] mt-1">
-            Claim items you are bringing. Toggling syncs live with all other travelers.
+            Claim gear items you are bringing. Toggling syncs live with all expedition members.
           </p>
         </div>
 
         <div className="flex items-center gap-3 self-start sm:self-auto">
           {totalCount > 0 && (
-            <div className="flex items-center gap-2.5 bg-[#1a2129] px-3.5 py-2 rounded-xl border border-white/5">
+            <div className="flex items-center gap-2.5 bg-[#10151a] px-4 py-2 rounded-full border border-white/10">
               <span className="text-[10px] font-bold text-[#9ba6ad] uppercase tracking-wider">Status:</span>
               <span className="text-xs font-black text-[#4fbe8e]">
                 {packedCount}/{totalCount} Packed ({packedPercentage}%)
@@ -63,7 +63,7 @@ const ChecklistTab = ({ checklist = [], onToggleItem, onAddItem, members = [] })
                 haptics.lightTap?.()
                 setModalOpen(true)
               }}
-              className="h-9 px-4 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-95 text-[#1a0e08] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer"
+              className="h-10 px-5 bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-90 text-[#1a0e08] rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-[#ff6a2c]/20 transition-all active:scale-95 cursor-pointer"
             >
               <span>＋</span>
               <span>Add Item</span>
@@ -73,10 +73,10 @@ const ChecklistTab = ({ checklist = [], onToggleItem, onAddItem, members = [] })
       </div>
 
       {/* 2. MAIN CONTENT CARD */}
-      <div className="bg-[#151c24] border border-[#242f3d] rounded-2xl p-5 sm:p-6 min-h-[460px] shadow-lg flex flex-col">
+      <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-5 sm:p-6 min-h-[460px] shadow-xl flex flex-col">
         {safeList.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-16 text-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-[#1a2129] border border-white/5 flex items-center justify-center text-3xl shadow-inner">
+            <div className="w-16 h-16 rounded-2xl bg-[#10151a] border border-white/5 flex items-center justify-center text-3xl shadow-inner">
               🎒
             </div>
             <h4 className="text-base font-bold text-[#f3f1ea] mt-1 font-display">
@@ -91,7 +91,7 @@ const ChecklistTab = ({ checklist = [], onToggleItem, onAddItem, members = [] })
                   haptics.lightTap?.()
                   setModalOpen(true)
                 }}
-                className="mt-2 h-9 px-5 bg-[#212b33] hover:bg-[#2b3742] border border-white/10 hover:border-[#ff6a2c]/50 text-xs font-bold text-[#f3f1ea] rounded-xl flex items-center gap-2 transition-all cursor-pointer"
+                className="mt-2 h-10 px-6 bg-[#10151a] hover:bg-white/5 border border-white/10 hover:border-[#ff6a2c]/50 text-xs font-bold text-[#f3f1ea] rounded-full flex items-center gap-2 transition-all cursor-pointer"
               >
                 <span>＋</span>
                 <span>Add First Item</span>
