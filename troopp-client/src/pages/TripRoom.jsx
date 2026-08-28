@@ -1105,7 +1105,9 @@ const TripRoom = () => {
           <InfoTab
             activity={activity}
             members={safeMembers}
-            onMemberTap={(m) => alert(`Selected profile: ${m?.name || m?.User?.Profile?.name || 'Explorer'}`)}
+            socket={socketRef.current}
+            roomId={roomId}
+            currentUserId={user?.id}
           />
         )}
 
