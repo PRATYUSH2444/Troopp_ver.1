@@ -411,7 +411,83 @@ const AppLayout = () => {
           ))}
         </nav>
 
-        {/* FOOTER — hidden on mobile */}
+        {/* SIDEBAR EXTRA CARDS — Go Premium + Net Position */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto', paddingTop: '12px' }}>
+
+          {/* Go Premium Card */}
+          <div style={{
+            position: 'relative',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            {/* Mountain BG */}
+            <img
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsAXTEOeOr1UUKH8KfNLPiwc8fjt5uMi2inDpZ15jP6DvAutcg0-snm0XsIdHZ9TxWzEfBpfLiBxXAB88oqGo5Mb4C6eFvFE5wTVOA2Bk4wMqoncR2wM3BTaJ9OHGFlpfwwvSz7pWtGw6Jmoz9XegnmVSjc8nM9oZ3SJNO2cDmcQlO2YQcbMDI6XKu6hbGnv1thRtoU_pOr9pHpMNUjaD3ZZOr7_m9EP3uPmvHvx5DAz3zyBbljOtf"
+              alt="Mountains"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.45 }}
+            />
+            {/* Gradient overlay */}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #131313 0%, rgba(19,19,19,0.75) 55%, transparent 100%)' }} />
+            {/* Content */}
+            <div style={{ position: 'relative', zIndex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: '600', color: '#f3f1ea' }}>Go Premium</div>
+              <p style={{ fontSize: '11px', color: '#9096ab', lineHeight: 1.45, margin: 0 }}>
+                Unlock premium tools &amp; features for hassle-free group trips.
+              </p>
+              <button style={{
+                marginTop: '6px',
+                background: 'linear-gradient(135deg, #ffb95f, #f97316)',
+                color: '#2a1400',
+                fontWeight: '700',
+                fontSize: '12px',
+                padding: '8px 0',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                width: '100%',
+                transition: 'opacity 150ms',
+              }}>
+                Upgrade Now
+              </button>
+            </div>
+          </div>
+
+          {/* Net Position Mini-Card */}
+          <div style={{
+            background: 'rgba(18,18,18,0.72)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '12px',
+            padding: '14px',
+          }}>
+            <div style={{ fontSize: '11px', color: '#6b757c', marginBottom: '2px' }}>Your Net Position</div>
+            <div style={{ fontSize: '11px', color: '#9096ab', marginBottom: '2px' }}>You get back</div>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: '#4edea3', fontFamily: 'IBM Plex Mono, monospace', marginBottom: '10px' }}>
+              ₹{(user?.netPosition ?? 0).toLocaleString('en-IN') || '—'}
+            </div>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ position: 'relative', width: '32px', height: '32px', flexShrink: 0 }}>
+                <svg width="32" height="32" viewBox="0 0 32 32" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="16" cy="16" r="13" fill="none" stroke="#212b33" strokeWidth="3" />
+                  <circle cx="16" cy="16" r="13" fill="none" stroke={ringColor} strokeWidth="3" strokeLinecap="round"
+                    strokeDasharray="82" strokeDashoffset={82 - (82 * trustScore) / 100} />
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: '600', color: '#f3f1ea', fontFamily: 'IBM Plex Mono' }}>{trustScore}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '12.5px', fontWeight: '600', color: '#f3f1ea', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '10px', color: '#6b757c' }}>Peer Trust Index</span>
+                  <span style={{ fontSize: '10px', color: '#4edea3', fontFamily: 'IBM Plex Mono' }}>{trustScore}/100</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* FOOTER — logout */}
         <div className="sidebar-footer">
           {/* Trust score ring SVG */}
           <div style={{ position: 'relative', width: '44px', height: '44px', flexShrink: 0 }}>
