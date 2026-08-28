@@ -7,19 +7,14 @@ import { haptics } from '../../utils/haptics.js'
 import toast from 'react-hot-toast'
 
 /**
- * InfoTab — Production-Grade Expedition Briefing, Waypoints & Live Safety Telemetry.
+ * InfoTab — Pixel-Perfect Expedition Briefing, Route Map & Live Safety Telemetry.
  *
- * Design System Directives Applied:
- *   1. Balanced 6:6 two-column grid terminating at equal heights
- *   2. Semantic color hierarchy:
- *      - #ff6a2c (Orange): Reserved strictly for primary action CTAs (Check In, Open Maps)
- *      - #4fbe8e (Emerald): Active/live indicators, verified badges, completed phases
- *      - #ffc94d (Amber Gold): Peer trust ratings & scores (★ 88)
- *      - #1a2129 / #10151a: Elevated surface and canvas backgrounds
- *   3. 3-tier type hierarchy: Eyebrow (mono uppercase) → Value (Space Grotesk bold) → Meta (muted)
- *   4. Standalone Safety & GPS Telemetry card extracted from Organizer bio
- *   5. Full 4-phase expedition waypoints with real-time WebSocket check-ins
- *   6. Distinct realistic trust scores per traveler
+ * Geometric & Spacing Specifications:
+ * - Desktop Layout: 2-column grid [1fr_440px] (440px rail guarantees 0 button clipping).
+ * - Surfaces: #1a2129 parent cards (20px radius, 24px padding), #10151a sub-cards (14px radius, 16px padding).
+ * - Proportional Inner Radii: outer 20px - padding 24px = inner 14px.
+ * - Semantic Colors: #ff6a2c (CTAs only), #4fbe8e (Live/Verified), #ffc94d (Trust Ratings).
+ * - Clean Typography: Space Grotesk bold titles, Monospace uppercase eyebrows, no clipped glyphs.
  */
 const InfoTab = ({
   activity,
@@ -32,15 +27,24 @@ const InfoTab = ({
   const [gpsWatcherId, setGpsWatcherId] = useState(null)
   const [selectedMember, setSelectedMember] = useState(null)
   const { user } = useAuth()
-  
+
   const safeMembers = Array.isArray(members) ? members : []
   const currentUserName = user?.name || user?.Profile?.name || 'Explorer'
 
+  // Capitalize helper
+  const capitalize = (str) => {
+    if (!str) return ''
+    return str.charAt(0).toUpperCase() + str.slice(1)
+  }
+
   // Computed Locations & Metadata
-  const meetingLabel = activity?.meeting_point_label || activity?.location_name || activity?.city || 'Delhi Base'
+  const rawMeeting = activity?.meeting_point_label || activity?.location_name || activity?.city || 'Delhi Base'
+  const meetingLabel = capitalize(rawMeeting)
   const meetingLat = Number(activity?.meeting_point_lat || activity?.latitude || 28.6139)
   const meetingLng = Number(activity?.meeting_point_lng || activity?.longitude || 77.2090)
-  const destinationLabel = activity?.destination || activity?.title || 'Chopta Summit'
+
+  const rawDest = activity?.destination || activity?.title || 'Chopta Summit'
+  const destinationLabel = capitalize(rawDest)
 
   const hostName = activity?.Creator?.Profile?.name || activity?.creator?.name || 'Dev Shrivastav'
   const hostAvatar = activity?.Creator?.Profile?.avatar_url || activity?.creator?.avatar_url
@@ -55,22 +59,22 @@ const InfoTab = ({
         label: `Assembly & Gear Briefing (${meetingLabel})`,
         time: '06:00 AM',
         elevation: '216 m',
-        desc: 'Meet co-travelers, verify gear, and coordinate vehicle convoy.',
+        desc: 'Meet co-travelers, verify gear, coordinate vehicle convoy.',
         confirmed: []
       },
       {
         id: 'phase_2',
         phase: 'Phase 2',
-        label: 'Midway Trailhead & Acclimatization Halt',
+        label: 'Midway Trailhead & Acclimatization',
         time: '11:30 AM',
         elevation: '1,450 m',
-        desc: 'Hydration stop, altitude acclimatization check, and route briefing.',
+        desc: 'Hydration stop, altitude acclimatization check.',
         confirmed: []
       },
       {
         id: 'phase_3',
         phase: 'Phase 3',
-        label: 'High-Altitude Meadow Basecamp',
+        label: 'High-Altitude Basecamp Halt',
         time: '03:00 PM',
         elevation: '2,680 m',
         desc: 'Intermediate camp check-in, weather advisory review.',
@@ -79,10 +83,10 @@ const InfoTab = ({
       {
         id: 'phase_4',
         phase: 'Phase 4',
-        label: `Final Summit Arrival & Camp Setup (${destinationLabel})`,
+        label: `Summit Arrival & Camp Setup (${destinationLabel})`,
         time: '06:30 PM',
         elevation: '3,950 m',
-        desc: 'Final expedition destination check-in, tent pitching & debriefing.',
+        desc: 'Final expedition check-in, tent pitching & debriefing.',
         confirmed: []
       }
     ]
@@ -248,7 +252,7 @@ const InfoTab = ({
   // Google Maps Navigation Deep Link
   const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${meetingLat},${meetingLng}&destination=${encodeURIComponent(destinationLabel)}`
 
-  // Distinct Trust Score Generator per member to ensure realistic visual differentiation
+  // Distinct Trust Score Generator per member
   const getMemberTrustScore = (m, index) => {
     if (m?.trustScore && m.trustScore !== 60) return m.trustScore
     if (m?.User?.trust_score && m.User.trust_score !== 60) return m.User.trust_score
@@ -257,10 +261,10 @@ const InfoTab = ({
   }
 
   return (
-    <div className="info-tab-grid grid grid-cols-1 gap-6 items-start text-[#f3f1ea] pb-24">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-6 items-start text-[#f3f1ea] pb-24 w-full">
 
       {/* =========================================================================
-          LEFT COLUMN (Main Details & Expedition Route)
+          LEFT COLUMN: Meeting Point Map & Expedition Briefing (Flexible 1fr)
           ========================================================================= */}
       <div className="flex flex-col gap-6 min-w-0">
 
@@ -268,7 +272,7 @@ const InfoTab = ({
         <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-6 shadow-xl flex flex-col gap-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
+              <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13z"/>
                 </svg>
@@ -292,18 +296,18 @@ const InfoTab = ({
           </div>
 
           {/* Interactive Route & Terrain Canvas with Bounded Inner Frame */}
-          <div className="relative h-60 rounded-2xl overflow-hidden bg-[#10151a] border border-white/10 flex items-center justify-center p-6 shadow-inner">
+          <div className="relative h-64 rounded-[14px] overflow-hidden bg-[#10151a] border border-white/10 flex items-center justify-center p-6 shadow-inner">
             {/* Topographic Contours Canvas */}
-            <svg className="absolute inset-0 w-full h-full opacity-35 pointer-events-none" viewBox="0 0 600 240" preserveAspectRatio="none">
-              <path d="M0,190 Q150,120 300,170 T600,140" stroke="#4fbe8e" strokeWidth="1.5" fill="none" />
-              <path d="M0,140 Q180,70 360,120 T600,90" stroke="#4fbe8e" strokeWidth="1.2" fill="none" />
-              <path d="M0,220 Q200,170 400,205 T600,180" stroke="#ff6a2c" strokeWidth="1.2" fill="none" opacity="0.6" />
-              <path d="M0,90 Q220,40 440,80 T600,50" stroke="#4fbe8e" strokeWidth="0.8" strokeDasharray="4 4" fill="none" opacity="0.4" />
+            <svg className="absolute inset-0 w-full h-full opacity-35 pointer-events-none" viewBox="0 0 600 260" preserveAspectRatio="none">
+              <path d="M0,200 Q150,130 300,180 T600,150" stroke="#4fbe8e" strokeWidth="1.5" fill="none" />
+              <path d="M0,150 Q180,80 360,130 T600,100" stroke="#4fbe8e" strokeWidth="1.2" fill="none" />
+              <path d="M0,230 Q200,180 400,215 T600,190" stroke="#ff6a2c" strokeWidth="1.2" fill="none" opacity="0.6" />
+              <path d="M0,100 Q220,50 440,90 T600,60" stroke="#4fbe8e" strokeWidth="0.8" strokeDasharray="4 4" fill="none" opacity="0.4" />
             </svg>
 
             {/* Connecting Trail Line */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 600 240" preserveAspectRatio="none">
-              <path d="M 120 160 Q 300 70 480 110" stroke="#ff6a2c" strokeWidth="3" strokeDasharray="6 6" fill="none" />
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 600 260" preserveAspectRatio="none">
+              <path d="M 120 180 Q 300 80 480 120" stroke="#ff6a2c" strokeWidth="3" strokeDasharray="6 6" fill="none" />
             </svg>
 
             {/* Start Pin */}
@@ -337,8 +341,8 @@ const InfoTab = ({
             </div>
 
             {/* Altitude & Route Badge */}
-            <div className="absolute top-3 right-3 font-mono text-[11px] text-[#f3f1ea] bg-[#0c1013]/95 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10 flex items-center gap-1.5 shadow-md">
-              <span>⛰️ 13 km Trail · 13,000 ft</span>
+            <div className="absolute top-3 right-3 font-mono text-[11px] text-[#f3f1ea] bg-[#0c1013]/95 px-3.5 py-1.5 rounded-full backdrop-blur-sm border border-white/10 flex items-center gap-1.5 shadow-md">
+              <span>⛰️ 13 km Trail · 13,000 ft Summit</span>
             </div>
           </div>
 
@@ -350,20 +354,20 @@ const InfoTab = ({
         {/* 2. EXPEDITION BRIEFING & ROUTE */}
         <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-6 shadow-xl flex flex-col gap-5">
           <div>
-            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
+            <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0 0 21 18.618V7.618a1 1 0 0 0-.553-.894L15 4m0 13V4m0 0L9 7"/>
               </svg>
               <span>Expedition Briefing &amp; Route</span>
             </div>
             <h2 className="text-2xl font-bold text-[#f3f1ea] mt-1" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-              {destinationLabel}
+              {destinationLabel} Expedition
             </h2>
           </div>
 
-          {/* 3 Bounded Stat Chips */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div className="bg-[#10151a] border border-white/10 rounded-2xl p-4 flex flex-col justify-between min-h-[96px]">
+          {/* 3 Bounded Stat Chips with Generous Internal Padding */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-[#10151a] border border-white/10 rounded-[14px] p-4 flex flex-col justify-between min-h-[100px]">
               <div className="flex items-center gap-2 text-[11px] text-[#9ba6ad] uppercase font-bold tracking-wider font-mono">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
@@ -378,7 +382,7 @@ const InfoTab = ({
               </div>
             </div>
 
-            <div className="bg-[#10151a] border border-white/10 rounded-2xl p-4 flex flex-col justify-between min-h-[96px]">
+            <div className="bg-[#10151a] border border-white/10 rounded-[14px] p-4 flex flex-col justify-between min-h-[100px]">
               <div className="flex items-center gap-2 text-[11px] text-[#9ba6ad] uppercase font-bold tracking-wider font-mono">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
@@ -387,13 +391,13 @@ const InfoTab = ({
               </div>
               <div className="mt-2">
                 <div className="font-bold text-[16px] text-[#4fbe8e]" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-                  ₹{Number(activity?.cost_per_person || activity?.cost_estimate || 15000).toLocaleString('en-IN')}
+                  ₹ {Number(activity?.cost_per_person || activity?.cost_estimate || 15000).toLocaleString('en-IN')}
                 </div>
                 <div className="text-xs text-[#9ba6ad] mt-0.5">per traveler</div>
               </div>
             </div>
 
-            <div className="bg-[#10151a] border border-white/10 rounded-2xl p-4 flex flex-col justify-between min-h-[96px]">
+            <div className="bg-[#10151a] border border-white/10 rounded-[14px] p-4 flex flex-col justify-between min-h-[100px]">
               <div className="flex items-center gap-2 text-[11px] text-[#9ba6ad] uppercase font-bold tracking-wider font-mono">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -411,10 +415,10 @@ const InfoTab = ({
             </div>
           </div>
 
-          {/* Notes & Trail Directives Card */}
-          <div className="p-5 bg-[#10151a] rounded-2xl border border-white/10 flex flex-col gap-3">
+          {/* Clean Notes & Trail Directives Box */}
+          <div className="p-5 bg-[#10151a] rounded-[14px] border border-white/10 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
-              <div className="text-xs text-[#4fbe8e] uppercase font-mono font-bold tracking-wider">
+              <div className="text-[11px] text-[#4fbe8e] uppercase font-mono font-bold tracking-wider">
                 Expedition Notes &amp; Trail Directives
               </div>
               <div className="flex items-center gap-2">
@@ -428,22 +432,22 @@ const InfoTab = ({
             </div>
 
             <p className="text-sm text-[#f3f1ea] leading-relaxed m-0 font-medium">
-              {activity?.description || 'Trail briefing: Pack cold-weather layers, emergency headlamps, high-energy trail snacks, and personal hydration gear. Keep offline topographic maps downloaded.'}
+              {activity?.description || 'Trail briefing: High-altitude Himalayan trek reaching 13,000 ft elevation. Pack thermal baselayers, waterproof outer shell, headlamps with extra batteries, and personal hydration gear. Keep offline maps downloaded.'}
             </p>
           </div>
         </div>
       </div>
 
       {/* =========================================================================
-          RIGHT COLUMN (Traveler Roster, Checkpoint Tracker, Safety Card)
+          RIGHT COLUMN: Traveler Roster, Checkpoint Tracker, Safety (Strict 440px Rail)
           ========================================================================= */}
-      <div className="flex flex-col gap-6 min-w-0">
+      <div className="flex flex-col gap-6 min-w-0 w-full">
 
         {/* 1. TRAVELER ROSTER */}
         <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-6 shadow-xl flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
+              <div className="text-[11px] font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
                 Traveler Roster
               </div>
               <h3 className="text-lg font-bold text-[#f3f1ea] mt-0.5" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
@@ -468,7 +472,7 @@ const InfoTab = ({
                 <div
                   key={m.userId || m.id || rawName}
                   onClick={() => setSelectedMember({ ...m, name: rawName, trustScore: score })}
-                  className="flex items-center gap-3.5 p-3 rounded-2xl bg-[#10151a] border border-white/5 hover:border-white/15 transition-all cursor-pointer shadow-sm"
+                  className="flex items-center gap-3.5 p-3 rounded-[14px] bg-[#10151a] border border-white/5 hover:border-white/15 transition-all cursor-pointer shadow-sm"
                 >
                   <Avatar
                     src={m.avatarUrl || m.User?.Profile?.avatar_url}
@@ -505,7 +509,7 @@ const InfoTab = ({
         <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-6 shadow-xl flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
+              <div className="text-[11px] font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
                 Expedition Checkpoints
               </div>
               <h3 className="text-lg font-bold text-[#f3f1ea] mt-0.5" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
@@ -531,10 +535,10 @@ const InfoTab = ({
             </div>
           </div>
 
-          {/* 4-Phase Waypoint Timeline Items */}
+          {/* 4-Phase Waypoint Timeline Items with Precise Geometry */}
           <div className="relative pl-1 flex flex-col gap-4 mt-2">
-            {/* Vertical stem */}
-            <div className="absolute left-[17px] top-4 bottom-4 w-[2px] bg-white/10 z-0" />
+            {/* Vertical stem centered at 16px */}
+            <div className="absolute left-[15px] top-4 bottom-4 w-[2px] bg-white/10 z-0" />
 
             {waypoints.map((pt, idx) => {
               const isCheckedIn = pt.confirmed?.includes(currentUserName)
@@ -542,9 +546,9 @@ const InfoTab = ({
               const isPartial = pt.confirmed?.length > 0 && !isDone
 
               return (
-                <div key={pt.id} className="relative flex gap-3.5 z-10">
+                <div key={pt.id} className="relative flex gap-3 z-10 items-start">
                   {/* Node Circle */}
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 transition-all ${
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 transition-all mt-1 ${
                     isDone
                       ? 'bg-[#4fbe8e] text-[#10151a] border-2 border-[#4fbe8e] shadow-lg shadow-[#4fbe8e]/20'
                       : isPartial
@@ -558,15 +562,15 @@ const InfoTab = ({
                     )}
                   </div>
 
-                  {/* Content Container */}
-                  <div className="flex-1 min-w-0 bg-[#10151a] p-4 rounded-2xl border border-white/5 flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-3">
+                  {/* Content Container (Never clips Check-in button) */}
+                  <div className="flex-1 min-w-0 bg-[#10151a] p-3.5 rounded-[14px] border border-white/5 flex flex-col gap-2 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-mono font-bold text-[#4fbe8e] bg-[#4fbe8e]/10 px-2 py-0.5 rounded-full border border-[#4fbe8e]/20">
                             {pt.phase || `Phase ${idx + 1}`}
                           </span>
-                          <span className="text-xs text-[#9ba6ad] font-mono">
+                          <span className="text-[11px] text-[#9ba6ad] font-mono">
                             {pt.time} · {pt.elevation}
                           </span>
                         </div>
@@ -575,24 +579,25 @@ const InfoTab = ({
                         </div>
                       </div>
 
+                      {/* Action Button: Always Visible & Padded */}
                       {isCheckedIn ? (
                         <button
                           disabled
-                          className="text-xs font-bold text-[#4fbe8e] bg-[#4fbe8e]/10 border border-[#4fbe8e]/30 px-3.5 py-1.5 rounded-full flex-shrink-0 text-center shadow-sm"
+                          className="text-xs font-bold text-[#4fbe8e] bg-[#4fbe8e]/10 border border-[#4fbe8e]/30 px-3 py-1.5 rounded-full flex-shrink-0 text-center shadow-sm"
                         >
                           Checked in ✓
                         </button>
                       ) : (
                         <button
                           onClick={() => handleCheckIn(pt.id)}
-                          className="text-xs font-bold bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-90 text-[#1a0e08] px-4 py-1.5 rounded-full transition-all flex-shrink-0 cursor-pointer active:scale-95 text-center shadow-md shadow-[#ff6a2c]/25"
+                          className="text-xs font-bold bg-gradient-to-r from-[#ff6a2c] to-[#d9481a] hover:opacity-90 text-[#1a0e08] px-3.5 py-1.5 rounded-full transition-all flex-shrink-0 cursor-pointer active:scale-95 text-center shadow-md shadow-[#ff6a2c]/25"
                         >
                           Check in
                         </button>
                       )}
                     </div>
 
-                    <div className="text-xs text-[#9ba6ad] leading-relaxed">
+                    <div className="text-xs text-[#9ba6ad] leading-relaxed line-clamp-2">
                       {pt.desc}
                     </div>
 
@@ -608,16 +613,16 @@ const InfoTab = ({
           </div>
         </div>
 
-        {/* 3. EXTRACTED SAFETY & GPS TELEMETRY CARD */}
+        {/* 3. SAFETY & LIVE GPS TELEMETRY CARD */}
         <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-6 shadow-xl flex flex-col gap-4">
-          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
+          <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#4fbe8e] font-bold">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13z"/>
             </svg>
             <span>Safety &amp; Live GPS Telemetry</span>
           </div>
 
-          <div className="flex items-center justify-between gap-4 p-4 bg-[#10151a] rounded-2xl border border-white/10">
+          <div className="flex items-center justify-between gap-4 p-4 bg-[#10151a] rounded-[14px] border border-white/10">
             <div className="flex items-center gap-3.5 min-w-0">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
                 sharing ? 'bg-[#ff6a2c]/20 text-[#ff6a2c]' : 'bg-[#1a2129] text-[#9ba6ad] border border-white/10'
@@ -654,7 +659,7 @@ const InfoTab = ({
           </div>
 
           {/* Lead Organizer Bio Strip */}
-          <div className="flex items-center gap-3.5 p-3.5 bg-[#10151a] rounded-2xl border border-white/10">
+          <div className="flex items-center gap-3.5 p-3.5 bg-[#10151a] rounded-[14px] border border-white/10">
             <Avatar
               src={hostAvatar}
               name={hostName}
@@ -711,7 +716,7 @@ const InfoTab = ({
                 </div>
               </div>
 
-              <div className="p-3.5 bg-[#10151a] rounded-2xl border border-white/5 text-xs text-[#9ba6ad] leading-relaxed">
+              <div className="p-3.5 bg-[#10151a] rounded-[14px] border border-white/5 text-xs text-[#9ba6ad] leading-relaxed">
                 {selectedMember.bio || selectedMember.User?.Profile?.bio || 'Verified expedition traveler. Active co-explorer in Troopp travel network.'}
               </div>
 
