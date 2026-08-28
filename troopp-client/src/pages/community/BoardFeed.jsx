@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiRequest } from '../../utils/api.js'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -8,17 +8,9 @@ import Spinner from '../../components/common/Spinner.jsx'
 import Avatar from '../../components/common/Avatar.jsx'
 import { haptics } from '../../utils/haptics.js'
 
-/**
- * BoardFeed — Sub-Community Niche Channel View
- * Features:
- * - Sub-board Glass Header with member count & subscription toggle
- * - Flair tag filters (e.g. #TrailUpdate, #GearReview, #Question)
- * - Polymorphic card rendering matching CommunityFeed
- * - Board Rules & Moderation Team sidebar
- */
 const BoardFeed = () => {
   const { boardName } = useParams()
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
   // State
@@ -26,8 +18,7 @@ const BoardFeed = () => {
   const [posts, setPosts] = useState([])
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [subRole, setSubRole] = useState(null)
-  const [sort, setSort] = useState('hot') // 'hot' | 'new' | 'top'
-  const [selectedFlair, setSelectedFlair] = useState(null)
+  const [sort, setSort] = useState('hot')
   const [cursor, setCursor] = useState(null)
   const [loading, setLoading] = useState(true)
   const [postsLoading, setPostsLoading] = useState(true)
@@ -37,11 +28,6 @@ const BoardFeed = () => {
   // Auth Modal State
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState(null)
-
-  // Interaction State
-  const [activeReactionPostId, setActiveReactionPostId] = useState(null)
-  const [activeImageIndex, setActiveImageIndex] = useState({})
-  const [copiedPostId, setCopiedPostId] = useState(null)
 
   const fetchBoardDetails = async () => {
     try {
@@ -84,7 +70,7 @@ const BoardFeed = () => {
     else setPostsLoading(true)
 
     try {
-      let url = `/community/posts?board_name=${boardName}&sort=${sort}&limit=12`
+      let url = `/community/posts?board_name=${boardName}&sort=${sort}&limit=10`
       if (currentCursor) {
         url += `&cursor=${encodeURIComponent(currentCursor)}`
       }
@@ -132,7 +118,7 @@ const BoardFeed = () => {
   }
 
   const handleSubscribeToggle = async () => {
-    haptics.lightTap?.()
+    haptics.impactLight()
     if (!isAuthenticated) {
       triggerAuthModal(handleSubscribeToggle)
       return
@@ -140,7 +126,6 @@ const BoardFeed = () => {
 
     const previousState = isSubscribed
     setIsSubscribed(!previousState)
-    setBoard(prev => prev ? { ...prev, member_count: (prev.member_count || 1) + (previousState ? -1 : 1) } : prev)
 
     try {
       if (previousState) {
@@ -148,14 +133,15 @@ const BoardFeed = () => {
       } else {
         await apiRequest(`/community/boards/${boardName}/subscribe`, { method: 'POST' })
       }
+      fetchBoardDetails()
     } catch (err) {
-      console.error('Subscription toggle failed:', err)
+      console.error('Subscription failed:', err)
       setIsSubscribed(previousState)
     }
   }
 
   const handleVote = async (postId, value, currentVote) => {
-    haptics.lightTap?.()
+    haptics.impactLight()
     if (!isAuthenticated) {
       triggerAuthModal(() => handleVote(postId, value, currentVote))
       return
@@ -163,415 +149,455 @@ const BoardFeed = () => {
 
     const targetValue = currentVote === value ? 0 : value
     setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p
-      const diff = targetValue - (currentVote || 0)
-      return {
-        ...p,
-        user_vote: targetValue,
-        score: (p.score || 0) + diff
+      if (p.id === postId) {
+        let upvoteShift = 0
+        let downvoteShift = 0
+        if (currentVote === 1) upvoteShift -= 1
+        if (currentVote === -1) downvoteShift -= 1
+        if (targetValue === 1) upvoteShift += 1
+        if (targetValue === -1) downvoteShift += 1
+        return {
+          ...p,
+          user_vote: targetValue,
+          score: p.score + (upvoteShift - downvoteShift)
+        }
       }
+      return p
     }))
 
     try {
       await apiRequest('/community/votes', {
         method: 'POST',
-        body: JSON.stringify({
-          target_id: postId,
-          target_type: 'post',
-          value: targetValue
-        })
+        body: JSON.stringify({ target_type: 'post', target_id: postId, vote_value: targetValue })
       })
     } catch (err) {
-      console.error('Failed to vote on post:', err)
+      console.error('Vote failed:', err)
+      fetchBoardPosts(null, false)
     }
   }
 
-  const handleSave = async (postId, isSaved) => {
-    haptics.lightTap?.()
-    if (!isAuthenticated) {
-      triggerAuthModal(() => handleSave(postId, isSaved))
-      return
-    }
-
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_saved: !isSaved } : p))
-
-    try {
-      await apiRequest('/community/saved-items/toggle', {
-        method: 'POST',
-        body: JSON.stringify({
-          target_id: postId,
-          target_type: 'post'
-        })
-      })
-    } catch (err) {
-      console.error('Failed to toggle save:', err)
-    }
-  }
-
-  const handleShare = async (post) => {
-    haptics.lightTap?.()
-    const shareUrl = `${window.location.origin}/community/post/${post.id}`
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: post.title, url: shareUrl })
-        return
-      } catch (e) {}
-    }
-    navigator.clipboard.writeText(shareUrl)
-    setCopiedPostId(post.id)
-    setTimeout(() => setCopiedPostId(null), 2500)
-  }
-
-  // Filtered by flair
-  const displayedPosts = useMemo(() => {
-    if (!selectedFlair) return posts
-    return posts.filter(p => p.flair === selectedFlair || p.title?.toLowerCase().includes(selectedFlair.toLowerCase()))
-  }, [posts, selectedFlair])
-
-  const getTrustBadge = (score = 50) => {
-    if (score >= 75) return { color: '#33d189', bg: 'rgba(51,209,137,0.12)' }
-    if (score >= 50) return { color: '#4a9eff', bg: 'rgba(74,158,255,0.12)' }
-    return { color: '#9096ab', bg: 'rgba(144,150,171,0.12)' }
-  }
-
-  if (loading && !board) {
+  if (loading) {
     return (
-      <div className="page-container-wide flex items-center justify-center p-24">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
         <Spinner size="lg" />
       </div>
     )
   }
 
-  if (!board && !loading) {
+  if (!board) {
     return (
-      <div className="page-container-wide flex flex-col items-center justify-center p-16 text-center bg-[#12151f] border border-[#1c2130] rounded-2xl">
-        <h2 className="text-xl font-bold text-[#f3f4f8]">Sub-Community Not Found</h2>
-        <p className="text-xs text-[#9096ab] mt-1 mb-5">The community b/{boardName} doesn't exist or has been archived.</p>
-        <Link to="/community" className="px-5 py-2.5 rounded-xl bg-[#ff6a2c] text-[#1a0e08] font-bold text-xs">
-          Return to Community Hub ➔
-        </Link>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '16px' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '700', color: 'var(--accent)' }}>Board Not Found</h2>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>The community board b/{boardName} does not exist or was deleted.</p>
+        <Button
+          onClick={() => navigate('/community')}
+          variant="primary"
+          style={{
+            padding: '10px 24px',
+            height: '40px',
+            borderRadius: '12px',
+            border: 'none',
+            color: '#ffffff',
+            background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
+            cursor: 'pointer',
+            fontWeight: '700',
+            boxShadow: '0 4px 14px rgba(255,106,44,0.35)'
+          }}
+        >
+          Back to Community Home
+        </Button>
       </div>
     )
   }
 
   return (
-    <div className="page-container-wide flex flex-col gap-6 text-[#f3f1ea] min-w-0 pb-20">
+    <div className="page-container-wide select-none">
       
-      {/* ── BOARD HEADER BANNER ──────────────────────────────────────── */}
-      <div className="relative bg-gradient-to-r from-[#121721] via-[#1a2333] to-[#121721] border border-[#1c2130] rounded-2xl p-6 sm:p-8 shadow-xl overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#ff6a2c] to-[#d9481a] text-[#1a0e08] font-black text-2xl flex items-center justify-center shadow-lg shadow-[#ff6a2c]/20 flex-shrink-0">
-              #
+      {/* Board Banner Header */}
+      <div className="hero-banner">
+        <div className="hero-content">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+            <div 
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '16px',
+                background: 'var(--accent-soft)',
+                color: 'var(--accent)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: '700',
+                fontFamily: 'var(--font-display)',
+                textTransform: 'uppercase',
+                flexShrink: 0
+              }}
+            >
+              {board.name[0]}
             </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-black text-[#f3f4f8] m-0" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-                  b/{board?.name}
-                </h1>
-                <span className="text-[11px] font-mono font-bold text-[#33d189] bg-[#122a20] px-2.5 py-0.5 rounded-full uppercase border border-[#33d189]/30">
-                  {board?.type || 'Public'} Community
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-[#9096ab] m-0 max-w-xl leading-relaxed">
-                {board?.description || 'A dedicated space for travelers to share trail guides, ask questions, and connect.'}
+            <div>
+              <h1 className="hero-h1" style={{ fontSize: '24px', marginBottom: 0 }}>b/{board.name}</h1>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '500', margin: 0 }}>
+                {board.display_name} • {board.member_count} members
               </p>
-              <div className="flex items-center gap-3 text-xs text-[#5c6178] mt-1 font-mono">
-                <span><b>{board?.member_count || 1}</b> members</span>
-                <span>•</span>
-                <span>Created {new Date(board?.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
-              </div>
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2.5 w-full md:w-auto">
+          <p className="hero-p">{board.description || 'Welcome to the b/' + board.name + ' travel boards community.'}</p>
+          
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
             <button
               onClick={handleSubscribeToggle}
-              className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer border ${
-                isSubscribed
-                  ? 'bg-[#181c29] hover:bg-[#ff5470]/10 hover:text-[#ff5470] text-[#33d189] border-[#33d189]/40 hover:border-[#ff5470]/40'
-                  : 'bg-[#ff6a2c] hover:bg-[#ffa471] text-[#1a0e08] border-transparent shadow-lg shadow-[#ff6a2c]/20'
-              }`}
+              className="community-btn-secondary"
             >
-              {isSubscribed ? '✓ Joined' : '+ Join Community'}
+              {isSubscribed ? `Joined (${subRole || 'member'})` : 'Join Board'}
             </button>
-            <Link
-              to={`/community/submit?board=${boardName}`}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1a2129] hover:bg-[#222b36] border border-white/10 text-[#f3f4f8] font-bold text-xs transition-all text-decoration-none whitespace-nowrap"
+            <button
+              onClick={() => navigate(`/community/submit?board=${board.name}`)}
+              className="hero-cta"
+              style={{
+                background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
+                marginTop: 0
+              }}
             >
-              <span>+ Post</span>
-            </Link>
+              Submit Post +
+            </button>
           </div>
         </div>
-
-        {/* Flairs Bar */}
-        {board?.flair_options?.length > 0 && (
-          <div className="relative z-10 mt-5 pt-4 border-t border-white/5 flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <span className="text-[11px] font-mono uppercase text-[#5c6178] flex-shrink-0">Topics:</span>
-            <button
-              onClick={() => setSelectedFlair(null)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer border-none ${
-                selectedFlair === null ? 'bg-[#ff6a2c] text-[#1a0e08]' : 'bg-[#181c29] text-[#9096ab] hover:text-[#f3f4f8]'
-              }`}
-            >
-              All
-            </button>
-            {board.flair_options.map((flair, idx) => (
-              <button
-                key={idx}
-                onClick={() => setSelectedFlair(selectedFlair === flair ? null : flair)}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer border-none whitespace-nowrap ${
-                  selectedFlair === flair ? 'bg-[#ff6a2c] text-[#1a0e08]' : 'bg-[#181c29] text-[#9096ab] hover:text-[#f3f4f8]'
-                }`}
-              >
-                #{flair}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* ── 2-COLUMN LAYOUT: Feed + Rules Sidebar ─────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      {/* Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start w-full">
         
-        {/* Main Feed Column */}
-        <main className="lg:col-span-2 flex flex-col gap-4 min-w-0">
+        {/* Left Column: Posts List */}
+        <div className="flex flex-col gap-4 w-full min-w-0">
           
-          {/* Sorting Bar */}
-          <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-2.5 shadow-md flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              {[
-                { id: 'hot', label: 'Hot', icon: '🔥' },
-                { id: 'new', label: 'New', icon: '⚡' },
-                { id: 'top', label: 'Top', icon: '🏆' }
-              ].map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setSort(t.id)}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    sort === t.id
-                      ? 'bg-[#ff6a2c] text-[#1a0e08] shadow-md'
-                      : 'text-[#9096ab] hover:text-[#f3f4f8] hover:bg-[#181c29]'
-                  }`}
-                >
-                  <span>{t.icon}</span>
-                  <span>{t.label}</span>
-                </button>
-              ))}
+          {/* Sorting */}
+          <div 
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '20px',
+              boxShadow: 'var(--shadow-card)',
+              padding: '12px 16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setSort('hot')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  border: 'none',
+                  transition: 'all var(--transition-fast) ease',
+                  background: sort === 'hot' ? 'var(--accent)' : 'transparent',
+                  color: sort === 'hot' ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                🔥 Hot
+              </button>
+              <button
+                onClick={() => setSort('new')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  border: 'none',
+                  transition: 'all var(--transition-fast) ease',
+                  background: sort === 'new' ? 'var(--accent)' : 'transparent',
+                  color: sort === 'new' ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                ✨ New
+              </button>
             </div>
-            <span className="text-xs text-[#5c6178] font-mono">
-              {displayedPosts.length} posts
-            </span>
+            <Link to="/community" style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', fontWeight: '600', paddingRight: '8px' }}>
+              Back to Home
+            </Link>
           </div>
 
-          {/* Posts List */}
+          {/* Posts list */}
           {postsLoading ? (
-            <div className="flex flex-col items-center justify-center p-16 bg-[#12151f] border border-[#1c2130] rounded-2xl">
-              <Spinner size="md" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '30vh' }}>
+              <Spinner size="lg" />
             </div>
-          ) : displayedPosts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-14 bg-[#12151f] border border-[#1c2130] rounded-2xl text-center">
-              <div className="text-3xl mb-2">🏔️</div>
-              <h3 className="text-base font-bold text-[#f3f4f8]">No posts in b/{boardName} yet</h3>
-              <p className="text-xs text-[#9096ab] mt-1 mb-4">Start the conversation by publishing the first trail dispatch!</p>
-              <Link to={`/community/submit?board=${boardName}`} className="px-4 py-2 rounded-xl bg-[#ff6a2c] text-[#1a0e08] font-bold text-xs">
-                Create First Post
-              </Link>
+          ) : posts.length === 0 ? (
+            <div 
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: '20px',
+                padding: '48px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '16px'
+              }}
+            >
+              <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', margin: 0 }}>No discussions in b/{board.name} yet</h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0 }}>Be the first to post guidelines or share updates!</p>
+              <Button
+                onClick={() => navigate(`/community/submit?board=${board.name}`)}
+                variant="primary"
+                style={{
+                  padding: '10px 24px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
+                  cursor: 'pointer',
+                  fontWeight: '700',
+                  boxShadow: '0 4px 14px rgba(255,106,44,0.35)'
+                }}
+              >
+                Create Post
+              </Button>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              {displayedPosts.map(post => {
-                const authorBadge = getTrustBadge(post.User?.trust_score)
-                const isMedia = post.type === 'image' || post.media_urls?.length > 0
-                const mediaItems = post.media_urls || []
-                const currentImgIdx = activeImageIndex[post.id] || 0
-
-                return (
-                  <article
-                    key={post.id}
-                    className="bg-[#12151f] hover:border-[#262b3a] border border-[#1c2130] rounded-2xl shadow-lg transition-all overflow-hidden flex flex-col"
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {posts.map(post => (
+                <div 
+                  key={post.id} 
+                  style={{
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '20px',
+                    boxShadow: 'var(--shadow-card)',
+                    display: 'flex',
+                    overflow: 'hidden'
+                  }}
+                >
+                  
+                  {/* Vote rail */}
+                  <div 
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.01)',
+                      width: '48px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      padding: '16px 0',
+                      borderRight: '1px solid var(--border)',
+                      flexShrink: 0
+                    }}
                   >
-                    <div className="flex">
-                      {/* Left Vote Rail */}
-                      <div className="community-vote-rail hidden sm:flex flex-col items-center justify-start p-3 bg-[#0d1017]/50 border-r border-[#1c2130] w-12 flex-shrink-0 gap-1">
-                        <button
-                          onClick={() => handleVote(post.id, 1, post.user_vote)}
-                          className={`p-1 rounded-lg transition-colors cursor-pointer border-none ${
-                            post.user_vote === 1 ? 'text-[#ff6a2c] bg-[#ff6a2c]/10' : 'text-[#5c6178] hover:text-[#f3f4f8] bg-transparent'
-                          }`}
-                        >
-                          ▲
-                        </button>
-                        <span className={`text-xs font-mono font-bold ${
-                          post.user_vote === 1 ? 'text-[#ff6a2c]' : post.user_vote === -1 ? 'text-[#ff5470]' : 'text-[#f3f4f8]'
-                        }`}>
-                          {post.score || 0}
-                        </span>
-                        <button
-                          onClick={() => handleVote(post.id, -1, post.user_vote)}
-                          className={`p-1 rounded-lg transition-colors cursor-pointer border-none ${
-                            post.user_vote === -1 ? 'text-[#ff5470] bg-[#ff5470]/10' : 'text-[#5c6178] hover:text-[#f3f4f8] bg-transparent'
-                          }`}
-                        >
-                          ▼
-                        </button>
-                      </div>
+                    <button
+                      onClick={() => handleVote(post.id, 1, post.user_vote)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '6px',
+                        borderRadius: '8px',
+                        color: post.user_vote === 1 ? 'var(--accent)' : 'var(--text-tertiary)',
+                        transition: 'color var(--transition-fast)'
+                      }}
+                    >
+                      ▲
+                    </button>
+                    <span style={{ fontSize: '12px', fontWeight: '700', fontFamily: 'var(--font-mono)', margin: '4px 0', color: 'var(--text-secondary)' }}>
+                      {post.score}
+                    </span>
+                    <button
+                      onClick={() => handleVote(post.id, -1, post.user_vote)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '6px',
+                        borderRadius: '8px',
+                        color: post.user_vote === -1 ? 'var(--danger)' : 'var(--text-tertiary)',
+                        transition: 'color var(--transition-fast)'
+                      }}
+                    >
+                      ▼
+                    </button>
+                  </div>
 
-                      {/* Main Card Content */}
-                      <div className="flex-1 p-4 sm:p-5 flex flex-col gap-3 min-w-0">
-                        <div className="flex items-center justify-between gap-3 text-xs">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Avatar
-                              src={post.User?.Profile?.avatar_url}
-                              name={post.User?.Profile?.name || 'Explorer'}
-                              size="xs"
-                              score={post.User?.trust_score || 50}
-                            />
-                            <Link to={`/profile/${post.user_id}`} className="font-semibold text-[#c4c5d9] hover:text-[#f3f4f8] text-decoration-none">
-                              {post.User?.Profile?.name || 'Explorer'}
-                            </Link>
-                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded" style={{ background: authorBadge.bg, color: authorBadge.color }}>
-                              ★ {post.User?.trust_score ?? 50}
-                            </span>
-                            <span className="text-[#5c6178]">•</span>
-                            <span className="text-[#5c6178] text-[11px]">
-                              {new Date(post.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleSave(post.id, post.is_saved)}
-                              className={`p-1.5 rounded-lg border-none bg-transparent cursor-pointer ${post.is_saved ? 'text-[#ff6a2c]' : 'text-[#5c6178] hover:text-[#f3f4f8]'}`}
-                            >
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill={post.is_saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                            </button>
-                            <button
-                              onClick={() => handleShare(post)}
-                              className="p-1.5 text-[#5c6178] hover:text-[#f3f4f8] border-none bg-transparent cursor-pointer"
-                            >
-                              {copiedPostId === post.id ? <span className="text-[10px] text-[#33d189]">Copied!</span> : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>}
-                            </button>
-                          </div>
-                        </div>
-
-                        <Link to={`/community/post/${post.id}`} className="text-decoration-none">
-                          <h2 className="text-base sm:text-lg font-bold text-[#f3f4f8] hover:text-[#ff6a2c] transition-colors leading-snug m-0" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-                            {post.title}
-                          </h2>
-                        </Link>
-
-                        {post.content && (
-                          <p className="text-xs sm:text-sm text-[#9096ab] line-clamp-3 leading-relaxed m-0">
-                            {post.content}
-                          </p>
-                        )}
-
-                        {/* Media Carousel */}
-                        {isMedia && mediaItems.length > 0 && (
-                          <div className="relative rounded-xl overflow-hidden bg-[#0c1017] border border-[#1c2130] my-1 max-h-[340px] flex items-center justify-center">
-                            <img src={mediaItems[currentImgIdx] || mediaItems[0]} alt="Post media" className="w-full h-auto max-h-[340px] object-cover" />
-                            {mediaItems.length > 1 && (
-                              <>
-                                <button
-                                  onClick={() => setActiveImageIndex(prev => ({ ...prev, [post.id]: Math.max(0, currentImgIdx - 1) }))}
-                                  disabled={currentImgIdx === 0}
-                                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center disabled:opacity-30 cursor-pointer border-none"
-                                >
-                                  ◀
-                                </button>
-                                <button
-                                  onClick={() => setActiveImageIndex(prev => ({ ...prev, [post.id]: Math.min(mediaItems.length - 1, currentImgIdx + 1) }))}
-                                  disabled={currentImgIdx === mediaItems.length - 1}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center disabled:opacity-30 cursor-pointer border-none"
-                                >
-                                  ▶
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Card Footer */}
-                        <div className="flex items-center justify-between pt-3 border-t border-[#1c2130] mt-1 text-xs">
-                          <button
-                            onClick={() => setActiveReactionPostId(activeReactionPostId === post.id ? null : post.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#181c29] hover:bg-[#222b36] border border-[#262b3a] text-[#9096ab] hover:text-[#f3f4f8] cursor-pointer"
-                          >
-                            <span>🏔️</span>
-                            <span className="text-[11px] font-semibold">React</span>
-                          </button>
-
-                          <Link
-                            to={`/community/post/${post.id}`}
-                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#181c29] hover:bg-[#222b36] border border-[#262b3a] text-[#c4c5d9] hover:text-[#f3f4f8] text-decoration-none font-semibold text-[11.5px]"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            <span>{post.comment_count || 0} replies</span>
-                          </Link>
-                        </div>
-                      </div>
+                  {/* Body details */}
+                  <div style={{ flex: 1, padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                      <span>Posted by</span>
+                      <Avatar
+                        src={post.User?.Profile?.avatar_url}
+                        name={post.User?.Profile?.name || 'Explorer'}
+                        size="xs"
+                        gender={post.User?.Profile?.gender}
+                      />
+                      <Link to={`/profile/${post.user_id}`} style={{ fontWeight: '600', color: 'var(--text-secondary)', textDecoration: 'none' }}>
+                        {post.User?.Profile?.name || 'Explorer'}
+                      </Link>
+                      <span>•</span>
+                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                     </div>
-                  </article>
-                )
-              })}
+
+                    <Link to={`/community/post/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <h2 
+                        style={{
+                          fontSize: '15px',
+                          fontWeight: '600',
+                          lineHeight: '1.4',
+                          fontFamily: 'var(--font-display)',
+                          color: 'var(--text-primary)',
+                          margin: 0
+                        }}
+                        onMouseEnter={(e) => e.target.style.color = 'var(--accent)'}
+                        onMouseLeave={(e) => e.target.style.color = 'var(--text-primary)'}
+                      >
+                        {post.title}
+                      </h2>
+                    </Link>
+
+                    {post.content && (
+                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {post.content}
+                      </p>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'between', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '4px' }}>
+                      <Link
+                        to={`/community/post/${post.id}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '12px',
+                          color: 'var(--text-secondary)',
+                          textDecoration: 'none',
+                          padding: '6px 12px',
+                          borderRadius: '10px',
+                          transition: 'background var(--transition-fast)'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-raised)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <svg style={{ width: '16px', height: '16px', color: 'var(--text-tertiary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span>{post.comment_count} replies</span>
+                      </Link>
+                    </div>
+
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Load More Button */}
           {hasMore && (
-            <div className="flex justify-center mt-4">
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
               <Button
                 onClick={() => fetchBoardPosts(cursor, true)}
                 loading={loadingMore}
                 variant="secondary"
-                className="px-8 py-2.5 rounded-xl border border-white/10 bg-[#12151f] hover:bg-[#181c29] text-[#f3f4f8] font-bold text-xs cursor-pointer shadow-lg"
+                style={{
+                  padding: '10px 32px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  border: '1.5px solid var(--border)',
+                  background: 'var(--surface-raised)',
+                  color: 'var(--text-primary)',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
               >
-                Load More Posts ➔
+                Load More
               </Button>
             </div>
           )}
-        </main>
+        </div>
 
-        {/* Right Sidebar: Rules & Moderation */}
-        <aside className="flex flex-col gap-5 sticky top-20">
-          
-          {/* Rules Card */}
-          <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-5 shadow-lg flex flex-col gap-3">
-            <div className="text-[11px] font-mono uppercase font-bold tracking-wider text-[#ffa471]">
-              b/{boardName} Community Rules
-            </div>
-            {board?.rules?.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {board.rules.map((rule, idx) => (
-                  <div key={idx} className="flex gap-2 text-xs leading-relaxed">
-                    <span className="font-bold text-[#ff6a2c] font-mono">{idx + 1}.</span>
-                    <span className="text-[#9096ab]">{typeof rule === 'string' ? rule : rule.title || rule.description}</span>
-                  </div>
-                ))}
+        {/* Right Column: About Board Details */}
+        <div 
+          className="w-full min-w-0"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px',
+            boxShadow: 'var(--shadow-card)',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            textAlign: 'left'
+          }}
+        >
+          <div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '8px', marginTop: 0 }}>
+              About b/{board.name}
+            </h3>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '12px', marginTop: 0 }}>
+              {board.description || 'Welcome to this local backpacking destination board.'}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Access rules:</span>
+                <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)', fontWeight: '600' }}>{board.type}</span>
               </div>
-            ) : (
-              <p className="text-xs text-[#9096ab] leading-relaxed m-0">
-                1. Respect all travelers and local residents.<br/>
-                2. No commercial spam or unauthorized promotions.<br/>
-                3. Share verified trail conditions and coordinates when possible.
-              </p>
-            )}
-          </div>
-
-          {/* Mod Status */}
-          <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-5 shadow-lg flex flex-col gap-3">
-            <div className="text-[11px] font-mono uppercase font-bold tracking-wider text-[#ffa471]">
-              Moderation Team
-            </div>
-            <div className="flex items-center gap-2 text-xs text-[#c4c5d9]">
-              <span className="w-2 h-2 rounded-full bg-[#33d189]" />
-              <span>Managed by Troopp Community Lead</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Subscribers:</span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>{board.member_count}</span>
+              </div>
             </div>
           </div>
 
-        </aside>
+          {board.rules && board.rules.length > 0 && (
+            <>
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+              <div>
+                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '10px', marginTop: 0 }}>
+                  b/{board.name} Rules
+                </h4>
+                <ol style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  {board.rules.map((rule, idx) => (
+                    <li key={idx}>{rule}</li>
+                  ))}
+                </ol>
+              </div>
+            </>
+          )}
+
+          {board.flair_options && board.flair_options.length > 0 && (
+            <>
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+              <div>
+                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '8px', marginTop: 0 }}>
+                  Flairs
+                </h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {board.flair_options.map((flair, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        padding: '2px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        border: '1px solid transparent',
+                        backgroundColor: `${flair.color || '#ff6a2c'}20`,
+                        color: flair.color || '#ff6a2c'
+                      }}
+                    >
+                      {flair.text}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+        </div>
 
       </div>
 
@@ -585,4 +611,3 @@ const BoardFeed = () => {
 }
 
 export default BoardFeed
-export { BoardFeed }

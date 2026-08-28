@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { apiRequest } from '../../utils/api.js'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -8,7 +8,7 @@ import Spinner from '../../components/common/Spinner.jsx'
 import Avatar from '../../components/common/Avatar.jsx'
 import { haptics } from '../../utils/haptics.js'
 
-// Recursive Nested Comment Node Component
+// Recursive Comment Node Component
 const CommentNode = ({ comment, depth = 0, onVote, onReply, onEdit, onReport, currentUserId, onDelete }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [replyOpen, setReplyOpen] = useState(false)
@@ -18,6 +18,10 @@ const CommentNode = ({ comment, depth = 0, onVote, onReply, onEdit, onReport, cu
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(comment.content)
   const [submittingEdit, setSubmittingEdit] = useState(false)
+
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState('Spam')
+  const [submittingReport, setSubmittingReport] = useState(false)
 
   const handleVoteClick = (value) => {
     onVote(comment.id, value, comment.user_vote)
@@ -40,25 +44,25 @@ const CommentNode = ({ comment, depth = 0, onVote, onReply, onEdit, onReport, cu
 
   const isAuthor = comment.user_id === currentUserId
   const isDeleted = comment.content === '[deleted]'
-  const trustScore = comment.User?.trust_score ?? 50
 
   return (
-    <div className="flex flex-col gap-2 mt-3 text-left">
-      <div className="flex gap-2.5">
+    <div className="flex flex-col gap-2 mt-4 text-left">
+      <div className="flex gap-3">
         {depth > 0 && (
-          <div className="flex justify-center w-5 shrink-0 relative">
+          <div className="flex justify-center w-6 shrink-0 relative">
             <div
-              className="w-[2px] bg-[#1c2130] hover:bg-[#ff6a2c]/50 cursor-pointer transition-colors h-full absolute left-1/2 -translate-x-1/2 rounded-full"
+              className="w-[1.5px] bg-border hover:bg-accent/40 cursor-pointer transition-colors h-full absolute left-1/2 -translate-x-1/2"
               onClick={() => setCollapsed(!collapsed)}
             />
           </div>
         )}
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap text-xs text-[#9096ab]">
+        <div className="flex-1">
+          {/* Header */}
+          <div className="flex items-center gap-2 flex-wrap text-[11px] text-text-tertiary">
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="text-[#5c6178] hover:text-[#f3f4f8] font-mono text-[10px] w-4 h-4 rounded bg-[#181c29] border border-[#262b3a] flex items-center justify-center cursor-pointer"
+              className="text-text-tertiary hover:text-accent font-bold font-mono text-center w-4 h-4 rounded hover:bg-surface-raised flex items-center justify-center border border-border"
             >
               {collapsed ? '+' : '−'}
             </button>
@@ -66,26 +70,24 @@ const CommentNode = ({ comment, depth = 0, onVote, onReply, onEdit, onReport, cu
               src={comment.User?.Profile?.avatar_url}
               name={comment.User?.Profile?.name || 'Explorer'}
               size="xs"
-              score={trustScore}
+              gender={comment.User?.Profile?.gender}
             />
-            <Link to={comment.user_id ? `/profile/${comment.user_id}` : '#'} className="font-bold text-[#f3f4f8] hover:text-[#ff6a2c] text-decoration-none">
+            <Link to={comment.user_id ? `/profile/${comment.user_id}` : '#'} className="hover:underline font-bold text-text-secondary">
               {comment.User?.Profile?.name || '[deleted]'}
             </Link>
-            {trustScore > 0 && (
-              <span className="text-[10px] font-mono font-bold text-[#33d189] bg-[#122a20] px-1.5 py-0.2 rounded border border-[#33d189]/30">
-                ★ {trustScore}
+            {comment.User?.trust_score !== undefined && comment.User?.trust_score > 0 && (
+              <span className="bg-moss-soft text-moss px-1.5 py-0.5 rounded text-[9px] font-bold">
+                ★ {comment.User?.trust_score}
               </span>
             )}
-            <span className="text-[#5c6178]">•</span>
-            <span className="text-[11px] text-[#5c6178]">
-              {new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </span>
+            <span>•</span>
+            <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
           </div>
 
           {!collapsed && (
-            <div className="pl-6 pt-1 flex flex-col gap-2">
+            <div className="pl-6 pt-1.5 flex flex-col gap-2">
               {isEditing ? (
-                <form
+                <form 
                   onSubmit={async (e) => {
                     e.preventDefault()
                     if (!editText.trim()) return
@@ -98,161 +100,281 @@ const CommentNode = ({ comment, depth = 0, onVote, onReply, onEdit, onReport, cu
                     } finally {
                       setSubmittingEdit(false)
                     }
-                  }}
-                  className="flex flex-col gap-2 p-3 rounded-xl bg-[#181c29] border border-[#262b3a] my-1"
+                  }} 
+                  style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--surface-raised)', padding: '12px', border: '1px solid var(--border)', borderRadius: '12px', marginTop: '6px' }}
                 >
                   <textarea
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
-                    className="w-full text-xs bg-[#0c1017] border border-[#262b3a] rounded-lg p-2 text-[#f3f4f8] outline-none resize-none min-h-[60px]"
+                    style={{
+                      width: '100%',
+                      fontSize: '13px',
+                      background: 'var(--bg)',
+                      border: '1.5px solid var(--border)',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                      resize: 'none',
+                      minHeight: '70px'
+                    }}
+                    required
                   />
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="px-3 py-1 text-xs text-[#9096ab] hover:text-[#f3f4f8] bg-transparent border-none cursor-pointer"
-                    >
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <Button type="button" onClick={() => setIsEditing(false)} variant="ghost" style={{ padding: '2px 12px', height: '28px', fontSize: '11px', borderRadius: '6px' }}>
                       Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submittingEdit}
-                      className="px-3 py-1 text-xs font-bold text-[#1a0e08] bg-[#ff6a2c] rounded-lg border-none cursor-pointer"
-                    >
+                    </Button>
+                    <Button type="submit" loading={submittingEdit} variant="primary" style={{ padding: '2px 14px', height: '28px', fontSize: '11px', borderRadius: '6px' }}>
                       Save
-                    </button>
+                    </Button>
                   </div>
                 </form>
               ) : (
-                <p className="text-xs sm:text-sm text-[#c4c5d9] leading-relaxed m-0 whitespace-pre-line">
+                <p className={`text-xs leading-relaxed text-text-secondary ${isDeleted ? 'italic text-text-tertiary' : ''}`}>
                   {comment.content}
+                  {comment.edited_at && <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginLeft: '6px', fontStyle: 'italic' }}>(edited)</span>}
                 </p>
               )}
 
-              {/* Comment Actions Toolbar */}
+              {reportOpen && (
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    setSubmittingReport(true)
+                    try {
+                      await onReport('comment', comment.id, reportReason)
+                      setReportOpen(false)
+                      alert('Comment reported successfully to moderators.')
+                    } catch (err) {
+                      console.error(err)
+                    } finally {
+                      setSubmittingReport(false)
+                    }
+                  }} 
+                  style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--surface-raised)', padding: '8px 12px', border: '1.5px solid var(--border)', borderRadius: '10px', marginTop: '6px' }}
+                >
+                  <select
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    style={{
+                      background: 'var(--bg)',
+                      border: '1.5px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      color: 'var(--text-primary)',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="Spam">Spam</option>
+                    <option value="Harassment">Harassment</option>
+                    <option value="Misinformation">Misinformation</option>
+                    <option value="Inappropriate">Inappropriate</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <Button type="submit" loading={submittingReport} variant="primary" style={{ padding: '2px 10px', height: '28px', fontSize: '11px', borderRadius: '6px' }}>
+                    Submit
+                  </Button>
+                  <Button type="button" onClick={() => setReportOpen(false)} variant="ghost" style={{ padding: '2px 10px', height: '28px', fontSize: '11px', borderRadius: '6px' }}>
+                    Cancel
+                  </Button>
+                </form>
+              )}
+
               {!isDeleted && (
-                <div className="flex items-center gap-3 text-xs text-[#5c6178] pt-1">
-                  <div className="flex items-center gap-1 bg-[#181c29] px-2 py-0.5 rounded-lg border border-[#262b3a]">
+                <div className="flex items-center gap-4 text-[11px] text-text-tertiary mt-1">
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleVoteClick(1)}
-                      className={`border-none bg-transparent cursor-pointer text-xs ${comment.user_vote === 1 ? 'text-[#ff6a2c]' : 'text-[#5c6178] hover:text-[#f3f4f8]'}`}
+                      className={`hover:text-accent transition-colors ${comment.user_vote === 1 ? 'text-accent' : ''}`}
                     >
                       ▲
                     </button>
-                    <span className="font-mono font-bold text-[11px] text-[#f3f4f8]">{comment.score || 0}</span>
+                    <span className="font-bold font-mono text-text-secondary">{comment.score}</span>
                     <button
                       onClick={() => handleVoteClick(-1)}
-                      className={`border-none bg-transparent cursor-pointer text-xs ${comment.user_vote === -1 ? 'text-[#ff5470]' : 'text-[#5c6178] hover:text-[#f3f4f8]'}`}
+                      className={`hover:text-danger transition-colors ${comment.user_vote === -1 ? 'text-danger' : ''}`}
                     >
                       ▼
                     </button>
                   </div>
-
+                  
                   <button
                     onClick={() => setReplyOpen(!replyOpen)}
-                    className="text-xs text-[#9096ab] hover:text-[#ff6a2c] bg-transparent border-none cursor-pointer font-semibold"
+                    className="hover:text-accent transition-colors font-semibold"
                   >
                     Reply
                   </button>
 
-                  {isAuthor && (
+                  {isAuthor ? (
                     <>
                       <button
-                        onClick={() => setIsEditing(true)}
-                        className="text-xs text-[#9096ab] hover:text-[#f3f4f8] bg-transparent border-none cursor-pointer"
+                        onClick={() => {
+                          setEditText(comment.content)
+                          setIsEditing(!isEditing)
+                        }}
+                        className="hover:text-accent transition-colors font-semibold"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => onDelete(comment.id)}
-                        className="text-xs text-[#ff5470] hover:underline bg-transparent border-none cursor-pointer"
+                        className="hover:text-danger transition-colors font-semibold"
                       >
                         Delete
                       </button>
                     </>
+                  ) : (
+                    currentUserId && (
+                      <button
+                        onClick={() => setReportOpen(!reportOpen)}
+                        className="hover:text-warning transition-colors font-semibold"
+                      >
+                        Report
+                      </button>
+                    )
                   )}
-
-                  <button
-                    onClick={() => onReport?.('comment', comment.id)}
-                    className="text-xs text-[#5c6178] hover:text-[#ff5470] bg-transparent border-none cursor-pointer ml-auto"
-                  >
-                    Report
-                  </button>
                 </div>
               )}
 
-              {/* Reply Box */}
               {replyOpen && (
-                <form onSubmit={handleReplySubmit} className="flex flex-col gap-2 p-3 bg-[#181c29] border border-[#262b3a] rounded-xl my-2">
+                <form onSubmit={handleReplySubmit} className="mt-3 flex flex-col gap-2 p-3 bg-surface-raised/30 border border-border rounded-xl">
                   <textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Write your constructive reply..."
-                    className="w-full bg-[#0c1017] border border-[#262b3a] rounded-lg p-2.5 text-xs text-[#f3f4f8] placeholder:text-[#5c6178] outline-none resize-none min-h-[70px]"
+                    placeholder="Write a supportive reply..."
+                    className="w-full text-xs bg-bg border border-border rounded-lg p-2.5 focus:outline-none focus:border-accent text-text-primary resize-none min-h-[70px]"
+                    required
                   />
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setReplyOpen(false)}
-                      className="px-3 py-1.5 text-xs text-[#9096ab] hover:text-[#f3f4f8] bg-transparent border-none cursor-pointer"
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <Button 
+                      type="button" 
+                      onClick={() => setReplyOpen(false)} 
+                      variant="ghost"
+                      style={{
+                        padding: '4px 14px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        border: '1.5px solid var(--border)',
+                        color: 'var(--text-secondary)',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        fontSize: '11.5px'
+                      }}
                     >
                       Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submittingReply || !replyText.trim()}
-                      className="px-4 py-1.5 text-xs font-bold bg-[#ff6a2c] text-[#1a0e08] rounded-lg border-none cursor-pointer disabled:opacity-50"
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      loading={submittingReply} 
+                      variant="primary"
+                      style={{
+                        padding: '4px 16px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        color: '#ffffff',
+                        background: 'linear-gradient(135deg, #ff6a2c 0%, #d9481a 100%)',
+                        cursor: 'pointer',
+                        fontWeight: '700',
+                        fontSize: '11.5px',
+                        boxShadow: '0 2px 8px rgba(255,106,44,0.25)'
+                      }}
                     >
-                      {submittingReply ? 'Posting...' : 'Post Reply'}
-                    </button>
+                      Submit Reply
+                    </Button>
                   </div>
                 </form>
               )}
 
-              {/* Nested Child Comments */}
-              {comment.children && comment.children.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  {comment.children.map(child => (
-                    <CommentNode
-                      key={child.id}
-                      comment={child}
-                      depth={depth + 1}
-                      onVote={onVote}
-                      onReply={onReply}
-                      onEdit={onEdit}
-                      onReport={onReport}
-                      onDelete={onDelete}
-                      currentUserId={currentUserId}
-                    />
-                  ))}
-                </div>
-              )}
+              {comment.replies && comment.replies.map(reply => (
+                <CommentNode
+                  key={reply.id}
+                  comment={reply}
+                  depth={depth + 1}
+                  onVote={onVote}
+                  onReply={onReply}
+                  onEdit={onEdit}
+                  onReport={onReport}
+                  currentUserId={currentUserId}
+                  onDelete={onDelete}
+                />
+              ))}
             </div>
           )}
+
         </div>
       </div>
     </div>
   )
 }
 
-/**
- * PostDetail — Full Thread View with Nested Comments and Trip Proof
- */
 const PostDetail = () => {
   const { postId } = useParams()
-  const { isAuthenticated, user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
+  // State
   const [post, setPost] = useState(null)
   const [comments, setComments] = useState([])
-  const [commentText, setCommentText] = useState('')
+  const [newCommentText, setNewCommentText] = useState('')
   const [loading, setLoading] = useState(true)
-  const [submittingComment, setSubmittingComment] = useState(false)
-  const [copiedLink, setCopiedLink] = useState(false)
+  const [commentSubmitting, setCommentSubmitting] = useState(false)
 
-  // Auth Modal
+  // Edit / Report Post
+  const [isEditingPost, setIsEditingPost] = useState(false)
+  const [postEditText, setPostEditText] = useState('')
+  const [submittingPostEdit, setSubmittingPostEdit] = useState(false)
+
+  const [postReportOpen, setPostReportOpen] = useState(false)
+  const [postReportReason, setPostReportReason] = useState('Spam')
+  const [submittingPostReport, setSubmittingPostReport] = useState(false)
+
+  // Poll state
+  const [selectedPollOption, setSelectedPollOption] = useState(null)
+  const [votingPoll, setVotingPoll] = useState(false)
+
+  // Auth intercept
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState(null)
+
+  const fetchPostDetails = async () => {
+    try {
+      const res = await apiRequest(`/community/posts/${postId}`)
+      if (res.ok) {
+        const json = await res.json()
+        if (json.status === 'success' && json.data) {
+          setPost(json.data.post)
+          setPostEditText(json.data.post.content || '')
+          return
+        }
+      }
+      setPost(null)
+    } catch (err) {
+      console.error(err)
+      setPost(null)
+    }
+  }
+
+  const fetchComments = async () => {
+    try {
+      const res = await apiRequest(`/community/posts/${postId}/comments`)
+      if (res.ok) {
+        const json = await res.json()
+        if (json.status === 'success' && json.data) {
+          setComments(json.data.comments || [])
+        }
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    setLoading(true)
+    Promise.all([fetchPostDetails(), fetchComments()]).finally(() => setLoading(false))
+  }, [postId, isAuthenticated])
 
   const triggerAuthModal = (action) => {
     setPendingAction(() => action)
@@ -264,8 +386,104 @@ const PostDetail = () => {
       pendingAction()
       setPendingAction(null)
     }
-    fetchPostDetails?.()
-    fetchComments?.()
+    fetchPostDetails()
+    fetchComments()
+  }
+
+  const handlePostVote = async (value, currentVote) => {
+    haptics.impactLight()
+    if (!isAuthenticated) {
+      triggerAuthModal(() => handlePostVote(value, currentVote))
+      return
+    }
+
+    const targetValue = currentVote === value ? 0 : value
+    setPost(prev => {
+      let upvoteShift = 0
+      let downvoteShift = 0
+      if (currentVote === 1) upvoteShift -= 1
+      if (currentVote === -1) downvoteShift -= 1
+      if (targetValue === 1) upvoteShift += 1
+      if (targetValue === -1) downvoteShift += 1
+      return {
+        ...prev,
+        user_vote: targetValue,
+        score: prev.score + (upvoteShift - downvoteShift)
+      }
+    })
+
+    try {
+      await apiRequest('/community/votes', {
+        method: 'POST',
+        body: JSON.stringify({ target_type: 'post', target_id: postId, vote_value: targetValue })
+      })
+    } catch (err) {
+      console.error('Post vote failed:', err)
+      fetchPostDetails()
+    }
+  }
+
+  const handleCommentVote = async (commentId, value, currentVote) => {
+    haptics.impactLight()
+    if (!isAuthenticated) {
+      triggerAuthModal(() => handleCommentVote(commentId, value, currentVote))
+      return
+    }
+
+    const targetValue = currentVote === value ? 0 : value
+
+    const updateCommentScore = (list) => {
+      return list.map(c => {
+        if (c.id === commentId) {
+          let upvoteShift = 0
+          let downvoteShift = 0
+          if (currentVote === 1) upvoteShift -= 1
+          if (currentVote === -1) downvoteShift -= 1
+          if (targetValue === 1) upvoteShift += 1
+          if (targetValue === -1) downvoteShift += 1
+          return {
+            ...c,
+            user_vote: targetValue,
+            score: c.score + (upvoteShift - downvoteShift)
+          }
+        }
+        if (c.replies && c.replies.length > 0) {
+          return { ...c, replies: updateCommentScore(c.replies) }
+        }
+        return c
+      })
+    }
+
+    setComments(prev => updateCommentScore(prev))
+
+    try {
+      await apiRequest('/community/votes', {
+        method: 'POST',
+        body: JSON.stringify({ target_type: 'comment', target_id: commentId, vote_value: targetValue })
+      })
+    } catch (err) {
+      console.error('Comment vote failed:', err)
+      fetchComments()
+    }
+  }
+
+  const handlePostSave = async () => {
+    haptics.impactLight()
+    if (!isAuthenticated) {
+      triggerAuthModal(handlePostSave)
+      return
+    }
+
+    setPost(prev => ({ ...prev, is_saved: !prev.is_saved }))
+    try {
+      await apiRequest('/community/saved-items/toggle', {
+        method: 'POST',
+        body: JSON.stringify({ target_type: 'post', target_id: postId })
+      })
+    } catch (err) {
+      console.error(err)
+      fetchPostDetails()
+    }
   }
 
   const handleTopLevelCommentSubmit = async (e) => {
