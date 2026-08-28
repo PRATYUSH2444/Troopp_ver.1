@@ -257,12 +257,12 @@ const InfoTab = ({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-[#f3f1ea] pb-24">
+    <div className="info-tab-grid grid grid-cols-1 gap-6 items-start text-[#f3f1ea] pb-24">
 
       {/* =========================================================================
-          LEFT COLUMN (6 cols): Meeting Point, Briefing, Route Directives
+          LEFT COLUMN (Main Details & Expedition Route)
           ========================================================================= */}
-      <div className="lg:col-span-6 flex flex-col gap-6 min-w-0">
+      <div className="flex flex-col gap-6 min-w-0">
 
         {/* 1. DESIGNATED MEETING POINT */}
         <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-6 shadow-xl flex flex-col gap-5">
@@ -435,9 +435,9 @@ const InfoTab = ({
       </div>
 
       {/* =========================================================================
-          RIGHT COLUMN (6 cols): Traveler Roster, Checkpoint Tracker, Safety Card
+          RIGHT COLUMN (Traveler Roster, Checkpoint Tracker, Safety Card)
           ========================================================================= */}
-      <div className="lg:col-span-6 flex flex-col gap-6 min-w-0">
+      <div className="flex flex-col gap-6 min-w-0">
 
         {/* 1. TRAVELER ROSTER */}
         <div className="bg-[#1a2129] border border-white/10 rounded-[20px] p-6 shadow-xl flex flex-col gap-4">
