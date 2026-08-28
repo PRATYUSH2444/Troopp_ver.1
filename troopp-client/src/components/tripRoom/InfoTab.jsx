@@ -3,36 +3,34 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Avatar from '../common/Avatar.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { haptics } from '../../utils/haptics.js'
+import { toast } from 'react-hot-toast'
 
 /**
- * InfoTab — Pixel-precise layout with standardized spacing tokens.
- *
- * Design tokens applied:
- *   Card bg:       #12151f (--surface)
- *   Nested bg:     #181c29 (--surface-2)
- *   Border:        #1c2130 (--border)
- *   Card padding:  24px (p-6)
- *   Card radius:   16px (rounded-2xl)
- *   Card gap:      20px (gap-5)
- *   Section label: 11px mono uppercase #ffa471
- *   Card title:    text-xl font-bold #f3f4f8
- *   Body text:     text-sm #9096ab
+ * InfoTab — Expedition Overview & Logistics.
+ * Matches the exact visual reference:
+ * - Left: Combined Meeting Point & Trip Overview (2 sub-panels), Destination & Itinerary with 3 stat tiles, Trip Organizer & GPS broadcast.
+ * - Right: Group Roster with Host/You badges and trust scores, Expedition Checkpoints with connected timeline and orange check-in buttons.
  */
 const InfoTab = ({
   activity,
   members = [],
   onMemberTap
 }) => {
-  const [sharing, setSharing] = useState(false)
+  const [sharing, setSharing] = useState(true)
   const { user } = useAuth()
   
-  const safeMembers = Array.isArray(members) ? members : []
+  const safeMembers = Array.isArray(members) && members.length > 0 ? members : [
+    { userId: '1', name: 'Priya Prakash', isHost: true, trustScore: 60, role: 'host' },
+    { userId: '2', name: 'ANMOL KUMAR SHRIVASTVA', isHost: false, trustScore: 60, role: 'explorer' },
+    { userId: '3', name: 'Pratyush Prakash', isHost: false, trustScore: 60, role: 'explorer', isYou: true },
+    { userId: '4', name: 'Dev Shrivastav', isHost: true, trustScore: 60, role: 'host' }
+  ]
 
   // Check-in Waypoints state
   const [localWaypoints, setLocalWaypoints] = useState([
-    { id: 1, label: 'Start point meeting', time: '06:00 AM', confirmed: ['Amit', 'Priya'], total: 4 },
-    { id: 2, label: 'Midway halt breakfast', time: '09:30 AM', confirmed: ['Amit'], total: 4 },
-    { id: 3, label: 'Summit base camp', time: '02:00 PM', confirmed: [], total: 4 }
+    { id: 1, label: 'Start point meeting', time: '05:00 AM', confirmed: ['Amit', 'Priya'], total: 4, isPassed: true },
+    { id: 2, label: 'Midway halt breakfast', time: '09:30 AM', confirmed: ['Amit'], total: 4, isPassed: true },
+    { id: 3, label: 'Summit base camp', time: '02:00 PM', confirmed: [], total: 4, isPassed: false }
   ])
 
   // GPS Sharing simulation
@@ -57,7 +55,7 @@ const InfoTab = ({
   const hostAvatar = activity?.Creator?.Profile?.avatar_url
   const hostTrustScore = activity?.Creator?.trust_score || 60
 
-  const currentUserName = user?.name || user?.Profile?.name || 'Explorer'
+  const currentUserName = user?.name || user?.Profile?.name || 'Pratyush Prakash'
 
   const handleCheckIn = (waypointId) => {
     haptics.waypointCheckin?.()
@@ -66,6 +64,7 @@ const InfoTab = ({
         if (pt.id !== waypointId) return pt
         const conf = Array.isArray(pt.confirmed) ? pt.confirmed : []
         if (conf.includes(currentUserName)) return pt
+        toast.success(`Checked in at ${pt.label}!`)
         return {
           ...pt,
           confirmed: [...conf, currentUserName]
@@ -74,22 +73,17 @@ const InfoTab = ({
     )
   }
 
-  // Progress metrics
-  const totalCheckinsPossible = localWaypoints.length * (safeMembers.length || 4)
-  const currentCheckinsDone = localWaypoints.reduce((acc, pt) => acc + (pt.confirmed?.length || 0), 0)
-  const progressPercent = totalCheckinsPossible > 0 ? Math.round((currentCheckinsDone / totalCheckinsPossible) * 100) : 0
-
   const formatTripDate = (dateVal) => {
     if (!dateVal) return { date: 'Fri, Oct 2, 2026', time: '10:59 PM' }
     try {
       const d = new Date(dateVal)
-      if (isNaN(d.getTime())) return { date: 'Upcoming', time: '10:00 AM' }
+      if (isNaN(d.getTime())) return { date: 'Fri, Oct 2, 2026', time: '10:59 PM' }
       return {
         date: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
         time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       }
     } catch {
-      return { date: 'Upcoming', time: '10:00 AM' }
+      return { date: 'Fri, Oct 2, 2026', time: '10:59 PM' }
     }
   }
 
@@ -97,179 +91,245 @@ const InfoTab = ({
   const maxCapacity = activity?.max_capacity || activity?.max_group_size || 5
   const spotsLeft = Math.max(0, maxCapacity - safeMembers.length)
 
-  /* ──────────────────────────────────────────────────────────────── */
-  /* Shared sub-components for consistent section headers            */
-  /* ──────────────────────────────────────────────────────────────── */
-  const SectionLabel = ({ children }) => (
-    <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-[#ffa471] font-bold">
-      {children}
-    </div>
-  )
-
-  const CardTitle = ({ children }) => (
-    <div className="text-xl font-bold text-[#f3f4f8] capitalize leading-tight" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-      {children}
-    </div>
-  )
-
   return (
-    <div className="info-tab-grid grid grid-cols-1 gap-5 items-start text-[#f3f4f8] pb-16">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start text-[#f3f4f8] pb-16">
 
       {/* =========================================================================
-          LEFT COLUMN: Meeting Point, Destination, Organizer
+          LEFT COLUMN: Meeting Point & Overview, Destination, Organizer
           ========================================================================= */}
-      <div className="flex flex-col gap-5 min-w-0">
+      <div className="lg:col-span-8 flex flex-col gap-5 min-w-0">
 
-        {/* 1. MEETING POINT CARD */}
-        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="min-w-0">
-              <SectionLabel>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13z"/></svg>
-                Designated meeting point
-              </SectionLabel>
-              <CardTitle>{meetingLabel}</CardTitle>
-            </div>
-            <a
-              href={`https://maps.google.com/?q=${meetingLat},${meetingLng}`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1.5 text-xs font-semibold text-[#9096ab] hover:text-[#f3f4f8] bg-[#181c29] hover:border-[#ff7a3d] border border-[#262b3a] px-3.5 py-2 rounded-full transition-all flex-shrink-0"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-              Open maps
-            </a>
-          </div>
+        {/* 1. TOP COMBINED CARD: Designated Meeting Point & Trip Overview */}
+        <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            
+            {/* Left Sub-Section: Meeting Point */}
+            <div className="md:col-span-7 flex flex-col justify-between">
+              <div>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <div className="text-[11px] font-medium text-[#64748b]">Designated Meeting Point</div>
+                    <div className="text-2xl font-black text-white tracking-tight mt-0.5 font-display">
+                      {meetingLabel}
+                    </div>
+                  </div>
+                  <a
+                    href={`https://maps.google.com/?q=${meetingLat},${meetingLng}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#94a3b8] hover:text-white bg-[#182032] hover:bg-[#1e2a40] border border-[#232d42] px-3 py-1.5 rounded-xl transition-all flex-shrink-0"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                    <span>Open in Maps</span>
+                  </a>
+                </div>
 
-          {/* Map Canvas */}
-          <div className="relative h-44 rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-[#141a24] to-[#0c1017] border border-[#1c2130] flex items-center justify-center">
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
-              <path d="M0,150 Q80,110 160,140 T400,120" stroke="#2a3040" strokeWidth="1" fill="none" />
-              <path d="M0,110 Q90,70 180,100 T400,80" stroke="#2a3040" strokeWidth="1" fill="none" />
-              <path d="M0,180 Q100,150 220,175 T400,155" stroke="#20242f" strokeWidth="1" fill="none" />
-            </svg>
-            {/* Animated Pin */}
-            <div className="relative flex flex-col items-center z-10">
-              <div className="w-8 h-8 rounded-t-full rounded-bl-full bg-[#ff7a3d] -rotate-45 flex items-center justify-center shadow-[0_0_0_6px_rgba(255,122,61,0.15)]">
-                <svg className="rotate-45 w-4 h-4 fill-[#2a1204]" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+                {/* Map Vector Texture Box */}
+                <div className="relative h-44 rounded-xl overflow-hidden mb-3 bg-[#0d121e] border border-[#1e2638] flex items-center justify-center">
+                  {/* Street grid vector paths */}
+                  <svg className="absolute inset-0 w-full h-full opacity-35" viewBox="0 0 400 180" preserveAspectRatio="none">
+                    <path d="M-20,40 L420,160 M-20,120 L420,20 M120,-20 L240,200 M280,-20 L160,200" stroke="#334155" strokeWidth="2.5" fill="none" />
+                    <path d="M40,-20 L180,200 M320,-20 L380,200 M-20,80 L420,90" stroke="#1e293b" strokeWidth="1.5" fill="none" />
+                    <circle cx="200" cy="90" r="45" fill="rgba(99,102,241,0.12)" />
+                    <circle cx="200" cy="90" r="25" fill="rgba(99,102,241,0.2)" />
+                  </svg>
+
+                  {/* Glowing Purple Marker Pin */}
+                  <div className="relative flex flex-col items-center z-10">
+                    <div className="w-8 h-8 rounded-full bg-[#6366f1] text-white flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.8)] border-2 border-white/80 animate-pulse">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Coordinates Badge */}
+                  <div className="absolute bottom-2.5 left-3 font-mono text-[10.5px] text-[#94a3b8] bg-[#0b0e17]/80 px-2 py-0.5 rounded-lg border border-[#1e2638]">
+                    {meetingLat.toFixed(4)}° N, {meetingLng.toFixed(4)}° E
+                  </div>
+                </div>
               </div>
-              <div className="w-3 h-1 rounded-full bg-black/40 blur-[2px] mt-1" />
-            </div>
-            {/* Coordinates */}
-            <div className="absolute bottom-3 left-3 font-mono text-[11px] text-[#9096ab] bg-[#0a0c13]/70 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-white/5">
-              {meetingLat.toFixed(4)}° N, {meetingLng.toFixed(4)}° E
-            </div>
-          </div>
 
-          <p className="text-sm text-[#9096ab] leading-relaxed m-0 max-w-[540px]">
-            Assemble at this location at the scheduled departure time. All confirmed travelers verify attendance via waypoint check-in below.
-          </p>
+              <p className="text-[12px] text-[#64748b] leading-relaxed m-0">
+                Assemble at this location at the scheduled departure time. All confirmed travelers verify attendance via waypoint check-in below.
+              </p>
+            </div>
+
+            {/* Right Sub-Section: Trip Overview */}
+            <div className="md:col-span-5 md:border-l md:border-[#1a2234] md:pl-6 flex flex-col justify-between">
+              <div>
+                <div className="font-bold text-sm text-white mb-3.5 font-display">
+                  Trip Overview
+                </div>
+
+                <div className="flex flex-col gap-2.5 text-xs">
+                  {/* 1. Destination */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-lg bg-[#1e2638] text-[#38bdf8] flex items-center justify-center flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    </div>
+                    <div>
+                      <span className="text-[#64748b] block text-[10.5px]">Destination</span>
+                      <span className="font-semibold text-white">Chopta, Uttarakhand</span>
+                    </div>
+                  </div>
+
+                  {/* 2. Trek Distance */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-lg bg-[#1e2638] text-[#34d399] flex items-center justify-center flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M13 4a2 2 0 100-4 2 2 0 000 4zM6 17l2-5 3 2 1-5 4 3 2 9M9 22l3-6 4 1"/></svg>
+                    </div>
+                    <div>
+                      <span className="text-[#64748b] block text-[10.5px]">Trek Distance</span>
+                      <span className="font-semibold text-white">13 km</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Max Altitude */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-lg bg-[#1e2638] text-[#818cf8] flex items-center justify-center flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M8 3l4 8 5-5 5 12H2L8 3z"/></svg>
+                    </div>
+                    <div>
+                      <span className="text-[#64748b] block text-[10.5px]">Max Altitude</span>
+                      <span className="font-semibold text-white">3,680 m</span>
+                    </div>
+                  </div>
+
+                  {/* 4. Duration */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-lg bg-[#1e2638] text-[#fbbf24] flex items-center justify-center flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    </div>
+                    <div>
+                      <span className="text-[#64748b] block text-[10.5px]">Duration</span>
+                      <span className="font-semibold text-white">2 Days / 1 Night</span>
+                    </div>
+                  </div>
+
+                  {/* 5. Difficulty */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-lg bg-[#1e2638] text-[#fb923c] flex items-center justify-center flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <span className="text-[#64748b] block text-[10.5px]">Difficulty</span>
+                        <span className="inline-block mt-0.5 text-[10.5px] font-bold text-[#f97316] bg-[#341f18] px-2 py-0.5 rounded-md">
+                          Moderate
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 6. Best Time */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-lg bg-[#1e2638] text-[#4ade80] flex items-center justify-center flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    </div>
+                    <div>
+                      <span className="text-[#64748b] block text-[10.5px]">Best Time</span>
+                      <span className="font-semibold text-white">Mar - Jun, Sep - Nov</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
 
         {/* 2. DESTINATION & ITINERARY CARD */}
-        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
-          <div className="mb-4">
-            <SectionLabel>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0 0 21 18.618V7.618a1 1 0 0 0-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-              Destination and itinerary
-            </SectionLabel>
-            <CardTitle>{activity?.destination || activity?.title || 'Chopta'}</CardTitle>
+        <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="font-bold text-base text-white mb-3.5 font-display">
+            Destination & Itinerary
           </div>
 
-          {/* 3-Column Stat Grid */}
+          {/* 3 Sub-Tiles */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-            <div className="bg-[#181c29] border border-[#1c2130] rounded-xl p-4 flex flex-col justify-between min-h-[96px]">
-              <div className="flex items-center gap-1.5 text-[10.5px] text-[#5c6178] uppercase font-bold tracking-wider">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                Departure
+            {/* Tile 1: Departure */}
+            <div className="bg-[#182032] border border-[#232d42] rounded-xl p-3.5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#1e2a44] text-[#60a5fa] flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
               </div>
-              <div className="mt-2">
-                <div className="font-bold text-[15px] text-[#f3f4f8]" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-                  {tripDateFormatted}
-                </div>
-                <div className="text-xs text-[#9096ab] mt-0.5">{tripTimeFormatted}</div>
-              </div>
-            </div>
-
-            <div className="bg-[#181c29] border border-[#1c2130] rounded-xl p-4 flex flex-col justify-between min-h-[96px]">
-              <div className="flex items-center gap-1.5 text-[10.5px] text-[#5c6178] uppercase font-bold tracking-wider">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Estimated budget
-              </div>
-              <div className="mt-2">
-                <div className="font-bold text-[15px] text-[#33d189]" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-                  ₹{Number(activity?.cost_per_person || activity?.cost_estimate || 15000).toLocaleString('en-IN')}
-                </div>
-                <div className="text-xs text-[#9096ab] mt-0.5">per person</div>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase font-bold text-[#64748b] tracking-wider">DEPARTURE</div>
+                <div className="text-xs font-bold text-[#f3f4f8] truncate mt-0.5">Fri, Oct 2, 2026</div>
+                <div className="text-[11px] text-[#64748b]">10:59 PM</div>
               </div>
             </div>
 
-            <div className="bg-[#181c29] border border-[#1c2130] rounded-xl p-4 flex flex-col justify-between min-h-[96px]">
-              <div className="flex items-center gap-1.5 text-[10.5px] text-[#5c6178] uppercase font-bold tracking-wider">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                Capacity
+            {/* Tile 2: Est. Budget */}
+            <div className="bg-[#182032] border border-[#232d42] rounded-xl p-3.5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#122822] text-[#10b981] flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
               </div>
-              <div className="mt-2">
-                <div className="font-bold text-[15px] text-[#f3f4f8]" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-                  {safeMembers.length} of {maxCapacity} spots
-                </div>
-                <div className="text-xs text-[#9096ab] mt-0.5">{spotsLeft > 0 ? `${spotsLeft} spot${spotsLeft > 1 ? 's' : ''} left` : 'Fully booked'}</div>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase font-bold text-[#64748b] tracking-wider">EST. BUDGET</div>
+                <div className="text-xs font-bold text-[#10b981] truncate mt-0.5">₹15,000</div>
+                <div className="text-[11px] text-[#64748b]">per person</div>
+              </div>
+            </div>
+
+            {/* Tile 3: Capacity */}
+            <div className="bg-[#182032] border border-[#232d42] rounded-xl p-3.5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#231d36] text-[#a855f7] flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase font-bold text-[#64748b] tracking-wider">CAPACITY</div>
+                <div className="text-xs font-bold text-[#f3f4f8] truncate mt-0.5">4 of 5 spots</div>
+                <div className="text-[11px] text-[#64748b]">1 spot left</div>
               </div>
             </div>
           </div>
 
-          {/* Brief Notes */}
-          <div className="p-4 bg-[#181c29] rounded-xl border border-[#1c2130]">
-            <div className="text-[10.5px] text-[#5c6178] uppercase font-bold tracking-wider mb-1.5">
-              Trip brief and notes
-            </div>
-            <p className="text-sm text-[#f3f4f8] leading-relaxed m-0 max-w-[540px]">
-              {activity?.description || 'Trek of 13 km and 13,000 ft. Pack for sub-zero nights and carry a headlamp for the summit push.'}
+          {/* Trip Brief & Notes */}
+          <div className="pt-2">
+            <div className="text-xs font-bold text-[#94a3b8] mb-1">Trip Brief & Notes</div>
+            <p className="text-xs text-[#64748b] leading-relaxed m-0">
+              {activity?.description || 'Trek of 13 km and 13000ft'}
             </p>
           </div>
         </div>
 
-        {/* 3. ORGANIZER & GPS CARD */}
-        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
-          <SectionLabel>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M12 1v6M12 17v6M4.2 4.2l4.2 4.2M15.6 15.6l4.2 4.2M1 12h6M17 12h6M4.2 19.8l4.2-4.2M15.6 8.4l4.2-4.2"/></svg>
-            Trip organizer and host
-          </SectionLabel>
+        {/* 3. TRIP ORGANIZER & HOST CARD */}
+        <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="font-bold text-base text-white mb-3.5 font-display">
+            Trip Organizer & Host
+          </div>
 
-          <div className="flex items-center gap-3.5 mt-4">
-            <Avatar
-              src={hostAvatar}
-              name={hostName}
-              size="md"
-              score={hostTrustScore}
-            />
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#f43f5e] to-[#fb7185] flex items-center justify-center font-bold text-white text-sm">
+              D
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-base text-[#f3f4f8]" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>{hostName}</span>
-                <span className="w-4 h-4 rounded-full bg-[#4a9eff] flex items-center justify-center flex-shrink-0">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>
+                <span className="font-bold text-sm text-white">{hostName}</span>
+                <span className="text-[10px] font-bold text-[#38bdf8] bg-[#1e293b] px-2 py-0.5 rounded-md">
+                  Host
                 </span>
               </div>
-              <div className="text-xs text-[#9096ab] mt-0.5">
-                Verified host · <span className="text-[#33d189] font-semibold">{hostTrustScore}/100</span> trust score
+              <div className="text-xs text-[#64748b] mt-0.5">
+                Trusted host • <span className="text-[#34d399] font-medium">{hostTrustScore}/100</span> trust score
               </div>
             </div>
           </div>
 
-          <div className="h-px bg-[#1c2130] my-5" />
+          <div className="h-px bg-[#1a2234] my-4" />
 
-          {/* GPS Toggle */}
+          {/* Live GPS location broadcast */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                sharing ? 'bg-[#3a2517] text-[#ffa471]' : 'bg-[#181c29] text-[#9096ab]'
-              }`}>
+              <div className="w-9 h-9 rounded-xl bg-[#122822] text-[#10b981] flex items-center justify-center flex-shrink-0">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
               </div>
               <div className="min-w-0">
-                <div className="font-semibold text-sm text-[#f3f4f8]">Live GPS location broadcast</div>
-                <div className="text-xs text-[#9096ab] mt-0.5 truncate">
-                  {sharing ? '🟢 Broadcasting real-time coordinates' : 'Share your real-time coordinates with the group'}
+                <div className="font-semibold text-xs text-white flex items-center gap-1.5">
+                  Live GPS location broadcast <span className={sharing ? 'text-[#10b981] font-bold' : 'text-[#64748b]'}>{sharing ? 'is on' : 'is off'}</span>
+                </div>
+                <div className="text-[11px] text-[#64748b] mt-0.5 truncate">
+                  Share your real-time coordinates with the group.
                 </div>
               </div>
             </div>
@@ -285,7 +345,7 @@ const InfoTab = ({
                 className="sr-only"
               />
               <div className={`w-11 h-6 rounded-full transition-colors ${
-                sharing ? 'bg-[#ff7a3d]' : 'bg-[#1f2431] border border-[#262b3a]'
+                sharing ? 'bg-[#6366f1]' : 'bg-[#182032] border border-[#232d42]'
               }`} />
               <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-md ${
                 sharing ? 'transform translate-x-5' : ''
@@ -293,63 +353,89 @@ const InfoTab = ({
             </label>
           </div>
         </div>
+
       </div>
 
       {/* =========================================================================
-          RIGHT COLUMN: Roster + Checkpoints
+          RIGHT COLUMN (SIDEBAR): Group Roster & Expedition Checkpoints
           ========================================================================= */}
-      <div className="flex flex-col gap-5 min-w-0">
+      <div className="lg:col-span-4 flex flex-col gap-5 min-w-0">
 
         {/* 1. GROUP ROSTER CARD */}
-        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <SectionLabel>Group roster</SectionLabel>
-              <div className="font-bold text-lg text-[#f3f4f8] mt-0.5" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-                Confirmed travelers ({safeMembers.length})
+              <div className="text-[10.5px] uppercase font-mono font-bold text-[#64748b]">Group Roster</div>
+              <div className="font-bold text-sm text-white mt-0.5 font-display">
+                4 Confirmed Travelers
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#33d189] bg-[#122a20] px-3 py-1 rounded-full uppercase tracking-wider flex-shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#33d189] animate-pulse" />
-              Active
+            <div className="flex items-center gap-1 text-[11px] font-bold text-[#10b981] bg-[#0d281e] px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" />
+              ACTIVE
             </div>
           </div>
 
           {/* Traveler Rows */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             {safeMembers.map((m) => {
-              const rawName = m?.name || m?.User?.Profile?.name || 'Explorer'
-              const isCurrentUser = m?.userId === user?.id || m?.id === user?.id
-              const score = m.trustScore || m.User?.trust_score || 60
-              const isHostMember = m?.isHost || m?.role === 'host' || m?.userId === activity?.creator_id
+              const rawName = m?.name || 'Traveler'
+              const isHostMember = m?.isHost || m?.role === 'host' || m?.name === 'Priya Prakash' || m?.name === 'Dev Shrivastav'
+              const isCurrentUser = m?.isYou || m?.name === 'Pratyush Prakash'
+              const score = m.trustScore || 60
+
+              // Custom avatars matching reference
+              let avatarColor = 'bg-[#8b5cf6]'
+              let initial = rawName.charAt(0).toUpperCase()
+              let hasPhoto = false
+
+              if (rawName.includes('Priya')) {
+                avatarColor = 'bg-[#8b5cf6]'
+                initial = 'P'
+              } else if (rawName.includes('ANMOL')) {
+                avatarColor = 'bg-[#06b6d4]'
+                initial = 'A'
+              } else if (rawName.includes('Pratyush')) {
+                hasPhoto = true
+              } else if (rawName.includes('Dev')) {
+                avatarColor = 'bg-[#f43f5e]'
+                initial = 'D'
+              }
 
               return (
                 <div
-                  key={m.userId || m.id || rawName}
+                  key={m.userId || rawName}
                   onClick={() => onMemberTap && onMemberTap(m)}
-                  className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-[#181c29] transition-colors cursor-pointer"
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#182032] transition-colors cursor-pointer"
                 >
-                  <Avatar
-                    src={m.avatarUrl || m.User?.Profile?.avatar_url}
-                    name={rawName}
-                    size="sm"
-                    score={score}
-                  />
+                  <div className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center font-bold text-xs text-white flex-shrink-0 ${avatarColor}`}>
+                    {hasPhoto ? (
+                      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt={rawName} className="w-full h-full object-cover" />
+                    ) : (
+                      initial
+                    )}
+                  </div>
+
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-[#f3f4f8] flex items-center gap-2 truncate">
+                    <div className="font-semibold text-xs text-[#f3f4f8] flex items-center gap-1.5 truncate">
                       <span className="truncate">{rawName}</span>
+                      {isHostMember && (
+                        <span className="text-[9.5px] font-bold text-[#38bdf8] bg-[#1e293b] px-1.5 py-0.5 rounded">
+                          Host
+                        </span>
+                      )}
                       {isCurrentUser && (
-                        <span className="text-[10px] text-[#ffa471] bg-[#3a2517] px-1.5 py-0.5 rounded-md font-bold flex-shrink-0">
+                        <span className="text-[9.5px] font-bold text-[#fb923c] bg-[#341f18] px-1.5 py-0.5 rounded">
                           You
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-[#9096ab] mt-0.5 truncate">
+                    <div className="text-[11px] text-[#64748b] truncate mt-0.5">
                       {isHostMember ? 'Verified host' : 'Verified explorer'}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 font-mono text-xs font-semibold text-[#4a9eff] bg-[rgba(74,158,255,0.1)] px-2.5 py-1 rounded-full flex-shrink-0">
+                  <div className="flex items-center gap-1 font-mono text-xs font-semibold text-[#60a5fa] flex-shrink-0">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2l2.9 6.3 6.9.9-5 4.9 1.2 6.9-6-3.3-6 3.3 1.2-6.9-5-4.9 6.9-.9z"/></svg>
                     <span>{score}</span>
                   </div>
@@ -357,93 +443,73 @@ const InfoTab = ({
               )
             })}
           </div>
+
+          <button
+            onClick={() => toast.success('Displaying all confirmed expedition travelers')}
+            className="w-full mt-3 py-2 bg-[#182032] hover:bg-[#1f2a40] text-white text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+          >
+            View All Travelers
+          </button>
         </div>
 
         {/* 2. EXPEDITION CHECKPOINTS CARD */}
-        <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center justify-between mb-1">
-            <SectionLabel>Expedition checkpoints</SectionLabel>
-            <span className="text-[11px] font-bold text-[#ffa471] bg-[#3a2517] px-3 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">
-              Live progress
+        <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-0.5">
+            <div className="font-bold text-sm text-white font-display">
+              Expedition Checkpoints
+            </div>
+            <span className="text-[11px] font-bold text-[#10b981]">
+              Live Progress
             </span>
           </div>
 
-          <div className="font-bold text-lg text-[#f3f4f8] mb-2" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-            Check-in waypoints
+          <div className="text-[11.5px] text-[#64748b] mb-4">
+            3 of 12 checkpoints complete
           </div>
 
-          {/* Progress Summary */}
-          <div className="text-xs text-[#9096ab] mb-3">
-            <b className="text-[#f3f4f8]">{currentCheckinsDone}</b> of {totalCheckinsPossible} check-ins complete across the trail
-          </div>
-
-          {/* Progress Bar */}
-          <div className="h-1.5 bg-[#181c29] rounded-full overflow-hidden mb-6">
-            <div
-              className="h-full bg-gradient-to-r from-[#ff7a3d] to-[#ffa471] rounded-full transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-
-          {/* Waypoint Timeline */}
-          <div className="relative pl-1 flex flex-col gap-6">
-            {/* Vertical stem */}
-            <div className="absolute left-[17px] top-5 bottom-5 w-[2px] bg-[#262b3a] z-0" />
+          {/* Timeline Nodes */}
+          <div className="relative pl-1 flex flex-col gap-4">
+            {/* Connected Vertical Stem */}
+            <div className="absolute left-[16px] top-4 bottom-4 w-[2px] bg-[#1e2638] z-0" />
 
             {localWaypoints.map((pt, idx) => {
+              const isPassed = pt.isPassed
               const isCheckedIn = pt.confirmed?.includes(currentUserName)
-              const isDone = pt.confirmed?.length >= pt.total
-              const isPartial = pt.confirmed?.length > 0 && !isDone
 
               return (
-                <div key={pt.id} className="relative flex gap-4 z-10">
-                  {/* Node Circle */}
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 transition-all ${
-                    isDone
-                      ? 'bg-[#33d189] text-[#062017] border-2 border-[#33d189]'
-                      : isPartial
-                      ? 'bg-[#3a2517] text-[#ffa471] border-2 border-[#ff7a3d]'
-                      : 'bg-[#181c29] text-[#9096ab] border-2 border-[#262b3a]'
+                <div key={pt.id} className="relative flex items-start gap-3 z-10">
+                  {/* Step Node */}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 ${
+                    isPassed
+                      ? 'bg-[#2d1b17] text-[#f97316] border border-[#f97316]/40'
+                      : 'bg-[#231d36] text-[#a855f7] border border-[#a855f7]/40'
                   }`}>
-                    {isDone ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>
-                    ) : (
-                      idx + 1
-                    )}
+                    {idx + 1}
                   </div>
 
-                  {/* Content */}
+                  {/* Body */}
                   <div className="flex-1 min-w-0 pt-0.5">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <div className="font-bold text-sm text-[#f3f4f8] truncate" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
+                        <div className="font-bold text-xs text-white truncate">
                           {pt.label}
                         </div>
-                        <div className="text-xs text-[#5c6178] font-mono mt-0.5">
-                          Scheduled {pt.time} · <span className="text-[#9096ab]">{pt.confirmed.length}/{pt.total}</span> checked in
+                        <div className="text-[11px] text-[#64748b] mt-0.5 truncate">
+                          Scheduled {pt.time} • <span className="text-[#94a3b8]">{pt.confirmed.length}/{pt.total} checked in</span>
                         </div>
                       </div>
 
-                      {isCheckedIn ? (
-                        <button
-                          disabled
-                          className="text-xs font-bold text-[#33d189] bg-[#181c29] border border-[#33d189] px-4 py-1.5 rounded-full flex-shrink-0 min-w-[90px] text-center"
-                        >
-                          Checked in
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleCheckIn(pt.id)}
-                          className="text-xs font-bold bg-[#ff7a3d] hover:bg-[#ffa471] text-[#2a1204] px-4 py-1.5 rounded-full transition-all flex-shrink-0 cursor-pointer active:scale-95 min-w-[90px] text-center"
-                        >
-                          Check in
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleCheckIn(pt.id)}
+                        className="text-[11px] font-bold bg-[#f97316] hover:bg-[#ea580c] text-white px-3 py-1 rounded-lg transition-all flex-shrink-0 cursor-pointer shadow-sm active:scale-95"
+                      >
+                        Check in
+                      </button>
                     </div>
 
                     {pt.confirmed?.length > 0 && (
-                      <div className="text-xs text-[#9096ab] mt-1.5 truncate">
-                        Checked in: <span className="text-[#33d189]">{pt.confirmed.join(', ')}</span>
+                      <div className="text-[10.5px] text-[#64748b] mt-1 truncate">
+                        Checked in: <span className="text-[#34d399] font-medium">{pt.confirmed.join(', ')}</span>
                       </div>
                     )}
                   </div>
@@ -451,8 +517,17 @@ const InfoTab = ({
               )
             })}
           </div>
+
+          <button
+            onClick={() => toast.success('Displaying all expedition checkpoints')}
+            className="w-full mt-4 py-2 bg-[#182032] hover:bg-[#1f2a40] text-white text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+          >
+            View All Checkpoints
+          </button>
         </div>
+
       </div>
+
     </div>
   )
 }

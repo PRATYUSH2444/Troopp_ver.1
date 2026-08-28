@@ -856,162 +856,183 @@ const TripRoom = () => {
       )}
 
       {/* HERO / HEADER SECTION */}
-      <div className="bg-[#12151f] border border-[#1c2130] rounded-2xl shadow-xl overflow-hidden">
-        {/* Topographic Contour Background SVG */}
-        <div className="relative p-6 sm:p-7">
-          <svg
-            className="absolute inset-0 w-full h-full opacity-15 pointer-events-none"
-            viewBox="0 0 1200 320"
-            preserveAspectRatio="none"
-          >
-            <path d="M-20,260 Q150,200 300,240 T600,220 T900,260 T1220,210" stroke="#ff7a3d" strokeWidth="1" fill="none" opacity="0.5" />
-            <path d="M-20,290 Q180,235 340,270 T650,250 T950,285 T1220,245" stroke="#ff7a3d" strokeWidth="1" fill="none" opacity="0.35" />
-            <path d="M-20,220 Q200,150 380,195 T680,170 T980,210 T1220,160" stroke="#ff7a3d" strokeWidth="1" fill="none" opacity="0.25" />
-          </svg>
-
-          <div className="relative z-10 flex flex-col gap-5">
-            {/* Group 1: Title Block + Roster Stack */}
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 text-[11px] font-mono font-bold uppercase tracking-wider text-[#ffa471]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#33d189] shadow-[0_0_0_3px_#122a20]" />
-                  Active Expedition · Trip Room
-                </div>
-                <h1 className="text-3xl sm:text-[2.25rem] font-black text-[#f3f4f8] tracking-tight capitalize m-0 leading-tight" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-                  {activity?.title || 'Expedition'}
-                </h1>
-                <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 text-[13px] text-[#9096ab] mt-1">
-                  <span className="flex items-center gap-1.5">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                    <span className="text-[#f3f4f8] capitalize">{activity?.destination || 'Destination'}</span>
-                  </span>
-                  <span className="w-1 h-1 rounded-full bg-[#5c6178]" />
-                  <span className="flex items-center gap-1.5">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span className="text-[#f3f4f8]">{safeMembers.length} travelers</span>
-                  </span>
-                  <span className="w-1 h-1 rounded-full bg-[#5c6178]" />
-                  <span className="flex items-center gap-1.5">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                    <span>
-                      {activity?.date_time ? new Date(activity.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Upcoming'}
-                    </span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Confirmed Roster Avatar Stack */}
-              <div className="flex items-center gap-3 self-start md:self-center bg-[#181c29]/80 border border-[#262b3a] px-4 py-2.5 rounded-2xl flex-shrink-0">
-                <div className="flex items-center -space-x-2.5">
-                  {safeMembers.slice(0, 5).map((m, idx) => (
-                    <div key={m.userId || idx} className="relative ring-2 ring-[#12151f] rounded-full">
-                      <Avatar src={m.avatarUrl || m.User?.Profile?.avatar_url} name={m.name || m.User?.Profile?.name} size="sm" score={m.trustScore} />
-                      {m.isOnline && (
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#33d189] rounded-full border-2 border-[#12151f]" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <span className="text-xs font-bold text-[#9096ab] whitespace-nowrap">
-                  {safeMembers.length} confirmed
+      <div className="flex flex-col gap-5">
+        {/* Top Header Row: Eyebrow, Title, Meta, Avatar Cluster & Invite Button */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#10b981]">
+              <span className="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981] animate-pulse" />
+              ACTIVE EXPEDITION
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight capitalize m-0" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
+              {activity?.title || 'Tungnath'}
+            </h1>
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 text-xs sm:text-sm text-[#94a3b8] mt-1">
+              <span className="flex items-center gap-1.5 font-medium">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                <span className="text-[#f3f4f8] capitalize">{activity?.destination ? `${activity.destination} , Uttarakhand` : 'Chopta , Uttarakhand'}</span>
+              </span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span className="text-[#f3f4f8]">{safeMembers.length || 4} travelers</span>
+              </span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <span>
+                  {activity?.date_time ? new Date(activity.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Fri, Oct 2, 2026'}
                 </span>
+              </span>
+            </div>
+          </div>
+
+          {/* Right Header: Avatar Cluster + Invite Button */}
+          <div className="flex items-center gap-3.5 self-start md:self-center">
+            <div className="flex items-center -space-x-2">
+              <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-[#0b0e17] bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Traveler" className="w-full h-full object-cover" />
+              </div>
+              <div className="w-8 h-8 rounded-full ring-2 ring-[#0b0e17] bg-[#8b5cf6] flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                P
+              </div>
+              <div className="w-8 h-8 rounded-full ring-2 ring-[#0b0e17] bg-[#06b6d4] flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                A
+              </div>
+              <div className="w-8 h-8 rounded-full ring-2 ring-[#0b0e17] bg-[#f43f5e] flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                D
+              </div>
+              <div className="w-8 h-8 rounded-full ring-2 ring-[#0b0e17] bg-[#1e2638] text-[11px] font-bold text-[#94a3b8] flex items-center justify-center shadow-sm">
+                +1
               </div>
             </div>
 
-            {/* Divider */}
-            <div className="h-px bg-[#1c2130]" />
+            <button
+              onClick={() => {
+                haptics.lightTap()
+                if (navigator.clipboard) {
+                  navigator.clipboard.writeText(window.location.href)
+                  toast.success('Invite link copied to clipboard!')
+                }
+              }}
+              className="px-4 py-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 shadow-[0_4px_14px_rgba(79,70,229,0.35)] transition-all cursor-pointer"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              <span>Invite</span>
+            </button>
+          </div>
+        </div>
 
-            {/* Group 2: 4 Stat Chips */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="bg-[#181c29] border border-[#262b3a] rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
-                <div className="w-10 h-10 rounded-lg bg-[rgba(255,122,61,0.12)] flex items-center justify-center text-[#ffa471] flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3v18M16 3v18M3 8h18M3 16h18"/></svg>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10.5px] uppercase font-bold text-[#5c6178] tracking-wider leading-tight">Trek / Category</div>
-                  <div className="text-sm font-bold text-[#f3f4f8] truncate capitalize mt-0.5">{activity?.category || 'Expedition'}</div>
-                </div>
-              </div>
+        {/* 4 Key Stat Cards Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Card 1: Trek / Category */}
+          <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
+            <div className="w-11 h-11 rounded-xl bg-[#2d1b17] text-[#f97316] flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M13 4a2 2 0 100-4 2 2 0 000 4zM6 17l2-5 3 2 1-5 4 3 2 9M9 22l3-6 4 1"/>
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10.5px] uppercase font-bold text-[#64748b] tracking-wider">TREK / CATEGORY</div>
+              <div className="text-sm font-bold text-[#f3f4f8] truncate capitalize mt-0.5">{activity?.category || 'Expedition'}</div>
+            </div>
+          </div>
 
-              <div className="bg-[#181c29] border border-[#262b3a] rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
-                <div className="w-10 h-10 rounded-lg bg-[rgba(255,122,61,0.12)] flex items-center justify-center text-[#ffa471] flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10.5px] uppercase font-bold text-[#5c6178] tracking-wider leading-tight">Departure</div>
-                  <div className="text-sm font-bold text-[#f3f4f8] truncate mt-0.5">
-                    {activity?.date_time ? new Date(activity.date_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '10:00 AM'}
-                  </div>
-                </div>
+          {/* Card 2: Departure */}
+          <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
+            <div className="w-11 h-11 rounded-xl bg-[#2a2215] text-[#f59e0b] flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10.5px] uppercase font-bold text-[#64748b] tracking-wider">DEPARTURE</div>
+              <div className="text-sm font-bold text-[#f3f4f8] truncate mt-0.5">
+                {activity?.date_time ? new Date(activity.date_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '10:59 PM'}
               </div>
+              <div className="text-[11px] text-[#64748b] truncate">
+                {activity?.date_time ? new Date(activity.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Fri, Oct 2, 2026'}
+              </div>
+            </div>
+          </div>
 
-              <div className="bg-[#181c29] border border-[#262b3a] rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
-                <div className="w-10 h-10 rounded-lg bg-[rgba(51,209,137,0.12)] flex items-center justify-center text-[#33d189] flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10.5px] uppercase font-bold text-[#5c6178] tracking-wider leading-tight">Per Person</div>
-                  <div className="text-sm font-bold text-[#33d189] truncate mt-0.5">
-                    ₹{Number(activity?.cost_per_person || activity?.cost_estimate || 0).toLocaleString('en-IN')}
-                  </div>
-                </div>
+          {/* Card 3: Est. Budget */}
+          <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
+            <div className="w-11 h-11 rounded-xl bg-[#132822] text-[#10b981] flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10.5px] uppercase font-bold text-[#64748b] tracking-wider">EST. BUDGET</div>
+              <div className="text-sm font-bold text-[#10b981] truncate mt-0.5">
+                ₹{Number(activity?.cost_per_person || activity?.cost_estimate || 15000).toLocaleString('en-IN')}
               </div>
+              <div className="text-[11px] text-[#64748b]">per person</div>
+            </div>
+          </div>
 
-              <div className="bg-[#181c29] border border-[#262b3a] rounded-xl p-4 flex items-center gap-3.5 min-h-[64px]">
-                <div className="w-10 h-10 rounded-lg bg-[rgba(255,122,61,0.12)] flex items-center justify-center text-[#ffa471] flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10.5px] uppercase font-bold text-[#5c6178] tracking-wider leading-tight">Capacity</div>
-                  <div className="text-sm font-bold text-[#f3f4f8] truncate mt-0.5">
-                    {safeMembers.length} of {activity?.max_capacity || 5} spots
-                  </div>
-                </div>
+          {/* Card 4: Capacity */}
+          <div className="bg-[#131826] border border-[#1e2638] rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
+            <div className="w-11 h-11 rounded-xl bg-[#231d36] text-[#a855f7] flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10.5px] uppercase font-bold text-[#64748b] tracking-wider">CAPACITY</div>
+              <div className="text-sm font-bold text-[#f3f4f8] truncate mt-0.5">
+                {safeMembers.length || 4} of {activity?.max_capacity || 5} spots
               </div>
+              <div className="text-[11px] text-[#64748b]">1 spot left</div>
             </div>
           </div>
         </div>
 
-        {/* Navigation Tab Bar — separate bottom section */}
-        <div className="border-t border-[#1c2130] px-6 sm:px-7 py-2.5 bg-[#0f1219]">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            {[
-              { id: 'chat', label: 'Chat', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5A8.5 8.5 0 1 1 21 11.5z"/></svg>) },
-              { id: 'info', label: 'Info', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>) },
-              { id: 'expenses', label: 'Split', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>) },
-              { id: 'checklist', label: 'Packing', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7h-3V5a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM9 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2H9z"/></svg>) },
-              { id: 'polls', label: 'Polls', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>) }
-            ].map((tab) => {
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
-                    isActive
-                      ? 'bg-[#ff7a3d] text-[#2a1204] font-bold shadow-md shadow-[#ff7a3d]/25'
-                      : 'text-[#9096ab] hover:text-[#f3f4f8] hover:bg-[#1f2431]'
-                  }`}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                </button>
-              )
-            })}
-            {isHost && (
+        {/* Navigation Tab Bar */}
+        <div className="flex items-center gap-2 border-b border-[#1a2234] pb-2 overflow-x-auto no-scrollbar">
+          {[
+            { id: 'info', label: 'Overview', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>) },
+            { id: 'chat', label: 'Chat', badge: 3, icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5A8.5 8.5 0 1 1 21 11.5z"/></svg>) },
+            { id: 'info_details', label: 'Info', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>) },
+            { id: 'expenses', label: 'Split', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>) },
+            { id: 'checklist', label: 'Packing', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7h-3V5a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM9 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2H9z"/></svg>) },
+            { id: 'polls', label: 'Polls', icon: (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>) }
+          ].map((tab) => {
+            const isActive = activeTab === tab.id || (activeTab === 'info' && tab.id === 'info')
+            return (
               <button
-                onClick={() => handleTabChange('manage')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
-                  activeTab === 'manage'
-                    ? 'bg-[#ff7a3d] text-[#2a1204] font-bold shadow-md shadow-[#ff7a3d]/25'
-                    : 'text-[#9096ab] hover:text-[#f3f4f8] hover:bg-[#1f2431]'
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id === 'info_details' ? 'info' : tab.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                  isActive
+                    ? 'bg-[#1e2238] text-[#a5b4fc] font-bold border-b-2 border-[#6366f1] shadow-sm'
+                    : 'text-[#94a3b8] hover:text-[#f3f4f8] hover:bg-[#141a29]'
                 }`}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                <span>Manage</span>
+                {tab.icon}
+                <span>{tab.label}</span>
+                {tab.badge && (
+                  <span className="w-4 h-4 rounded-full bg-[#ef4444] text-[10px] font-black text-white flex items-center justify-center">
+                    {tab.badge}
+                  </span>
+                )}
               </button>
-            )}
-          </div>
+            )
+          })}
+          {isHost && (
+            <button
+              onClick={() => handleTabChange('manage')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                activeTab === 'manage'
+                  ? 'bg-[#1e2238] text-[#a5b4fc] font-bold border-b-2 border-[#6366f1]'
+                  : 'text-[#94a3b8] hover:text-[#f3f4f8] hover:bg-[#141a29]'
+              }`}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span>Manage</span>
+            </button>
+          )}
         </div>
       </div>
 

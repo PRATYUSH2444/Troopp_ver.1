@@ -5,10 +5,12 @@ import { haptics } from '../../utils/haptics.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import BottomNav from '../navigation/BottomNav.jsx'
 import { useNotifications } from '../../context/NotificationContext.jsx'
+import { toast } from 'react-hot-toast'
 
 /**
- * AppLayout — Main application shell.
- * Exclusively dark mode template aligned to outdoor adventure design system.
+ * AppLayout — Modern Expedition Application Shell.
+ * Directly matches the reference design with Top Search Bar, Navigation Rail,
+ * Go Premium CTA, Trip Room Code Share, and user profile badges.
  */
 const AppLayout = () => {
   const { user, logout } = useAuth()
@@ -16,6 +18,7 @@ const AppLayout = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -32,8 +35,6 @@ const AppLayout = () => {
     setIsMobileMenuOpen(false)
   }, [location.pathname])
 
-
-
   const handleLogout = async () => {
     haptics.lightTap()
     await logout()
@@ -43,55 +44,104 @@ const AppLayout = () => {
   const NAV_ITEMS = [
     {
       path: '/feed',
-      label: 'Activity Feed',
+      label: 'Trip Rooms',
       icon: (
-        <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-      )
-    },
-    {
-      path: '/search',
-      label: 'Search Trips',
-      icon: (
-        <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      )
-    },
-    {
-      path: '/community',
-      label: 'Community Boards',
-      icon: (
-        <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       )
     },
     {
-      path: '/activities/create',
-      label: 'Create Activity',
+      path: '/dashboard',
+      label: 'Dashboard',
       icon: (
-        <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
       )
     },
     {
-      path: '/notifications',
-      label: 'Notifications',
+      path: '/itinerary',
+      label: 'Itinerary',
       icon: (
-        <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 2v4M8 2v4M3 10h18" />
         </svg>
       )
     },
     {
-      path: '/profile/me',
-      label: 'My Profile',
+      path: '/checkpoints',
+      label: 'Checkpoints',
       icon: (
-        <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13z" />
+          <circle cx="12" cy="9" r="2.5" />
+        </svg>
+      )
+    },
+    {
+      path: '/community',
+      label: 'Travelers',
+      icon: (
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      )
+    },
+    {
+      path: '/packing',
+      label: 'Packing List',
+      icon: (
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20 7h-3V5a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM9 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2H9z" />
+        </svg>
+      )
+    },
+    {
+      path: '/polls',
+      label: 'Polls',
+      icon: (
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18 20V10M12 20V4M6 20v-6" />
+        </svg>
+      )
+    },
+    {
+      path: '/chat',
+      label: 'Chat',
+      icon: (
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      )
+    },
+    {
+      path: '/search',
+      label: 'Maps',
+      icon: (
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0 0 21 18.618V7.618a1 1 0 0 0-.553-.894L15 4m0 13V4m0 0L9 7" />
+        </svg>
+      )
+    },
+    {
+      path: '/expenses',
+      label: 'Expenses',
+      badge: 'Soon',
+      icon: (
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      )
+    },
+    {
+      path: '/documents',
+      label: 'Documents',
+      badge: 'Soon',
+      icon: (
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       )
     },
@@ -99,397 +149,261 @@ const AppLayout = () => {
       path: '/profile/me/settings',
       label: 'Settings',
       icon: (
-        <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.645-.869l.214-1.28z" />
+        <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       )
     }
   ]
 
-  if (user?.role === 'admin') {
-    NAV_ITEMS.push({
-      path: '/admin',
-      label: 'Admin Panel',
-      icon: (
-        <svg className="w-[19px] h-[19px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      )
-    })
+  const userName = user?.name || user?.Profile?.name || 'Dev Shrivastav'
+  const userAvatar = user?.avatar_url || user?.Profile?.avatar_url
+  const isHost = true
+
+  const handleCopyCode = () => {
+    haptics.lightTap()
+    navigator.clipboard.writeText('TUN-2026')
+    toast.success('Trip Room Code copied!')
   }
 
-  const trustScore = user?.trust_score ?? user?.trustScore ?? 0
-  const userName = user?.name || 'Explorer'
-
-  const getRingColor = () => {
-    if (trustScore >= 75) return '#4fbe8e'
-    if (trustScore >= 50) return '#3b82f6'
-    return '#6b757c'
+  const handleShare = () => {
+    haptics.lightTap()
+    if (navigator.share) {
+      navigator.share({ title: 'Troopp Expedition', text: 'Join my trip room with code TUN-2026', url: window.location.href })
+    } else {
+      handleCopyCode()
+    }
   }
-  const ringColor = getRingColor()
 
   return (
-    <div className="shell">
-      {/* MOBILE STICKY HEADER */}
-      <header className="mobile-header">
-        <div className="brand">
-          <div className="brand-logo-t">T</div>
-          <div className="brand-name">Troopp</div>
-        </div>
-        <button
-          className="hamburger-btn"
-          onClick={() => {
-            haptics.lightTap()
-            setIsMobileMenuOpen(!isMobileMenuOpen)
-          }}
-          aria-label="Toggle menu"
-        >
-          {isMobileMenuOpen ? (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
-      </header>
-
-      {/* MOBILE DRAWER OVERLAY */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="drawer-backdrop"
-              style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'rgba(0, 0, 0, 0.4)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                zIndex: 498
-              }}
-            />
-            {/* Drawer */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="drawer-container"
-              style={{
-                position: 'fixed',
-                top: 0,
-                right: 0,
-                bottom: 0,
-                width: 'min(300px, 80vw)',
-                background: '#0c1013',
-                borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-                zIndex: 499,
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.5)',
-                paddingTop: 'env(safe-area-inset-top, 0px)',
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)'
-              }}
-            >
-              {/* Drawer Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <span style={{ fontSize: '16px', fontWeight: '700', fontFamily: 'Space Grotesk', color: '#f3f1ea' }}>Menu</span>
-                <button
-                  onClick={() => { haptics.lightTap(); setIsMobileMenuOpen(false); }}
-                  style={{ background: 'none', border: 'none', color: '#9ba6ad', padding: '6px', cursor: 'pointer' }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Drawer Content */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: '700', color: '#6b757c', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
-                    Navigation
-                  </div>
-                  <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {NAV_ITEMS.map((item) => (
-                      <NavLink
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        style={({ isActive }) => ({
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '11px 14px',
-                          borderRadius: '9px',
-                          color: isActive ? '#ff6a2c' : '#9ba6ad',
-                          background: isActive ? 'rgba(255,106,44,0.14)' : 'transparent',
-                          fontSize: '14.5px',
-                          fontWeight: '500',
-                          transition: 'background 150ms ease, color 150ms ease',
-                          textDecoration: 'none'
-                        })}
-                      >
-                        {item.icon}
-                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <span>{item.label}</span>
-                          {item.path === '/notifications' && unreadCount > 0 && (
-                            <span style={{
-                              background: '#ef4444',
-                              color: '#fff',
-                              borderRadius: '9999px',
-                              padding: '2px 8px',
-                              fontSize: '11px',
-                              fontWeight: '700',
-                              marginLeft: '8px'
-                            }}>
-                              {unreadCount}
-                            </span>
-                          )}
-                        </span>
-                      </NavLink>
-                    ))}
-                  </nav>
-                </div>
-              </div>
-
-              {/* Drawer Footer */}
-              <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: '#090c0e' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                  <div style={{ position: 'relative', width: '38px', height: '38px', flexShrink: 0 }}>
-                    <svg width="38" height="38" viewBox="0 0 38 38" style={{ transform: 'rotate(-90deg)' }}>
-                      <circle cx="19" cy="19" r="16" fill="none" stroke="#212b33" strokeWidth="3.5" />
-                      <circle
-                        cx="19"
-                        cy="19"
-                        r="16"
-                        fill="none"
-                        stroke={ringColor}
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeDasharray="100"
-                        strokeDashoffset={100 - (100 * trustScore) / 100}
-                      />
-                    </svg>
-                    <div style={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '9px',
-                      fontWeight: '600',
-                      fontFamily: 'IBM Plex Mono',
-                      color: '#f3f1ea'
-                    }}>{trustScore}</div>
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      color: '#f3f1ea'
-                    }}>{userName}</div>
-                    <div style={{ fontSize: '11px', color: '#6b757c', whiteSpace: 'nowrap' }}>
-                      Peer Trust Index
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}
-                  title="Log out"
-                  style={{
-                    background: 'none',
-                    border: '1px solid rgba(255,255,255,0.14)',
-                    color: '#9ba6ad',
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '9px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'border-color 150ms, color 150ms',
-                    flexShrink: 0
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                  </svg>
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* SIDEBAR */}
-      <aside className="sidebar">
-        {/* BRAND — hidden on mobile via display rule */}
-        <div className="brand">
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '11px',
-            background: 'linear-gradient(155deg, #ff6a2c, #d9481a)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: 'Space Grotesk',
-            fontWeight: '700',
-            fontSize: '18px',
-            boxShadow: '0 4px 14px rgba(255,106,44,0.35)',
-            flexShrink: '0',
-            color: 'white'
-          }}>T</div>
-          <div style={{
-            fontSize: '19px',
-            fontWeight: '600',
-            letterSpacing: '-0.01em',
-            fontFamily: 'Space Grotesk',
-            color: '#f3f1ea'
-          }}>Troopp</div>
-        </div>
-
-        {/* NAV LINKS */}
-        <nav style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          flex: '1'
-        }}>
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={() => haptics.lightTap()}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '11px 14px',
-                borderRadius: '9px',
-                color: isActive ? '#ff6a2c' : '#9ba6ad',
-                background: isActive ? 'rgba(255,106,44,0.14)' : 'transparent',
-                fontSize: '14.5px',
-                fontWeight: '500',
-                transition: 'background 150ms ease, color 150ms ease',
-                textDecoration: 'none'
-              })}
-            >
-              {item.icon}
-              <span className="nav-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <span>{item.label}</span>
-                {item.path === '/notifications' && unreadCount > 0 && (
-                  <span style={{
-                    background: '#ef4444',
-                    color: '#fff',
-                    borderRadius: '9999px',
-                    padding: '2px 8px',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    marginLeft: '8px'
-                  }}>
-                    {unreadCount}
-                  </span>
-                )}
-              </span>
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* FOOTER — hidden on mobile */}
-        <div className="sidebar-footer">
-          {/* Trust score ring SVG */}
-          <div style={{ position: 'relative', width: '44px', height: '44px', flexShrink: 0 }}>
-            <svg width="44" height="44" viewBox="0 0 44 44" style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx="22" cy="22" r="18" fill="none" stroke="#212b33" strokeWidth="4" />
-              <circle
-                cx="22"
-                cy="22"
-                r="18"
-                fill="none"
-                stroke={ringColor}
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray="113"
-                strokeDashoffset={113 - (113 * trustScore) / 100}
-              />
-            </svg>
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '10px',
-              fontWeight: '600',
-              fontFamily: 'IBM Plex Mono',
-              color: '#f3f1ea'
-            }}>{trustScore}</div>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              color: '#f3f1ea'
-            }}>{userName}</div>
-            <div style={{ fontSize: '12px', color: '#6b757c', whiteSpace: 'nowrap' }}>
-              Peer Trust Index
+    <div className="min-h-screen bg-[#0b0e17] text-[#f3f4f8] flex flex-col font-sans">
+      
+      {/* =========================================================================
+          GLOBAL TOP NAVIGATION BAR
+          ========================================================================= */}
+      <header className="h-16 bg-[#0f1422] border-b border-[#1a2234] sticky top-0 z-50 px-4 sm:px-6 flex items-center justify-between gap-4">
+        {/* Left Brand */}
+        <div className="flex items-center gap-3">
+          <Link to="/feed" className="flex items-center gap-2.5 text-[#f3f4f8] hover:opacity-90 transition-opacity">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#4f46e5] flex items-center justify-center shadow-[0_0_12px_rgba(99,102,241,0.35)]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                <path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19h-15L12 5.8z"/>
+              </svg>
             </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            title="Log out"
-            style={{
-              background: 'none',
-              border: '1px solid rgba(255,255,255,0.14)',
-              color: '#9ba6ad',
-              width: '34px',
-              height: '34px',
-              borderRadius: '9px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'border-color 150ms, color 150ms',
-              flexShrink: 0
-            }}
-          >
+            <span className="font-bold text-base tracking-wider uppercase font-display hidden sm:inline-block">
+              EXPEDITION
+            </span>
+          </Link>
+        </div>
+
+        {/* Center Search Bar */}
+        <div className="flex-1 max-w-md hidden md:flex items-center relative">
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748b] pointer-events-none">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search trips, rooms, travelers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#141a29] border border-[#1e2638] text-sm text-[#f3f4f8] placeholder-[#64748b] pl-10 pr-4 py-2 rounded-xl focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1] outline-none transition-all"
+          />
+        </div>
+
+        {/* Right Actions & User Profile */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          {/* Quick Chat Icon */}
+          <Link
+            to="/chat"
+            className="w-9 h-9 rounded-xl bg-[#141a29] hover:bg-[#1c2438] border border-[#1e2638] flex items-center justify-center text-[#94a3b8] hover:text-[#f3f4f8] transition-colors relative"
+            title="Messages"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </Link>
+
+          {/* Notifications with Badge */}
+          <Link
+            to="/notifications"
+            className="w-9 h-9 rounded-xl bg-[#141a29] hover:bg-[#1c2438] border border-[#1e2638] flex items-center justify-center text-[#94a3b8] hover:text-[#f3f4f8] transition-colors relative"
+            title="Notifications"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ef4444] text-[10px] font-black text-white flex items-center justify-center shadow-sm">
+              {unreadCount > 0 ? unreadCount : 3}
+            </span>
+          </Link>
+
+          {/* Theme Moon Toggle */}
+          <button
+            onClick={() => haptics.lightTap()}
+            className="w-9 h-9 rounded-xl bg-[#141a29] hover:bg-[#1c2438] border border-[#1e2638] flex items-center justify-center text-[#94a3b8] hover:text-[#f3f4f8] transition-colors cursor-pointer"
+            title="Toggle theme"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+
+          <div className="h-6 w-px bg-[#1a2234] hidden sm:block" />
+
+          {/* User Profile Header Chip */}
+          <Link
+            to="/profile/me"
+            className="flex items-center gap-2.5 hover:opacity-90 transition-opacity p-1 rounded-xl"
+          >
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#f43f5e] to-[#fb7185] flex items-center justify-center font-bold text-xs text-white overflow-hidden ring-2 ring-[#6366f1]/40">
+              {userAvatar ? (
+                <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
+              ) : (
+                userName.charAt(0).toUpperCase()
+              )}
+            </div>
+            <div className="hidden lg:flex flex-col text-left">
+              <span className="text-xs font-bold text-[#f3f4f8] leading-tight truncate max-w-[120px]">
+                {userName}
+              </span>
+              <span className="text-[10.5px] text-[#64748b] font-medium flex items-center gap-1">
+                Host
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </span>
+            </div>
+          </Link>
+
+          {/* Mobile Hamburger Toggle */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden w-9 h-9 rounded-xl bg-[#141a29] border border-[#1e2638] flex items-center justify-center text-[#f3f4f8]"
+            aria-label="Toggle menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </button>
         </div>
+      </header>
 
-      </aside>
+      {/* =========================================================================
+          APPLICATION BODY (SIDEBAR + MAIN CONTENT)
+          ========================================================================= */}
+      <div className="flex-1 flex overflow-x-hidden">
+        
+        {/* DESKTOP SIDEBAR */}
+        <aside className="w-[240px] bg-[#0f1422] border-r border-[#1a2234] flex-shrink-0 sticky top-16 h-[calc(100vh-64px)] hidden md:flex flex-col justify-between p-3.5 overflow-y-auto">
+          <div className="flex flex-col gap-1">
+            {NAV_ITEMS.map((item) => {
+              const isTripRoomsActive = item.path === '/feed' && (location.pathname.startsWith('/trip-rooms') || location.pathname === '/feed')
+              
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) => {
+                    const active = isTripRoomsActive || isActive
+                    return `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all ${
+                      active
+                        ? 'bg-[#1e2238] text-[#a5b4fc] font-semibold border-l-2 border-[#6366f1]'
+                        : 'text-[#94a3b8] hover:text-[#f3f4f8] hover:bg-[#141a29]'
+                    }`
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className="text-[10px] uppercase font-bold text-[#64748b] bg-[#141a29] border border-[#1e2638] px-2 py-0.5 rounded-md">
+                      {item.badge}
+                    </span>
+                  )}
+                </NavLink>
+              )
+            })}
+          </div>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="main-content">
-        <Outlet />
-      </main>
+          {/* LOWER SIDEBAR MODULES: Go Premium + Trip Room Code + Support */}
+          <div className="flex flex-col gap-3 pt-4 border-t border-[#1a2234] mt-3">
+            {/* Go Premium Card */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-b from-[#181d33] to-[#121626] border border-[#232a48] relative overflow-hidden shadow-lg">
+              <div className="absolute top-2 right-2 text-xl opacity-80">🏔️</div>
+              <div className="font-bold text-xs text-[#f3f4f8] mb-1 font-display">Go Premium</div>
+              <p className="text-[11px] text-[#94a3b8] leading-tight mb-3">
+                Unlock advanced features and tools for your expeditions.
+              </p>
+              <button
+                onClick={() => {
+                  haptics.lightTap()
+                  toast.success('Expedition Premium pass features activated!')
+                }}
+                className="w-full py-1.5 px-3 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:from-[#4f46e5] hover:to-[#7c3aed] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer text-center"
+              >
+                Upgrade Now
+              </button>
+            </div>
 
-      {/* MOBILE BOTTOM NAV — hidden on desktop/tablet via media queries */}
-      <div className="mobile-only-nav">
-        <BottomNav isMobileMenuOpen={isMobileMenuOpen} />
+            {/* Trip Room Code Card */}
+            <div className="p-3 bg-[#141a29] border border-[#1e2638] rounded-xl flex items-center justify-between">
+              <div>
+                <div className="text-[10px] uppercase font-mono font-bold text-[#64748b]">Trip Room Code</div>
+                <div className="font-mono font-bold text-xs text-[#f3f4f8] mt-0.5">TUN-2026</div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleShare}
+                  className="p-1.5 rounded-lg text-[#94a3b8] hover:text-[#f3f4f8] hover:bg-[#1e2638] transition-colors"
+                  title="Share Code"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleCopyCode}
+                  className="p-1.5 rounded-lg text-[#94a3b8] hover:text-[#f3f4f8] hover:bg-[#1e2638] transition-colors"
+                  title="Copy Code"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Need Help link */}
+            <div className="flex items-center gap-2 px-1 text-xs">
+              <span className="text-[#64748b]">💬 Need help?</span>
+              <a href="mailto:support@troopp.com" className="text-[#818cf8] hover:underline font-semibold">
+                Contact Support
+              </a>
+            </div>
+          </div>
+        </aside>
+
+        {/* MAIN OUTLET CONTAINER */}
+        <main className="flex-1 min-w-0 max-w-full bg-[#0b0e17] p-4 sm:p-6 lg:p-7 overflow-y-auto">
+          <Outlet />
+        </main>
       </div>
 
+      {/* MOBILE BOTTOM NAVIGATION */}
+      <div className="md:hidden">
+        <BottomNav isMobileMenuOpen={isMobileMenuOpen} />
+      </div>
 
     </div>
   )
